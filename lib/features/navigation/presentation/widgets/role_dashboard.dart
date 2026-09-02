@@ -1,14 +1,30 @@
-// Dashboard selon le rôle
-// Affiche un tableau de bord adapté au rôle de l'utilisateur
+// ============================================
+// DASHBOARD SELON LE RÔLE
+// ============================================
+// Affiche un tableau de bord adapté au rôle de l'utilisateur.
+// Design moderne, cohérent avec la palette ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../routes/app_routes.dart';
 import '../../../auth/domain/entities/user_role.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 class RoleDashboard extends StatelessWidget {
-  const RoleDashboard({super.key});
+  final Widget? clientDashboard;
+  final Widget? adminDashboard;
+  final Widget? sellerDashboard;
+  final Widget? guestDashboard;
+
+  const RoleDashboard({
+    super.key,
+    this.clientDashboard,
+    this.adminDashboard,
+    this.sellerDashboard,
+    this.guestDashboard,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,13 +33,13 @@ class RoleDashboard extends StatelessWidget {
 
     switch (currentRole) {
       case UserRole.admin:
-        return const AdminDashboard();
+        return adminDashboard ?? const AdminDashboard();
       case UserRole.seller:
-        return const SellerDashboard();
+        return sellerDashboard ?? const SellerDashboard();
       case UserRole.client:
-        return const ClientDashboard();
+        return clientDashboard ?? const ClientDashboard();
       case UserRole.guest:
-        return const GuestDashboard();
+        return guestDashboard ?? const GuestDashboard();
     }
   }
 
@@ -45,12 +61,13 @@ class AdminDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.surface,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // En-tête
             const Text(
               'Dashboard Admin',
               style: TextStyle(
@@ -70,7 +87,7 @@ class AdminDashboard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Statistiques principales
             GridView.count(
               crossAxisCount: 2,
@@ -78,37 +95,41 @@ class AdminDashboard extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 1.5,
+              childAspectRatio: 1.4,
               children: [
                 _buildStatCard(
-                  icon: Icons.inventory_2,
+                  icon: Icons.inventory_2_outlined,
                   label: 'Produits',
                   value: '250',
                   color: AppColors.primary,
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.adminProducts),
                 ),
                 _buildStatCard(
-                  icon: Icons.receipt_long,
+                  icon: Icons.receipt_long_outlined,
                   label: 'Commandes',
-                  value: '1,250',
-                  color: AppColors.secondary,
+                  value: '1 250',
+                  color: AppColors.warning,
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.adminOrders),
                 ),
                 _buildStatCard(
-                  icon: Icons.people,
+                  icon: Icons.people_outline,
                   label: 'Utilisateurs',
-                  value: '3,500',
+                  value: '3 500',
                   color: AppColors.success,
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.adminUsers),
                 ),
                 _buildStatCard(
-                  icon: Icons.payments,
+                  icon: Icons.payments_outlined,
                   label: 'Revenus',
-                  value: '15M',
+                  value: '15M FCFA',
                   color: AppColors.error,
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.adminStats),
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 25),
-            
+
             // Actions rapides
             const Text(
               'ACTIONS RAPIDES',
@@ -128,25 +149,56 @@ class AdminDashboard extends StatelessWidget {
                     icon: Icons.add,
                     label: 'Ajouter produit',
                     color: AppColors.primary,
+                    onTap: () => Navigator.of(context).pushNamed(AppRoutes.adminProductForm),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: _buildActionCard(
-                    icon: Icons.people,
-                    label: 'Gérer utilisateurs',
-                    color: AppColors.secondary,
+                    icon: Icons.people_outline,
+                    label: 'Utilisateurs',
+                    color: AppColors.warning,
+                    onTap: () => Navigator.of(context).pushNamed(AppRoutes.adminUsers),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: _buildActionCard(
-                    icon: Icons.settings,
+                    icon: Icons.settings_outlined,
                     label: 'Paramètres',
                     color: AppColors.success,
+                    onTap: () => Navigator.of(context).pushNamed(AppRoutes.adminSettings),
                   ),
                 ),
               ],
+            ),
+
+            const SizedBox(height: 25),
+
+            // Alertes stock faible
+            const Text(
+              'ALERTES STOCK',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildStockAlert(
+              icon: Icons.warning_amber,
+              title: '5 produits en stock faible',
+              subtitle: 'Samsung Galaxy S24, iPhone 15, MacBook Air...',
+              color: AppColors.warning,
+            ),
+            const SizedBox(height: 8),
+            _buildStockAlert(
+              icon: Icons.error_outline,
+              title: '2 produits en rupture',
+              subtitle: 'AirPods Pro, Chargeur 65W',
+              color: AppColors.error,
             ),
           ],
         ),
@@ -159,46 +211,51 @@ class AdminDashboard extends StatelessWidget {
     required String label,
     required String value,
     required Color color,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderColor.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 35,
-            height: 35,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.borderColor.withValues(alpha: 0.5)),
+          boxShadow: AppColors.softShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 18, color: color),
             ),
-            child: Icon(icon, size: 18, color: color),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+            const SizedBox(height: 10),
+            Text(
+              value,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 11,
-              color: AppColors.textSecondary,
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -207,26 +264,84 @@ class AdminDashboard extends StatelessWidget {
     required IconData icon,
     required String label,
     required Color color,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 24, color: color),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStockAlert({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Icon(icon, size: 24, color: color),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -244,7 +359,7 @@ class SellerDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.surface,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -269,44 +384,47 @@ class SellerDashboard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 1.5,
+              childAspectRatio: 1.4,
               children: [
                 _buildStatCard(
-                  icon: Icons.inventory_2,
+                  icon: Icons.inventory_2_outlined,
                   label: 'Mes Produits',
                   value: '85',
-                  color: AppColors.secondary,
+                  color: AppColors.warning,
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.sellerProducts),
                 ),
                 _buildStatCard(
-                  icon: Icons.receipt_long,
+                  icon: Icons.receipt_long_outlined,
                   label: 'Commandes',
                   value: '450',
                   color: AppColors.primary,
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.sellerOrders),
                 ),
                 _buildStatCard(
-                  icon: Icons.star,
+                  icon: Icons.star_outline,
                   label: 'Note moyenne',
                   value: '4.5',
                   color: AppColors.warning,
                 ),
                 _buildStatCard(
-                  icon: Icons.payments,
+                  icon: Icons.payments_outlined,
                   label: 'Revenus',
-                  value: '5M',
+                  value: '5M FCFA',
                   color: AppColors.success,
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.sellerStats),
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 25),
-            
+
             const Text(
               'DERNIÈRES COMMANDES',
               style: TextStyle(
@@ -330,46 +448,51 @@ class SellerDashboard extends StatelessWidget {
     required String label,
     required String value,
     required Color color,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderColor.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 35,
-            height: 35,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.borderColor.withValues(alpha: 0.5)),
+          boxShadow: AppColors.softShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 18, color: color),
             ),
-            child: Icon(icon, size: 18, color: color),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+            const SizedBox(height: 10),
+            Text(
+              value,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 11,
-              color: AppColors.textSecondary,
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -380,24 +503,25 @@ class SellerDashboard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.borderColor.withValues(alpha: 0.5)),
+        boxShadow: AppColors.softShadow,
       ),
       child: Column(
         children: List.generate(5, (index) {
           return ListTile(
             leading: Container(
-              width: 35,
-              height: 35,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
-                color: AppColors.secondary.withValues(alpha: 0.1),
+                color: AppColors.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
-                Icons.shopping_bag,
+                Icons.shopping_bag_outlined,
                 size: 16,
-                color: AppColors.secondary,
+                color: AppColors.warning,
               ),
             ),
-           title: Text(
+            title: Text(
               'Commande #CMD-2024-00${index + 1}',
               style: const TextStyle(
                 fontFamily: 'Poppins',
@@ -414,7 +538,7 @@ class SellerDashboard extends StatelessWidget {
               ),
             ),
             trailing: const Text(
-              '25,000 F',
+              '25 000 FCFA',
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 13,
@@ -422,6 +546,9 @@ class SellerDashboard extends StatelessWidget {
                 color: AppColors.textPrimary,
               ),
             ),
+            onTap: () {
+              // TODO: Navigation vers détail commande
+            },
           );
         }),
       ),
@@ -463,7 +590,7 @@ class ClientDashboard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Bannière promo
             Container(
               width: double.infinity,
@@ -471,6 +598,7 @@ class ClientDashboard extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: AppColors.mediumShadow,
               ),
               child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,9 +624,9 @@ class ClientDashboard extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 25),
-            
+
             const Text(
               'CATÉGORIES POPULAIRES',
               style: TextStyle(
@@ -524,13 +652,13 @@ class ClientDashboard extends StatelessWidget {
                   child: _buildCategoryCard(
                     icon: Icons.checkroom,
                     label: 'Mode',
-                    color: AppColors.secondary,
+                    color: AppColors.warning,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _buildCategoryCard(
-                    icon: Icons.home,
+                    icon: Icons.home_outlined,
                     label: 'Maison',
                     color: AppColors.success,
                   ),
@@ -554,6 +682,7 @@ class ClientDashboard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.borderColor.withValues(alpha: 0.5)),
+        boxShadow: AppColors.softShadow,
       ),
       child: Column(
         children: [
@@ -582,16 +711,82 @@ class GuestDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
-        child: Text(
-          'Connectez-vous pour voir le contenu',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 16,
-            color: AppColors.textSecondary,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.person_outline,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Connectez-vous',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 5),
+            const Text(
+              'Pour voir le contenu personnalisé',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed(AppRoutes.login);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'SE CONNECTER',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed(AppRoutes.register);
+              },
+              child: const Text(
+                'Créer un compte',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

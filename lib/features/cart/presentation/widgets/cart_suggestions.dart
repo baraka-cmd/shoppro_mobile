@@ -36,7 +36,7 @@ class CartSuggestions extends StatelessWidget {
                   Icon(
                     Icons.recommend,
                     size: 16,
-                    color: AppColors.secondary,
+                    color: AppColors.warning,
                   ),
                   SizedBox(width: 6),
                   Text(

@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../network/api_client.dart';
 import '../constants/api_constants.dart';
 
+
 class UploadService {
   static final UploadService _instance = UploadService._internal();
   factory UploadService() => _instance;

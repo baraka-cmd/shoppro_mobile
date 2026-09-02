@@ -276,7 +276,7 @@ class _AdminReviewsScreenState extends State<AdminReviewsScreen> {
                         return Icon(
                           i < (review.rating ?? 0) ? Icons.star : Icons.star_border,
                           size: 13,
-                          color: AppColors.secondary,
+                          color: AppColors.warning,
                         );
                       }),
                     ),

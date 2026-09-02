@@ -1,8 +1,8 @@
 // ============================================
 // THÈME DE L'APPLICATION SHOPPRO
 // ============================================
-// Configuration du thème clair avec la police Poppins.
-// Design moderne avec les couleurs actualisées.
+// Design System complet basé sur la palette Bleu Royal.
+// Moderne, professionnel et adapté mobile.
 // ============================================
 
 // ============================================
@@ -19,10 +19,11 @@ class AppTheme {
   // ============================================
   // THÈME PRINCIPAL
   // ============================================
+
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    
+
     // ============================================
     // COULEURS
     // ============================================
@@ -31,19 +32,19 @@ class AppTheme {
     colorScheme: const ColorScheme.light(
       primary: AppColors.primary,
       onPrimary: Colors.white,
-      secondary: AppColors.secondary,
+      secondary: AppColors.warning,
       onSecondary: AppColors.textOnSecondary,
       error: AppColors.error,
       onError: Colors.white,
-      surface: AppColors.surface,
+      surface: AppColors.background,
       onSurface: AppColors.textPrimary,
     ),
-    
+
     // ============================================
     // POLICE
     // ============================================
     fontFamily: 'Poppins',
-    
+
     // ============================================
     // APP BAR
     // ============================================
@@ -57,13 +58,14 @@ class AppTheme {
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: Colors.white,
+        letterSpacing: 0.5,
       ),
       iconTheme: IconThemeData(
         color: Colors.white,
         size: 22,
       ),
     ),
-    
+
     // ============================================
     // BOUTONS ÉLEVÉS
     // ============================================
@@ -71,32 +73,27 @@ class AppTheme {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 14,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
         ),
         elevation: 2,
         textStyle: const TextStyle(
           fontFamily: 'Poppins',
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
         ),
       ),
     ),
-    
+
     // ============================================
     // BOUTONS TEXTE
     // ============================================
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: AppColors.primary,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 10,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
@@ -107,29 +104,26 @@ class AppTheme {
         ),
       ),
     ),
-    
+
     // ============================================
     // BOUTONS OUTLINED
     // ============================================
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,
-        side: const BorderSide(color: AppColors.primary),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 14,
-        ),
+        side: const BorderSide(color: AppColors.primary, width: 1.5),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
         ),
         textStyle: const TextStyle(
           fontFamily: 'Poppins',
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.w600,
         ),
       ),
     ),
-    
+
     // ============================================
     // CHAMPS DE TEXTE
     // ============================================
@@ -156,10 +150,7 @@ class AppTheme {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.error, width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       labelStyle: const TextStyle(
         fontFamily: 'Poppins',
         fontSize: 14,
@@ -178,41 +169,41 @@ class AppTheme {
       prefixIconColor: AppColors.textTertiary,
       suffixIconColor: AppColors.textTertiary,
     ),
-    
+
     // ============================================
     // CARTES
     // ============================================
     cardTheme: CardThemeData(
-      color: AppColors.surface,
+      color: AppColors.card,
       elevation: 2,
       shadowColor: AppColors.textPrimary.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
       ),
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     ),
-    
+
     // ============================================
     // NAVIGATION BASSE
     // ============================================
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: Colors.white,
       selectedItemColor: AppColors.primary,
-      unselectedItemColor: AppColors.textLight,
+      unselectedItemColor: AppColors.textTertiary,
       type: BottomNavigationBarType.fixed,
-      elevation: 8,
+      elevation: 12,
       selectedLabelStyle: TextStyle(
         fontFamily: 'Poppins',
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: FontWeight.w600,
       ),
       unselectedLabelStyle: TextStyle(
         fontFamily: 'Poppins',
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: FontWeight.w400,
       ),
     ),
-    
+
     // ============================================
     // SNACKBAR
     // ============================================
@@ -224,12 +215,12 @@ class AppTheme {
       ),
       contentTextStyle: const TextStyle(
         fontFamily: 'Poppins',
-        fontSize: 14,
+        fontSize: 13,
         color: Colors.white,
       ),
       elevation: 6,
     ),
-    
+
     // ============================================
     // DIVIDER
     // ============================================
@@ -238,7 +229,7 @@ class AppTheme {
       thickness: 1,
       space: 1,
     ),
-    
+
     // ============================================
     // CHECKBOX
     // ============================================
@@ -249,7 +240,7 @@ class AppTheme {
         borderRadius: BorderRadius.circular(4),
       ),
     ),
-    
+
     // ============================================
     // SWITCH
     // ============================================
@@ -259,22 +250,22 @@ class AppTheme {
         AppColors.primary.withValues(alpha: 0.3),
       ),
     ),
-    
+
     // ============================================
     // PROGRESS INDICATOR
     // ============================================
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: AppColors.primary,
-      linearTrackColor: AppColors.surfaceAlt,
-      circularTrackColor: AppColors.surfaceAlt,
+      linearTrackColor: AppColors.surface,
+      circularTrackColor: AppColors.surface,
     ),
-    
+
     // ============================================
     // CHIPS
     // ============================================
     chipTheme: ChipThemeData(
-      backgroundColor: AppColors.surfaceAlt,
-      selectedColor: AppColors.primary,
+      backgroundColor: AppColors.surface,
+      selectedColor: AppColors.primarySoft,
       labelStyle: const TextStyle(
         fontFamily: 'Poppins',
         fontSize: 13,
@@ -283,21 +274,21 @@ class AppTheme {
       secondaryLabelStyle: const TextStyle(
         fontFamily: 'Poppins',
         fontSize: 13,
-        color: Colors.white,
+        color: AppColors.primary,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: AppColors.borderColor),
       ),
       side: const BorderSide(color: AppColors.borderColor),
     ),
-    
+
     // ============================================
     // DIALOG
     // ============================================
     dialogTheme: DialogThemeData(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       elevation: 8,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -315,13 +306,13 @@ class AppTheme {
         color: AppColors.textSecondary,
       ),
     ),
-    
+
     // ============================================
     // TAB BAR
     // ============================================
     tabBarTheme: const TabBarThemeData(
       labelColor: AppColors.primary,
-      unselectedLabelColor: AppColors.textLight,
+      unselectedLabelColor: AppColors.textTertiary,
       indicatorColor: AppColors.primary,
       labelStyle: TextStyle(
         fontFamily: 'Poppins',
@@ -332,6 +323,62 @@ class AppTheme {
         fontFamily: 'Poppins',
         fontSize: 14,
         fontWeight: FontWeight.w400,
+      ),
+    ),
+
+    // ============================================
+    // BOTTOM SHEET
+    // ============================================
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: AppColors.background,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+    ),
+
+    // ============================================
+    // LIST TILE
+    // ============================================
+    listTileTheme: const ListTileThemeData(
+      iconColor: AppColors.textSecondary,
+      textColor: AppColors.textPrimary,
+      titleTextStyle: TextStyle(
+        fontFamily: 'Poppins',
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      subtitleTextStyle: TextStyle(
+        fontFamily: 'Poppins',
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: AppColors.textSecondary,
+      ),
+    ),
+
+    // ============================================
+    // FLOATING ACTION BUTTON
+    // ============================================
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    ),
+
+    // ============================================
+    // POPUP MENU
+    // ============================================
+    popupMenuTheme: PopupMenuThemeData(
+      color: AppColors.background,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      textStyle: const TextStyle(
+        fontFamily: 'Poppins',
+        fontSize: 13,
+        color: AppColors.textPrimary,
       ),
     ),
   );

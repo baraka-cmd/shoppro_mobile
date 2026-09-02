@@ -1,12 +1,15 @@
-// Barre d'application selon le rôle
-// Affiche un AppBar adapté au rôle avec les actions appropriées
+// ============================================
+// BARRE D'APPLICATION SELON LE RÔLE
+// ============================================
+// AppBar adaptée au rôle avec les actions appropriées.
+// Design épuré, moderne, cohérent avec la palette.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../auth/domain/entities/user_role.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../auth/presentation/widgets/role_badge.dart';
 
 class RoleBasedAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -43,22 +46,23 @@ class RoleBasedAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final currentRole = _getCurrentRole(authProvider);
+    final roleColor = _getColorForRole(currentRole);
 
     return Container(
       decoration: BoxDecoration(
-        gradient: _getGradientForRole(currentRole),
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: _getColorForRole(currentRole).withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
               // Menu (drawer)
@@ -67,94 +71,96 @@ class RoleBasedAppBar extends StatelessWidget implements PreferredSizeWidget {
                   onPressed: onMenuTap,
                   icon: const Icon(
                     Icons.menu,
-                    color: Colors.white,
-                    size: 24,
+                    color: AppColors.textPrimary,
+                    size: 22,
                   ),
                 ),
-              
-              // Logo ou titre
-              Expanded(
-                child: Row(
-                  children: [
-                    // Icône du rôle
-                    Container(
-                      width: 35,
-                      height: 35,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        currentRole.icon,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                    ),
-                    
-                    const SizedBox(width: 10),
-                    
-                    // Titre
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
+              const SizedBox(width: 4),
+
+              // Logo ou icône
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: roleColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  currentRole.icon,
+                  size: 20,
+                  color: roleColor,
                 ),
               ),
-              
+              const SizedBox(width: 10),
+
+              // Titre
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                    letterSpacing: 0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
               // Badge de rôle
               if (showRoleBadge && currentRole != UserRole.guest)
                 Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: 6),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                      horizontal: 10,
+                      vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(15),
+                      color: roleColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: roleColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           currentRole.icon,
                           size: 12,
-                          color: Colors.white,
+                          color: roleColor,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           currentRole.shortLabel,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Poppins',
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: roleColor,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-              
+
               // Recherche
               if (showSearch)
                 IconButton(
                   onPressed: onSearchTap,
                   icon: const Icon(
                     Icons.search,
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     size: 22,
                   ),
+                  tooltip: 'Rechercher',
                 ),
-              
+
               // Notifications
               if (showNotifications)
                 Stack(
@@ -162,17 +168,18 @@ class RoleBasedAppBar extends StatelessWidget implements PreferredSizeWidget {
                     IconButton(
                       onPressed: onNotificationTap,
                       icon: const Icon(
-                        Icons.notifications_outlined,
-                        color: Colors.white,
+                        Icons.notifications_none,
+                        color: AppColors.textPrimary,
                         size: 22,
                       ),
+                      tooltip: 'Notifications',
                     ),
                     if (notificationCount != null && notificationCount! > 0)
                       Positioned(
-                        right: 5,
-                        top: 5,
+                        right: 6,
+                        top: 6,
                         child: Container(
-                          padding: const EdgeInsets.all(3),
+                          padding: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
                             color: AppColors.error,
                             shape: BoxShape.circle,
@@ -182,8 +189,8 @@ class RoleBasedAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                           ),
                           constraints: const BoxConstraints(
-                            minWidth: 14,
-                            minHeight: 14,
+                            minWidth: 16,
+                            minHeight: 16,
                           ),
                           child: Text(
                             notificationCount! > 99
@@ -192,7 +199,7 @@ class RoleBasedAppBar extends StatelessWidget implements PreferredSizeWidget {
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontFamily: 'Poppins',
-                              fontSize: 7,
+                              fontSize: 8,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -201,7 +208,7 @@ class RoleBasedAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                   ],
                 ),
-              
+
               // Panier (client uniquement)
               if (showCart && currentRole == UserRole.client)
                 Stack(
@@ -209,17 +216,18 @@ class RoleBasedAppBar extends StatelessWidget implements PreferredSizeWidget {
                     IconButton(
                       onPressed: onCartTap,
                       icon: const Icon(
-                        Icons.shopping_cart_outlined,
-                        color: Colors.white,
-                        size: 22,
+                        Icons.shopping_bag_outlined,
+                        color: AppColors.textPrimary,
+                        size: 21,
                       ),
+                      tooltip: 'Panier',
                     ),
                     if (cartCount != null && cartCount! > 0)
                       Positioned(
-                        right: 5,
-                        top: 5,
+                        right: 6,
+                        top: 6,
                         child: Container(
-                          padding: const EdgeInsets.all(3),
+                          padding: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
                             color: AppColors.error,
                             shape: BoxShape.circle,
@@ -229,15 +237,15 @@ class RoleBasedAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                           ),
                           constraints: const BoxConstraints(
-                            minWidth: 14,
-                            minHeight: 14,
+                            minWidth: 16,
+                            minHeight: 16,
                           ),
                           child: Text(
                             cartCount! > 99 ? '99+' : '$cartCount',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontFamily: 'Poppins',
-                              fontSize: 7,
+                              fontSize: 8,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -266,26 +274,13 @@ class RoleBasedAppBar extends StatelessWidget implements PreferredSizeWidget {
   Color _getColorForRole(UserRole role) {
     switch (role) {
       case UserRole.admin:
-        return AppColors.error;
+        return AppColors.primaryDark;
       case UserRole.seller:
-        return AppColors.secondary;
+        return AppColors.warning;
       case UserRole.client:
         return AppColors.primary;
       case UserRole.guest:
         return AppColors.textSecondary;
     }
-  }
-
-  // Dégradé selon le rôle
-  LinearGradient _getGradientForRole(UserRole role) {
-    final color = _getColorForRole(role);
-    return LinearGradient(
-      colors: [
-        color,
-        color.withValues(alpha: 0.8),
-      ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
   }
 }

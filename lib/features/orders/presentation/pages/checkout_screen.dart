@@ -77,7 +77,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       code: 'mobile_money',
       description: 'MTN Mobile Money, Orange Money',
       icon: Icons.phone_android,
-      color: AppColors.secondary,
+      color: AppColors.warning,
     ),
     PaymentMethodData(
       id: 3,

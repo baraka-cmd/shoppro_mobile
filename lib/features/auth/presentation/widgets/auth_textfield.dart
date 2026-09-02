@@ -1,10 +1,32 @@
-// Champ de texte personnalisé pour l'authentification
-// Design moderne avec icône, label flottant et validation
+// ============================================
+// WIDGET : AuthTextField
+// ============================================
+// Champ de texte personnalisé pour l'authentification.
+// Design moderne avec :
+// - Label au-dessus du champ
+// - Icône dans un conteneur arrondi
+// - États de focus élégants
+// - Support autofill
+// - Contrôle de la capitalisation
+// - Callback onChanged pour réactivité
+// ============================================
+
+// ============================================
+// IMPORTS
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 
+// ============================================
+// WIDGET PRINCIPAL
+// ============================================
+
 class AuthTextField extends StatefulWidget {
+  // ============================================
+  // PROPRIÉTÉS
+  // ============================================
+
   final TextEditingController controller;
   final String label;
   final String hint;
@@ -15,7 +37,28 @@ class AuthTextField extends StatefulWidget {
   final bool obscureText;
   final bool enabled;
   final Widget? suffixIcon;
+
+  /// Callback quand le texte change (pour la réactivité)
+  final ValueChanged<String>? onChanged;
+
+  /// Callback quand l'utilisateur soumet
   final ValueChanged<String>? onSubmitted;
+
+  /// Hints d'autofill (email, password, etc.)
+  final Iterable<String>? autofillHints;
+
+  /// Capitalisation du texte (none pour les emails)
+  final TextCapitalization textCapitalization;
+
+  /// Activer la correction automatique
+  final bool autocorrect;
+
+  /// Activer les suggestions
+  final bool enableSuggestions;
+
+  // ============================================
+  // CONSTRUCTEUR
+  // ============================================
 
   const AuthTextField({
     super.key,
@@ -29,12 +72,21 @@ class AuthTextField extends StatefulWidget {
     this.obscureText = false,
     this.enabled = true,
     this.suffixIcon,
+    this.onChanged,
     this.onSubmitted,
+    this.autofillHints,
+    this.textCapitalization = TextCapitalization.none,
+    this.autocorrect = false,
+    this.enableSuggestions = false,
   });
 
   @override
   State<AuthTextField> createState() => _AuthTextFieldState();
 }
+
+// ============================================
+// STATE
+// ============================================
 
 class _AuthTextFieldState extends State<AuthTextField> {
   bool _isFocused = false;
@@ -46,20 +98,24 @@ class _AuthTextFieldState extends State<AuthTextField> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label au-dessus du champ
+          // ============================================
+          // LABEL
+          // ============================================
           Text(
             widget.label,
             style: const TextStyle(
               fontFamily: 'Poppins',
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
-          
+
           const SizedBox(height: 8),
-          
-          // Champ de texte
+
+          // ============================================
+          // CHAMP DE TEXTE
+          // ============================================
           Focus(
             onFocusChange: (focused) {
               setState(() {
@@ -73,10 +129,15 @@ class _AuthTextFieldState extends State<AuthTextField> {
               obscureText: widget.obscureText,
               enabled: widget.enabled,
               validator: widget.validator,
+              onChanged: widget.onChanged,
               onFieldSubmitted: widget.onSubmitted,
+              autofillHints: widget.autofillHints,
+              textCapitalization: widget.textCapitalization,
+              autocorrect: widget.autocorrect,
+              enableSuggestions: widget.enableSuggestions,
               style: const TextStyle(
                 fontFamily: 'Poppins',
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
@@ -84,7 +145,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
                 hintText: widget.hint,
                 hintStyle: const TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w400,
                   color: AppColors.textLight,
                 ),
@@ -93,12 +154,12 @@ class _AuthTextFieldState extends State<AuthTextField> {
                   decoration: BoxDecoration(
                     color: _isFocused
                         ? AppColors.primary.withValues(alpha: 0.1)
-                        : AppColors.background,
+                        : AppColors.surface,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     widget.icon,
-                    size: 20,
+                    size: 18,
                     color: _isFocused
                         ? AppColors.primary
                         : AppColors.textSecondary,
@@ -106,49 +167,49 @@ class _AuthTextFieldState extends State<AuthTextField> {
                 ),
                 suffixIcon: widget.suffixIcon,
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.surface,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
+                  horizontal: 14,
+                  vertical: 14,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
                     color: AppColors.borderColor,
-                    width: 1.5,
+                    width: 1,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
                     color: AppColors.borderColor,
-                    width: 1.5,
+                    width: 1,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
                     color: AppColors.primary,
-                    width: 2,
-                  ),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                    color: AppColors.error,
                     width: 1.5,
                   ),
                 ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
                     color: AppColors.error,
-                    width: 2,
+                    width: 1,
+                  ),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.error,
+                    width: 1.5,
                   ),
                 ),
                 errorStyle: const TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: AppColors.error,
                 ),

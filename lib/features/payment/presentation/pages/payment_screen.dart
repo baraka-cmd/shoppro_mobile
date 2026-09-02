@@ -44,7 +44,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'label': 'Mobile Money',
       'description': 'MTN MoMo, Orange Money',
       'icon': Icons.phone_android,
-      'color': AppColors.secondary,
+      'color': AppColors.warning,
       'available': false,
     },
     {

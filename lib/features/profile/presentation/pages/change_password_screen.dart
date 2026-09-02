@@ -246,7 +246,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 hint: 'Entrez votre nouveau mot de passe',
                 validator: Validators.validatePassword,
                 textInputAction: TextInputAction.next,
-                showStrengthIndicator: true,
+                onChanged: (value) {
+                  setState(() {}); // ✅ Pour mettre à jour l'indicateur séparé
+                },
+              ),
+              // ✅ Indicateur séparé
+              PasswordStrengthIndicator(
+                password: _newPasswordController.text,
               ),
               
               // Indicateur de force

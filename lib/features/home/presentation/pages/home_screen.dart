@@ -1,38 +1,48 @@
-// Écran d'accueil complet
-// Assemble AppBar, bannières dynamiques, catégories et toutes les sections
+// ============================================
+// ÉCRAN D'ACCUEIL - VERSION FINALE PRO
+// ============================================
+// Assemble toutes les sections :
+// - HomeAppBar (salutation + recherche + badges)
+// - BannerCarousel (hero auto-play)
+// - CategoryGrid (navigation rapide)
+// - FlashSaleSection (urgence avec timer)
+// - BestSellersSection (confiance)
+// - RecommendedSection (personnalisation)
+// - BlogSection (inspiration)
+// - AdBanner (publicités intégrées)
+// - Bottom Navigation flottante
+// ============================================
+
+// ============================================
+// IMPORTS
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../routes/app_routes.dart';
-
-// Providers
+import '../../../auth/domain/entities/user_role.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../products/presentation/providers/product_provider.dart';
 import '../../../products/presentation/providers/category_provider.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
+import '../../../favorites/presentation/providers/favorite_provider.dart';
+import '../../../favorites/domain/entities/favorite.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
-import '../providers/banner_provider.dart';
-
-// Widgets produits
-import '../../../products/presentation/widgets/featured_products_section.dart';
-import '../../../products/presentation/widgets/popular_products_section.dart';
-import '../../../products/presentation/widgets/recent_products_section.dart';
-import '../../../products/presentation/widgets/on_sale_products_section.dart';
-
-// Navigation
 import '../../../navigation/presentation/widgets/role_based_navigation.dart';
-import '../../../auth/domain/entities/user_role.dart';
-
-// Widgets Home
+import '../providers/banner_provider.dart';
 import '../widgets/home_appbar.dart';
 import '../widgets/banner_carousel.dart';
 import '../widgets/category_grid.dart';
 import '../widgets/flash_sale_section.dart';
 import '../widgets/best_sellers_section.dart';
 import '../widgets/recommended_section.dart';
-import '../widgets/ad_banner.dart';
 import '../widgets/blog_section.dart';
-import '../widgets/dynamic_sections.dart';
+import '../widgets/ad_banner.dart';
+
+// ============================================
+// ÉCRAN PRINCIPAL
+// ============================================
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,476 +51,388 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+// ============================================
+// STATE
+// ============================================
+
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentTab = 0;
+  int _currentNavIndex = 0;
+
+  // ============================================
+  // INIT
+  // ============================================
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadAllData();
   }
 
-  // Charger toutes les données
-  Future<void> _loadData() async {
-    final productProvider = context.read<ProductProvider>();
-    final categoryProvider = context.read<CategoryProvider>();
-    final bannerProvider = context.read<BannerProvider>();
+  // ============================================
+  // CHARGEMENT DES DONNÉES
+  // ============================================
 
+  Future<void> _loadAllData() async {
+    // Charger en parallèle pour plus de rapidité
     await Future.wait([
-      productProvider.loadAllSections(),
-      categoryProvider.loadCategories(),
-      bannerProvider.loadBanners(),
+      context.read<BannerProvider>().loadBanners(),
+      context.read<ProductProvider>().loadFeaturedProducts(),
+      context.read<ProductProvider>().loadPopularProducts(),
+      context.read<ProductProvider>().loadOnSaleProducts(),
+      context.read<CategoryProvider>().loadCategories(),
+      context.read<CartProvider>().loadCart(),
+      context.read<FavoriteProvider>().loadFavorites(),
+      context.read<NotificationProvider>().loadNotifications(),
     ]);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: HomeAppBar(
-        notificationCount: context.watch<NotificationProvider>().unreadCount,
-        cartCount: context.watch<CartProvider>().totalQuantity,
-        onSearchTap: () {
-          Navigator.of(context).pushNamed(AppRoutes.search);
-        },
-        onNotificationTap: () {
-          Navigator.of(context).pushNamed(AppRoutes.notifications);
-        },
-        onCartTap: () {
-          Navigator.of(context).pushNamed(AppRoutes.cart);
-        },
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        color: AppColors.primary,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 15),
-              _buildBanners(),
-              const SizedBox(height: 25),
-              _buildCategories(),
-              const SizedBox(height: 25),
-              _buildFlashSale(),
-              const SizedBox(height: 25),
-             
-              _buildFeaturedProducts(),
-              const SizedBox(height: 25),
-              _buildBestSellers(),
-              const SizedBox(height: 25),
-              _buildPopularProducts(),
-              const SizedBox(height: 25),
-              _buildRecommended(),
-              const SizedBox(height: 25),
-              
-              _buildRecentProducts(),
-              const SizedBox(height: 25),
-              _buildOnSaleProducts(),
-              const SizedBox(height: 25),
-              _buildBlogSection(),
-              const SizedBox(height: 25),
-              _buildDynamicSections(),
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: RoleBasedNavigation(
-        roleItems: {
-          UserRole.client: RoleNavigationItems.clientItems,
-          UserRole.seller: RoleNavigationItems.sellerItems,
-          UserRole.admin: RoleNavigationItems.adminItems,
-          UserRole.guest: RoleNavigationItems.guestItems,
-        },
-        onItemSelected: (index) {
-          setState(() {
-            _currentTab = index;
-          });
-          _handleTabChange(index);
-        },
-      ),
-    );
+  // ============================================
+  // REFRESH (PULL-TO-REFRESH)
+  // ============================================
+
+  Future<void> _refreshHome() async {
+    await _loadAllData();
   }
 
-  // Bannières dynamiques depuis l'API
-  Widget _buildBanners() {
-  return Consumer<BannerProvider>(
-    builder: (context, bannerProvider, child) {
-      if (bannerProvider.isLoading && bannerProvider.banners.isEmpty) {
-        return BannerCarousel(
-          banners: const [
-            BannerItem(backgroundColor: AppColors.primary),
-            BannerItem(backgroundColor: AppColors.secondary),
-          ],
-          height: 170,
-          autoPlay: true,
-        );
-      }
+  // ============================================
+  // NAVIGATION PRINCIPALE
+  // ============================================
 
-      // ✅ Utiliser TOUTES les bannières (pas seulement homeTop)
-      return BannerCarousel(
-        banners: bannerProvider.banners.map((banner) {
-          return BannerItem(
-            imageUrl: banner.imageUrl,
-            title: banner.title,
-            subtitle: banner.subtitle,
-            onTap: () => _handleBannerTap(banner),
-          );
-        }).toList(),
-        height: 170,
-        autoPlay: true,
-        autoPlayInterval: const Duration(seconds: 5),
-        showDots: bannerProvider.banners.length > 1,
-        showCounter: bannerProvider.banners.length > 1,
-      );
-    },
-  );
-}
-  // Gérer le tap sur une bannière
-  void _handleBannerTap(dynamic banner) {
-    switch (banner.targetType) {
-      case 'product':
-        Navigator.of(context).pushNamed(
-          AppRoutes.productDetail,
-          arguments: {'product_id': int.tryParse(banner.targetId ?? '') ?? 0},
-        );
-        break;
-      case 'category':
-        Navigator.of(context).pushNamed(
-          AppRoutes.categoryDetail,
-          arguments: {
-            'category_id': int.tryParse(banner.targetId ?? '') ?? 0,
-            'category_name': banner.title,
-          },
-        );
-        break;
-      case 'promotion':
-        Navigator.of(context).pushNamed(
-          AppRoutes.productList,
-          arguments: {'title': banner.title ?? 'Promotion'},
-        );
-        break;
-      default:
-        break;
-    }
-  }
+  void _onNavItemSelected(int index) {
+    setState(() {
+      _currentNavIndex = index;
+    });
 
-  // Catégories
-  Widget _buildCategories() {
-    return Consumer<CategoryProvider>(
-      builder: (context, categoryProvider, child) {
-        return CategoryGrid(
-          categories: categoryProvider.categories.take(8).toList(),
-          isLoading: categoryProvider.isLoading,
-          crossAxisCount: 4,
-          onCategoryTap: (category) {
-            Navigator.of(context).pushNamed(
-              AppRoutes.categoryDetail,
-              arguments: {
-                'category_id': category.id,
-                'category_name': category.name,
-              },
-            );
-          },
-          onSeeAll: () {
-            Navigator.of(context).pushNamed(AppRoutes.categoryList);
-          },
-        );
-      },
-    );
-  }
-
-  // Flash Sale
-  Widget _buildFlashSale() {
-    return Consumer<ProductProvider>(
-      builder: (context, productProvider, child) {
-        return FlashSaleSection(
-          products: productProvider.onSaleProducts,
-          isLoading: productProvider.isLoading,
-          endTime: DateTime.now().add(const Duration(hours: 2, minutes: 15)),
-          onSeeAll: () {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productList,
-              arguments: {'title': 'Flash Sale'},
-            );
-          },
-          onProductTap: (product) {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productDetail,
-              arguments: {'product_id': product.id},
-            );
-          },
-        );
-      },
-    );
-  }
-
-  
-
-  // Produits en vedette
-  Widget _buildFeaturedProducts() {
-    return Consumer<ProductProvider>(
-      builder: (context, productProvider, child) {
-        return FeaturedProductsSection(
-          products: productProvider.featuredProducts,
-          isLoading: productProvider.isLoading && productProvider.featuredProducts.isEmpty,
-          onSeeAll: () {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productList,
-              arguments: {'title': 'Produits en vedette'},
-            );
-          },
-          onProductTap: (product) {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productDetail,
-              arguments: {'product_id': product.id},
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Meilleures ventes
-  Widget _buildBestSellers() {
-    return Consumer<ProductProvider>(
-      builder: (context, productProvider, child) {
-        return BestSellersSection(
-          products: productProvider.popularProducts,
-          isLoading: productProvider.isLoading,
-          onSeeAll: () {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productList,
-              arguments: {'title': 'Meilleures ventes'},
-            );
-          },
-          onProductTap: (product) {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productDetail,
-              arguments: {'product_id': product.id},
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Produits populaires
-  Widget _buildPopularProducts() {
-    return Consumer<ProductProvider>(
-      builder: (context, productProvider, child) {
-        return PopularProductsSection(
-          products: productProvider.popularProducts,
-          isLoading: productProvider.isLoading && productProvider.popularProducts.isEmpty,
-          onSeeAll: () {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productList,
-              arguments: {'title': 'Produits populaires'},
-            );
-          },
-          onProductTap: (product) {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productDetail,
-              arguments: {'product_id': product.id},
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Recommandés
-  Widget _buildRecommended() {
-    return Consumer<ProductProvider>(
-      builder: (context, productProvider, child) {
-        return RecommendedSection(
-          products: productProvider.recentProducts,
-          isLoading: productProvider.isLoading,
-          userName: 'CLIENT',
-          onSeeAll: () {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productList,
-              arguments: {'title': 'Recommandés'},
-            );
-          },
-          onProductTap: (product) {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productDetail,
-              arguments: {'product_id': product.id},
-            );
-          },
-        );
-      },
-    );
-  }
-
-
-  // Produits récents
-  Widget _buildRecentProducts() {
-    return Consumer<ProductProvider>(
-      builder: (context, productProvider, child) {
-        return RecentProductsSection(
-          products: productProvider.recentProducts,
-          isLoading: productProvider.isLoading && productProvider.recentProducts.isEmpty,
-          onSeeAll: () {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productList,
-              arguments: {'title': 'Produits récents'},
-            );
-          },
-          onProductTap: (product) {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productDetail,
-              arguments: {'product_id': product.id},
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Produits en promotion
-  Widget _buildOnSaleProducts() {
-    return Consumer<ProductProvider>(
-      builder: (context, productProvider, child) {
-        return OnSaleProductsSection(
-          products: productProvider.onSaleProducts,
-          isLoading: productProvider.isLoading && productProvider.onSaleProducts.isEmpty,
-          onSeeAll: () {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productList,
-              arguments: {'title': 'Promotions'},
-            );
-          },
-          onProductTap: (product) {
-            Navigator.of(context).pushNamed(
-              AppRoutes.productDetail,
-              arguments: {'product_id': product.id},
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Blog / Actualités
-  Widget _buildBlogSection() {
-    return BlogSection(
-      articles: const [
-        BlogArticle(
-          id: 1,
-          title: 'Comment choisir son smartphone en 2026 ?',
-          imageUrl: null,
-          category: 'Guide',
-          author: 'Équipe ShopPro',
-          date: null,
-          readTime: 5,
-        ),
-        BlogArticle(
-          id: 2,
-          title: 'Top 10 des meilleures sneakers',
-          imageUrl: null,
-          category: 'Mode',
-          author: 'Équipe ShopPro',
-          date: null,
-          readTime: 4,
-        ),
-        BlogArticle(
-          id: 3,
-          title: 'Conseils pour bien entretenir sa maison',
-          imageUrl: null,
-          category: 'Maison',
-          author: 'Équipe ShopPro',
-          date: null,
-          readTime: 3,
-        ),
-      ],
-      onSeeAll: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Blog bientôt disponible'),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.all(20),
-          ),
-        );
-      },
-      onArticleTap: (article) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Article : ${article.title}'),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(20),
-          ),
-        );
-      },
-    );
-  }
-
-  // Sections dynamiques
-  Widget _buildDynamicSections() {
-    return DynamicSections(
-      sections: const [
-        DynamicSectionData(
-          id: 1,
-          title: 'Nouveautés de la semaine',
-          subtitle: 'Les derniers produits ajoutés',
-          icon: Icons.new_releases,
-          color: AppColors.success,
-          productsCount: 12,
-          badgeText: 'NOUVEAU',
-          route: '/product/list',
-        ),
-        DynamicSectionData(
-          id: 2,
-          title: 'Meilleures offres',
-          subtitle: 'Promotions exclusives',
-          icon: Icons.local_offer,
-          color: AppColors.error,
-          productsCount: 8,
-          badgeText: '-50%',
-          route: '/product/list',
-        ),
-        DynamicSectionData(
-          id: 3,
-          title: 'Tendances actuelles',
-          subtitle: 'Ce que tout le monde achète',
-          icon: Icons.trending_up,
-          color: AppColors.warning,
-          productsCount: 15,
-          badgeText: 'TOP',
-          route: '/product/list',
-        ),
-      ],
-      onSectionTap: (section) {
-        Navigator.of(context).pushNamed(
-          AppRoutes.productList,
-          arguments: {'title': section.title},
-        );
-      },
-    );
-  }
-
-  // Gérer le changement d'onglet
-  void _handleTabChange(int index) {
     switch (index) {
       case 0: // Accueil
+        // Déjà sur l'accueil, ne rien faire
         break;
-      case 1: // Catégories
+      case 1: // Explorer
         Navigator.of(context).pushNamed(AppRoutes.categoryList);
+        _resetNavIndex();
         break;
-      case 2: // Panier
-        Navigator.of(context).pushNamed(AppRoutes.cart);
-        break;
-      case 3: // Favoris
+      case 2: // Favoris
         Navigator.of(context).pushNamed(AppRoutes.favorites);
+        _resetNavIndex();
+        break;
+      case 3: // Panier
+        Navigator.of(context).pushNamed(AppRoutes.cart);
+        _resetNavIndex();
         break;
       case 4: // Profil
         Navigator.of(context).pushNamed(AppRoutes.profile);
+        _resetNavIndex();
         break;
     }
   }
+
+  void _resetNavIndex() {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _currentNavIndex = 0;
+        });
+      }
+    });
+  }
+
+  // ============================================
+  // BUILD
+  // ============================================
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final productProvider = context.watch<ProductProvider>();
+    final categoryProvider = context.watch<CategoryProvider>();
+    final bannerProvider = context.watch<BannerProvider>();
+    final cartProvider = context.watch<CartProvider>();
+    final favoriteProvider = context.watch<FavoriteProvider>();
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ============================================
+            // CONTENU PRINCIPAL (SCROLLABLE)
+            // ============================================
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _refreshHome,
+                color: AppColors.primary,
+                backgroundColor: Colors.white,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    // ============================================
+                    // APP BAR (STICKY)
+                    // ============================================
+                    SliverToBoxAdapter(
+                      child: HomeAppBar(
+                        userName: authProvider.user?.fullName ?? 'Client',
+                      ),
+                    ),
+
+                    // ============================================
+                    // CONTENU PRINCIPAL
+                    // ============================================
+                    SliverToBoxAdapter(
+                      child: _buildContent(
+                        productProvider,
+                        categoryProvider,
+                        bannerProvider,
+                      ),
+                    ),
+
+                    // ============================================
+                    // ESPACE EN BAS (pour la barre flottante)
+                    // ============================================
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: 100),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      // ============================================
+      // BOTTOM NAVIGATION FLOTTANTE
+      // ============================================
+      bottomNavigationBar: _buildBottomNavigation(context),
+    );
+  }
+
+  // ============================================
+  // BOTTOM NAVIGATION
+  // ============================================
+
+  Widget _buildBottomNavigation(BuildContext context) {
+    final cartProvider = context.watch<CartProvider>();
+    final favoriteProvider = context.watch<FavoriteProvider>();
+
+    final items = RoleNavigationItems.clientItems.map((item) {
+      // Mettre à jour les badges dynamiquement
+      if (item.label == 'Panier') {
+        return NavigationItem(
+          label: item.label,
+          icon: item.icon,
+          selectedIcon: item.selectedIcon,
+          selectedColor: item.selectedColor,
+          unselectedColor: item.unselectedColor,
+          badgeCount: cartProvider.totalQuantity,
+          onTap: item.onTap,
+        );
+      }
+      if (item.label == 'Favoris') {
+        return NavigationItem(
+          label: item.label,
+          icon: item.icon,
+          selectedIcon: item.selectedIcon,
+          selectedColor: item.selectedColor,
+          unselectedColor: item.unselectedColor,
+          badgeCount: favoriteProvider.favoritesCount,
+          onTap: item.onTap,
+        );
+      }
+      return item;
+    }).toList();
+
+    return RoleBasedNavigation(
+      roleItems: {
+        UserRole.client: items,
+        UserRole.guest: items,
+      },
+      onItemSelected: _onNavItemSelected,
+    );
+  }
+
+  // ============================================
+  // CONTENU PRINCIPAL
+  // ============================================
+
+  Widget _buildContent(
+    ProductProvider productProvider,
+    CategoryProvider categoryProvider,
+    BannerProvider bannerProvider,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+
+        // ============================================
+        // 1. BANNER CAROUSEL (HERO)
+        // ============================================
+        if (bannerProvider.banners.isNotEmpty)
+          BannerCarousel(
+            banners: bannerProvider.banners,
+            height: 170,
+            onBannerTap: (banner) {
+              _handleBannerTap(banner);
+            },
+          ),
+
+        const SizedBox(height: 15),
+
+        // ============================================
+        // 2. CATEGORY GRID
+        // ============================================
+        if (categoryProvider.categories.isNotEmpty)
+          CategoryGrid(
+            categories: categoryProvider.categories.take(8).toList(),
+            onCategoryTap: (category) {
+              Navigator.of(context).pushNamed(
+                AppRoutes.categoryDetail,
+                arguments: {
+                  'category_id': category.id,
+                  'category_name': category.name,
+                },
+              );
+            },
+          ),
+
+        const SizedBox(height: 15),
+
+        // ============================================
+        // 3. FLASH SALE
+        // ============================================
+        if (productProvider.onSaleProducts.isNotEmpty)
+          FlashSaleSection(
+            products: productProvider.onSaleProducts.take(6).toList(),
+            endTime: DateTime.now().add(const Duration(hours: 5)),
+            onSeeAllTap: () {
+              Navigator.of(context).pushNamed(AppRoutes.productList, arguments: {
+                'title': 'Ventes Flash',
+                'on_sale': true,
+              });
+            },
+            onProductTap: (product) => _navigateToProduct(product.id),
+          ),
+
+        const SizedBox(height: 15),
+
+        // ============================================
+        // 4. MEILLEURES VENTES
+        // ============================================
+        if (productProvider.popularProducts.isNotEmpty)
+          BestSellersSection(
+            products: productProvider.popularProducts.take(6).toList(),
+            onSeeAllTap: () {
+              Navigator.of(context).pushNamed(AppRoutes.productList, arguments: {
+                'title': 'Meilleures ventes',
+              });
+            },
+            onProductTap: (product) => _navigateToProduct(product.id),
+            onToggleFavorite: (product) => _toggleFavorite(product),
+          ),
+
+        const SizedBox(height: 15),
+
+        // ============================================
+        // 5. BANNIÈRE PUBLICITAIRE
+        // ============================================
+        const AdBanner(
+          title: 'Livraison gratuite',
+          subtitle: 'Dès 50 000 FCFA d\'achat',
+          icon: Icons.local_shipping_outlined,
+          backgroundColor: AppColors.success,
+          buttonText: 'En savoir plus',
+        ),
+
+        const SizedBox(height: 15),
+
+        // ============================================
+        // 6. RECOMMANDÉS
+        // ============================================
+        if (productProvider.featuredProducts.isNotEmpty)
+          RecommendedSection(
+            products: productProvider.featuredProducts.take(4).toList(),
+            contextMessage: 'Sélection personnalisée pour vous',
+            onSeeAllTap: () {
+              Navigator.of(context).pushNamed(AppRoutes.productList, arguments: {
+                'title': 'Pour vous',
+              });
+            },
+            onProductTap: (product) => _navigateToProduct(product.id),
+            onToggleFavorite: (product) => _toggleFavorite(product),
+          ),
+
+        const SizedBox(height: 15),
+
+        // ============================================
+        // 7. BLOG
+        // ============================================
+        BlogSection(
+          articles: const [
+            {
+              'title': 'Comment choisir la meilleure montre connectée ?',
+              'category': 'Conseils',
+              'author': 'Équipe ShopPro',
+              'readTime': 5,
+            },
+            {
+              'title': 'Les tendances mode 2026 à ne pas manquer',
+              'category': 'Tendances',
+              'author': 'Équipe ShopPro',
+              'readTime': 4,
+            },
+            {
+              'title': '5 astuces pour économiser sur vos achats',
+              'category': 'Astuces',
+              'author': 'Équipe ShopPro',
+              'readTime': 3,
+            },
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ============================================
+  // NAVIGATION
+  // ============================================
+
+  void _navigateToProduct(int productId) {
+    Navigator.of(context).pushNamed(
+      AppRoutes.productDetail,
+      arguments: {'product_id': productId},
+    );
+  }
+
+  void _handleBannerTap(dynamic banner) {
+    // Navigation selon le type de cible du banner
+    if (banner.targetType == 'product' && banner.targetId != null) {
+      _navigateToProduct(banner.targetId as int);
+    } else if (banner.targetType == 'category' && banner.targetId != null) {
+      Navigator.of(context).pushNamed(
+        AppRoutes.categoryDetail,
+        arguments: {'category_id': banner.targetId},
+      );
+    }
+  }
+
+  void _toggleFavorite(dynamic product) {
+  final favoriteProvider = context.read<FavoriteProvider>();
+
+  // Créer un objet Favorite à partir du Product
+  final favorite = Favorite(
+    id: 0, // L'ID sera généré par le backend
+    productId: product.id,
+    productName: product.name,
+    productImage: product.mainImage,
+    productSku: product.sku ?? '',
+    productPrice: product.price,
+    productDiscountPrice: product.discountPrice,
+    isInStock: product.isInStock,
+    stock: product.stock,
+    averageRating: product.averageRating,
+    addedAt: DateTime.now(),
+  );
+
+  favoriteProvider.toggleFavorite(favorite);
+}
 }

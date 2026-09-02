@@ -1,17 +1,45 @@
-// Champ de mot de passe personnalisé
-// Avec toggle de visibilité animé et indicateur de force
+// ============================================
+// WIDGET : PasswordTextField
+// ============================================
+// Champ de mot de passe personnalisé avec :
+// - Toggle de visibilité animé (rotation)
+// - États de focus élégants
+// - Support autofill
+// - Callback onChanged pour l'indicateur de force
+// - Désactivation de l'autocorrection
+// ============================================
+
+// ============================================
+// IMPORTS
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 
+// ============================================
+// WIDGET PRINCIPAL
+// ============================================
+
 class PasswordTextField extends StatefulWidget {
+  // ============================================
+  // PROPRIÉTÉS
+  // ============================================
+
   final TextEditingController controller;
   final String label;
   final String hint;
   final String? Function(String?)? validator;
   final TextInputAction textInputAction;
-  final bool showStrengthIndicator;
+
+  /// Callback quand le texte change (pour l'indicateur de force)
+  final ValueChanged<String>? onChanged;
+
+  /// Callback quand l'utilisateur soumet
   final ValueChanged<String>? onSubmitted;
+
+  // ============================================
+  // CONSTRUCTEUR
+  // ============================================
 
   const PasswordTextField({
     super.key,
@@ -20,7 +48,7 @@ class PasswordTextField extends StatefulWidget {
     required this.hint,
     this.validator,
     this.textInputAction = TextInputAction.done,
-    this.showStrengthIndicator = false,
+    this.onChanged,
     this.onSubmitted,
   });
 
@@ -28,53 +56,39 @@ class PasswordTextField extends StatefulWidget {
   State<PasswordTextField> createState() => _PasswordTextFieldState();
 }
 
+// ============================================
+// STATE
+// ============================================
+
 class _PasswordTextFieldState extends State<PasswordTextField> {
   bool _isObscured = true;
   bool _isFocused = false;
-  String _passwordStrength = '';
-  Color _strengthColor = AppColors.textLight;
-
-  // Vérifier la force du mot de passe
-  void _checkPasswordStrength(String password) {
-    if (password.isEmpty) {
-      _passwordStrength = '';
-      _strengthColor = AppColors.textLight;
-      return;
-    }
-
-    if (password.length < 6) {
-      _passwordStrength = 'Faible';
-      _strengthColor = AppColors.error;
-    } else if (password.length < 10) {
-      _passwordStrength = 'Moyen';
-      _strengthColor = AppColors.warning;
-    } else {
-      _passwordStrength = 'Fort';
-      _strengthColor = AppColors.success;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label
+          // ============================================
+          // LABEL
+          // ============================================
           Text(
             widget.label,
             style: const TextStyle(
               fontFamily: 'Poppins',
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
-          
+
           const SizedBox(height: 8),
-          
-          // Champ de mot de passe
+
+          // ============================================
+          // CHAMP MOT DE PASSE
+          // ============================================
           Focus(
             onFocusChange: (focused) {
               setState(() {
@@ -86,17 +100,14 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
               obscureText: _isObscured,
               textInputAction: widget.textInputAction,
               validator: widget.validator,
-              onChanged: (value) {
-                if (widget.showStrengthIndicator) {
-                  setState(() {
-                    _checkPasswordStrength(value);
-                  });
-                }
-              },
+              onChanged: widget.onChanged,
               onFieldSubmitted: widget.onSubmitted,
+              autofillHints: const [AutofillHints.password],
+              autocorrect: false,
+              enableSuggestions: false,
               style: const TextStyle(
                 fontFamily: 'Poppins',
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
                 letterSpacing: 1.5,
@@ -105,7 +116,7 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
                 hintText: widget.hint,
                 hintStyle: const TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w400,
                   color: AppColors.textLight,
                   letterSpacing: 0,
@@ -115,12 +126,12 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
                   decoration: BoxDecoration(
                     color: _isFocused
                         ? AppColors.primary.withValues(alpha: 0.1)
-                        : AppColors.background,
+                        : AppColors.surface,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    Icons.lock,
-                    size: 20,
+                    Icons.lock_outline,
+                    size: 18,
                     color: _isFocused
                         ? AppColors.primary
                         : AppColors.textSecondary,
@@ -137,7 +148,10 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
                     transitionBuilder: (child, animation) {
                       return RotationTransition(
                         turns: animation,
-                        child: child,
+                        child: FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        ),
                       );
                     },
                     child: Icon(
@@ -145,7 +159,7 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
                       key: ValueKey<bool>(_isObscured),
-                      size: 20,
+                      size: 18,
                       color: _isFocused
                           ? AppColors.primary
                           : AppColors.textSecondary,
@@ -153,105 +167,57 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
                   ),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.surface,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
+                  horizontal: 14,
+                  vertical: 14,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
                     color: AppColors.borderColor,
-                    width: 1.5,
+                    width: 1,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
                     color: AppColors.borderColor,
-                    width: 1.5,
+                    width: 1,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
                     color: AppColors.primary,
-                    width: 2,
-                  ),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                    color: AppColors.error,
                     width: 1.5,
                   ),
                 ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
                     color: AppColors.error,
-                    width: 2,
+                    width: 1,
+                  ),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.error,
+                    width: 1.5,
                   ),
                 ),
                 errorStyle: const TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: AppColors.error,
                 ),
               ),
             ),
           ),
-          
-          // Indicateur de force (optionnel)
-          if (widget.showStrengthIndicator && widget.controller.text.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                // Barres de force
-                Expanded(
-                  child: Row(
-                    children: List.generate(3, (index) {
-                      final isActive = _getActiveBars(index);
-                      return Expanded(
-                        child: Container(
-                          height: 4,
-                          margin: const EdgeInsets.only(right: 5),
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? _strengthColor
-                                : AppColors.borderColor,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Texte de force
-                Text(
-                  _passwordStrength,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: _strengthColor,
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );
-  }
-
-  // Déterminer combien de barres sont actives
-  bool _getActiveBars(int index) {
-    if (_passwordStrength == 'Faible') return index == 0;
-    if (_passwordStrength == 'Moyen') return index <= 1;
-    if (_passwordStrength == 'Fort') return true;
-    return false;
   }
 }

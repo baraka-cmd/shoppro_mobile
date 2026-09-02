@@ -82,7 +82,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
       onLogout: () {},
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToCreate(),
-        backgroundColor: AppColors.secondary,
+        backgroundColor: AppColors.warning,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       child: _buildContent(),

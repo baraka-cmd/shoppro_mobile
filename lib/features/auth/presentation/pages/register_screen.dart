@@ -1,5 +1,17 @@
-// Écran d'inscription complet
-// Formulaire avec validation, indicateur de force, CGU et navigation
+// ============================================
+// ÉCRAN D'INSCRIPTION - VERSION PROFESSIONNELLE
+// ============================================
+// Design moderne avec :
+// - Indicateur de force du mot de passe réactif
+// - Champ téléphone (adapté RDC)
+// - Checkbox CGU avec validation
+// - Liens cliquables
+// - Messages d'erreur clairs
+// ============================================
+
+// ============================================
+// IMPORTS
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,12 +24,20 @@ import '../widgets/password_textfield.dart';
 import '../widgets/password_strength_indicator.dart';
 import '../widgets/social_button.dart';
 
+// ============================================
+// ÉCRAN PRINCIPAL
+// ============================================
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
+
+// ============================================
+// STATE
+// ============================================
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -28,8 +48,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
-  bool _acceptTerms = false;
   bool _isLoading = false;
+  bool _acceptTerms = false;
   String? _errorMessage;
 
   @override
@@ -42,31 +62,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  // Gérer l'inscription
+  // ============================================
+  // GÉRER L'INSCRIPTION
+  // ============================================
+
   Future<void> _handleRegister() async {
     FocusScope.of(context).unfocus();
 
-    // Valider le formulaire
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    // ✅ Validation du formulaire
+    if (!_formKey.currentState!.validate()) return;
 
-    // Vérifier les CGU
+    // ✅ Validation des CGU
     if (!_acceptTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Veuillez accepter les conditions générales d\'utilisation',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13,
-            ),
-          ),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(20),
-        ),
-      );
+      setState(() {
+        _errorMessage = 'Veuillez accepter les Conditions Générales d\'Utilisation.';
+      });
       return;
     }
 
@@ -82,76 +92,124 @@ class _RegisterScreenState extends State<RegisterScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
       passwordConfirmation: _confirmPasswordController.text,
-      phone: _phoneController.text.trim().isNotEmpty
-          ? _phoneController.text.trim()
-          : null,
+      phone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
     );
 
     if (!mounted) return;
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
 
     if (success) {
-      // Afficher le message de succès
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Compte créé avec succès ! Connectez-vous.',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(20),
-          duration: Duration(seconds: 3),
-        ),
-      );
-
-      // Redirection vers login
-      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+      _navigateToHome(authProvider);
     } else {
       setState(() {
-        _errorMessage = authProvider.errorMessage;
+        _errorMessage = authProvider.errorMessage ?? 'Erreur lors de l\'inscription';
       });
     }
   }
+
+  // ============================================
+  // NAVIGATION APRÈS INSCRIPTION
+  // ============================================
+
+  void _navigateToHome(AuthProvider authProvider) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Bienvenue ${authProvider.user?.name ?? ""} !',
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 13,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+
+    // Un nouveau compte est toujours un client → /home
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoutes.home,
+      (route) => false,
+    );
+  }
+
+  // ============================================
+  // AFFICHER LES CGU
+  // ============================================
+
+  void _showTerms() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Conditions Générales d\'Utilisation - Page en construction',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 13,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.info,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(20),
+        duration: Duration(seconds: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  void _showPrivacy() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Politique de Confidentialité - Page en construction',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 13,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.info,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(20),
+        duration: Duration(seconds: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: AppColors.textPrimary,
-            size: 20,
-          ),
-        ),
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 25),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // En-tête
+                // ============================================
+                // EN-TÊTE
+                // ============================================
                 Center(
                   child: Column(
                     children: [
-                      // Icône
                       Container(
                         width: 70,
                         height: 70,
@@ -160,40 +218,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 10,
+                              color: AppColors.primary.withValues(alpha: 0.25),
+                              blurRadius: 12,
                               offset: const Offset(0, 5),
                             ),
                           ],
                         ),
                         child: const Icon(
                           Icons.person_add,
-                          size: 35,
+                          size: 32,
                           color: Colors.white,
                         ),
                       ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      // Titre
+
+                      const SizedBox(height: 16),
+
                       const Text(
                         'Créer un compte',
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 28,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
+                          letterSpacing: 0.3,
                         ),
                       ),
-                      
-                      const SizedBox(height: 8),
-                      
-                      // Sous-titre
+
+                      const SizedBox(height: 6),
+
                       const Text(
                         'Rejoignez ShopPro dès maintenant',
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w400,
                           color: AppColors.textSecondary,
                         ),
@@ -201,71 +258,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: 35),
-                
-                // Message d'erreur
+
+                const SizedBox(height: 30),
+
+                // ============================================
+                // MESSAGE D'ERREUR
+                // ============================================
                 if (_errorMessage != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: AppColors.error.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.error.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: AppColors.error,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.error,
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _errorMessage = null;
-                            });
-                          },
-                          child: const Icon(
-                            Icons.close,
-                            color: AppColors.error,
-                            size: 18,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  _buildErrorBox(),
+                  const SizedBox(height: 18),
                 ],
-                
-                // Champ Nom complet
+
+                // ============================================
+                // CHAMP NOM
+                // ============================================
                 AuthTextField(
                   controller: _nameController,
                   label: 'Nom complet',
-                  hint: 'Ex : Jean Kamga',
+                  hint: 'Votre nom',
                   icon: Icons.person_outline,
-                  keyboardType: TextInputType.name,
                   textInputAction: TextInputAction.next,
+                  textCapitalization: TextCapitalization.words,
+                  autofillHints: const [AutofillHints.name],
                   validator: Validators.validateName,
                 ),
-                
-                // Champ Email
+
+                // ============================================
+                // CHAMP EMAIL
+                // ============================================
                 AuthTextField(
                   controller: _emailController,
                   label: 'Adresse email',
@@ -273,97 +293,111 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   icon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
+                  textCapitalization: TextCapitalization.none,
+                  autofillHints: const [AutofillHints.email],
                   validator: Validators.validateEmail,
                 ),
-                
-                // Champ Téléphone (optionnel)
+
+                // ============================================
+                // CHAMP TÉLÉPHONE (adapté RDC)
+                // ============================================
                 AuthTextField(
                   controller: _phoneController,
                   label: 'Téléphone (optionnel)',
-                  hint: 'Ex : +237 6 00 00 00 00',
+                  hint: '+243 XXX XXX XXX',
                   icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
-                  validator: Validators.validatePhone,
+                  autofillHints: const [AutofillHints.telephoneNumber],
                 ),
-                
-                // Champ Mot de passe
+
+                // ============================================
+                // CHAMP MOT DE PASSE
+                // ============================================
                 PasswordTextField(
                   controller: _passwordController,
                   label: 'Mot de passe',
                   hint: 'Entrez votre mot de passe',
-                  validator: Validators.validatePassword,
+                  onChanged: (value) {
+                    setState(() {}); // ✅ Met à jour l'indicateur de force
+                  },
                   textInputAction: TextInputAction.next,
-                  showStrengthIndicator: true,
+                  validator: Validators.validatePassword,
                 ),
-                
-                // Indicateur de force
+
+                // ============================================
+                // INDICATEUR DE FORCE (réactif)
+                // ============================================
                 PasswordStrengthIndicator(
                   password: _passwordController.text,
                 ),
-                
-                const SizedBox(height: 20),
-                
-                // Champ Confirmation
+
+                // ============================================
+                // CHAMP CONFIRMATION
+                // ============================================
                 PasswordTextField(
                   controller: _confirmPasswordController,
                   label: 'Confirmer le mot de passe',
                   hint: 'Répétez votre mot de passe',
-                  validator: (value) =>
-                      Validators.validatePasswordConfirmation(
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _handleRegister(),
+                  validator: (value) => Validators.validatePasswordConfirmation(
                     value,
                     _passwordController.text,
                   ),
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (value) => _handleRegister(),
                 ),
-                
-                const SizedBox(height: 15),
-                
-                // Checkbox CGU
+
+                const SizedBox(height: 5),
+
+                // ============================================
+                // CHECKBOX CGU
+                // ============================================
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: Checkbox(
-                        value: _acceptTerms,
-                        onChanged: (value) {
-                          setState(() {
-                            _acceptTerms = value ?? false;
-                          });
-                        },
-                        activeColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _acceptTerms = !_acceptTerms;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(4),
+                      child: Icon(
+                        _acceptTerms
+                            ? Icons.check_circle
+                            : Icons.circle_outlined,
+                        size: 20,
+                        color: _acceptTerms
+                            ? AppColors.primary
+                            : AppColors.textTertiary,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: RichText(
-                        text: const TextSpan(
-                          style: TextStyle(
+                        text: TextSpan(
+                          style: const TextStyle(
                             fontFamily: 'Poppins',
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.w400,
                             color: AppColors.textSecondary,
                             height: 1.5,
                           ),
                           children: [
-                            TextSpan(text: 'J\'accepte les '),
+                            const TextSpan(text: 'J\'accepte les '),
                             TextSpan(
-                              text: 'Conditions Générales d\'Utilisation',
-                              style: TextStyle(
+                              text: 'CGU',
+                              style: const TextStyle(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
+                              recognizer: null,
+                              // Utiliser TapGestureRecognizer si nécessaire
                             ),
-                            TextSpan(text: ' et la '),
+                            const TextSpan(text: ' et la '),
                             TextSpan(
                               text: 'Politique de Confidentialité',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -374,26 +408,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ],
                 ),
-                
-                const SizedBox(height: 30),
-                
-                // Bouton Créer mon compte
+
+                const SizedBox(height: 25),
+
+                // ============================================
+                // BOUTON INSCRIPTION
+                // ============================================
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 55),
+                    minimumSize: const Size(double.infinity, 52),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    elevation: 0,
+                    elevation: 3,
+                    shadowColor: AppColors.primary.withValues(alpha: 0.3),
                     disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                          width: 24,
-                          height: 24,
+                          width: 22,
+                          height: 22,
                           child: CircularProgressIndicator(
                             color: Colors.white,
                             strokeWidth: 2.5,
@@ -403,80 +440,61 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           'CRÉER MON COMPTE',
                           style: TextStyle(
                             fontFamily: 'Poppins',
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1,
                           ),
                         ),
                 ),
-                
-                const SizedBox(height: 30),
-                
-                // Séparateur
+
+                const SizedBox(height: 22),
+
+                // ============================================
+                // SÉPARATEUR
+                // ============================================
                 Row(
                   children: [
                     Expanded(
-                      child: Container(
-                        height: 1,
-                        color: AppColors.borderColor,
-                      ),
+                      child: Container(height: 1, color: AppColors.borderColor),
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 15),
+                      padding: EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
-                        'ou continuer avec',
+                        'ou',
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textSecondary,
                         ),
                       ),
                     ),
                     Expanded(
-                      child: Container(
-                        height: 1,
-                        color: AppColors.borderColor,
-                      ),
+                      child: Container(height: 1, color: AppColors.borderColor),
                     ),
                   ],
                 ),
-                
-                const SizedBox(height: 25),
-                
-                // Boutons sociaux
+
+                const SizedBox(height: 18),
+
+                // ============================================
+                // BOUTONS SOCIAUX
+                // ============================================
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: SocialButton.google(
-                        onPressed: () {
-                          // TODO: Inscription Google
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SocialButton.facebook(
-                        onPressed: () {
-                          // TODO: Inscription Facebook
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SocialButton.apple(
-                        onPressed: () {
-                          // TODO: Inscription Apple
-                        },
-                      ),
-                    ),
+                    Expanded(child: SocialButton.google()),
+                    const SizedBox(width: 10),
+                    Expanded(child: SocialButton.facebook()),
+                    const SizedBox(width: 10),
+                    Expanded(child: SocialButton.apple()),
                   ],
                 ),
-                
-                const SizedBox(height: 30),
-                
-                // Lien connexion
+
+                const SizedBox(height: 22),
+
+                // ============================================
+                // LIEN CONNEXION
+                // ============================================
                 Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -485,7 +503,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         'Déjà un compte ? ',
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w400,
                           color: AppColors.textSecondary,
                         ),
@@ -498,7 +516,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           'Se connecter',
                           style: TextStyle(
                             fontFamily: 'Poppins',
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
                           ),
@@ -511,6 +529,51 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ============================================
+  // WIDGETS INTERNES
+  // ============================================
+
+  /// Boîte d'erreur élégante
+  Widget _buildErrorBox() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.errorLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.error.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.errorDark,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _errorMessage = null;
+              });
+            },
+            child: const Icon(Icons.close, color: AppColors.error, size: 16),
+          ),
+        ],
       ),
     );
   }

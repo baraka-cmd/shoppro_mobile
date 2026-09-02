@@ -194,7 +194,7 @@ class CategoryListItem extends StatelessWidget {
     final slug = category.slug.toLowerCase();
 
     if (slug.contains('electro')) return AppColors.primary;
-    if (slug.contains('mode') || slug.contains('vetement')) return AppColors.secondary;
+    if (slug.contains('mode') || slug.contains('vetement')) return AppColors.warning;
     if (slug.contains('maison') || slug.contains('jardin')) return AppColors.success;
     if (slug.contains('beaute') || slug.contains('sante')) return const Color(0xFFE91E63);
     if (slug.contains('sport')) return AppColors.info;

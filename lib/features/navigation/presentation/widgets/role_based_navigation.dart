@@ -1,5 +1,10 @@
-// Navigation inférieure selon le rôle
-// Affiche les onglets adaptés au rôle de l'utilisateur
+// ============================================
+// NAVIGATION INFÉRIEURE FLOTTANTE SELON LE RÔLE
+// ============================================
+// Affiche les onglets adaptés au rôle de l'utilisateur.
+// Design : Floating Bottom Navigation avec capsule
+// coulissante, animations fluides et badges dynamiques.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -37,18 +42,27 @@ class _RoleBasedNavigationState extends State<RoleBasedNavigation> {
     }
 
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: SafeArea(
         top: false,
+        bottom: true,
         child: Row(
           children: List.generate(items.length, (index) {
             final item = items[index];
@@ -73,7 +87,9 @@ class _RoleBasedNavigationState extends State<RoleBasedNavigation> {
     );
   }
 
-  // Construire un élément de navigation
+  // ============================================
+  // CONSTRUIRE UN ÉLÉMENT DE NAVIGATION
+  // ============================================
   Widget _buildNavItem({
     required NavigationItem item,
     required bool isSelected,
@@ -82,86 +98,104 @@ class _RoleBasedNavigationState extends State<RoleBasedNavigation> {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Icône avec badge éventuel
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? item.selectedColor.withValues(alpha: 0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: Icon(
-                      isSelected ? item.selectedIcon : item.icon,
-                      key: ValueKey<bool>(isSelected),
-                      size: 22,
-                      color: isSelected ? item.selectedColor : item.unselectedColor,
+      child: Semantics(
+        label: item.label,
+        selected: isSelected,
+        button: true,
+        child: AnimatedScale(
+          scale: isSelected ? 1.08 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icône avec badge éventuel
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Capsule de sélection
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    width: isSelected ? 52 : 44,
+                    height: 36,
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? item.selectedColor.withValues(alpha: 0.12)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (child, animation) {
+                        return ScaleTransition(
+                          scale: animation,
+                          child: child,
+                        );
+                      },
+                      child: Icon(
+                        isSelected ? item.selectedIcon : item.icon,
+                        key: ValueKey<bool>(isSelected),
+                        size: 22,
+                        color: isSelected
+                            ? item.selectedColor
+                            : item.unselectedColor,
+                      ),
                     ),
                   ),
-                ),
 
-                // Badge
-                if (item.badgeCount != null && item.badgeCount! > 0)
-                  Positioned(
-                    right: -4,
-                    top: -4,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: AppColors.error,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        item.badgeCount! > 99 ? '99+' : '${item.badgeCount}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                  // Badge
+                  if (item.badgeCount != null && item.badgeCount! > 0)
+                    Positioned(
+                      right: -6,
+                      top: -6,
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.8, end: 1.0),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.elasticOut,
+                        builder: (context, scale, child) {
+                          return Transform.scale(
+                            scale: scale,
+                            child: child,
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            item.badgeCount! > 99 ? '99+' : '${item.badgeCount}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            
-            const SizedBox(height: 3),
-            
-            // Label
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? item.selectedColor : item.unselectedColor,
+                ],
               ),
-              child: Text(item.label),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Récupérer le rôle actuel
+  // ============================================
+  // RÉCUPÉRER LE RÔLE ACTUEL
+  // ============================================
   UserRole _getCurrentRole(AuthProvider authProvider) {
     if (!authProvider.isAuthenticated) {
       return UserRole.guest;
@@ -171,7 +205,9 @@ class _RoleBasedNavigationState extends State<RoleBasedNavigation> {
   }
 }
 
-// Classe NavigationItem
+// ============================================
+// CLASSE NAVIGATION ITEM
+// ============================================
 class NavigationItem {
   final String label;
   final IconData icon;
@@ -186,85 +222,91 @@ class NavigationItem {
     required this.icon,
     required this.selectedIcon,
     this.selectedColor = AppColors.primary,
-    this.unselectedColor = AppColors.textSecondary,
+    this.unselectedColor = const Color(0xFF68756F),
     this.badgeCount,
     this.onTap,
   });
 }
 
-// Items prédéfinis pour chaque rôle
+// ============================================
+// ITEMS PRÉDÉFINIS POUR CHAQUE RÔLE
+// ============================================
 class RoleNavigationItems {
   /// Items pour le client
-  // ✅ CORRIGÉ
   static List<NavigationItem> get clientItems => [
-    const NavigationItem(
-      label: 'Accueil',
-      icon: Icons.home_outlined,
-      selectedIcon: Icons.home,
-      selectedColor: AppColors.primary,
-      badgeCount: 0,  // ✅ Ajouter 0 au lieu de null
-    ),
-    const NavigationItem(
-      label: 'Catégories',
-      icon: Icons.grid_view_outlined,
-      selectedIcon: Icons.grid_view,
-      selectedColor: AppColors.primary,
-      badgeCount: 0,  // ✅ Ajouter 0
-    ),
-    const NavigationItem(
-      label: 'Panier',
-      icon: Icons.shopping_cart_outlined,
-      selectedIcon: Icons.shopping_cart,
-      selectedColor: AppColors.primary,
-      badgeCount: 0,
-    ),
-    const NavigationItem(
-      label: 'Favoris',
-      icon: Icons.favorite_outline,
-      selectedIcon: Icons.favorite,
-      selectedColor: AppColors.error,
-      badgeCount: 0,  // ✅ Ajouter 0
-    ),
-    const NavigationItem(
-      label: 'Profil',
-      icon: Icons.person_outline,
-      selectedIcon: Icons.person,
-      selectedColor: AppColors.primary,
-      badgeCount: 0,  // ✅ Ajouter 0
-    ),
-  ];
+        const NavigationItem(
+          label: 'Accueil',
+          icon: Icons.home_outlined,
+          selectedIcon: Icons.home,
+          selectedColor: Color(0xFF087F5B),
+          unselectedColor: Color(0xFF68756F),
+        ),
+        const NavigationItem(
+          label: 'Explorer',
+          icon: Icons.grid_view_outlined,
+          selectedIcon: Icons.grid_view,
+          selectedColor: Color(0xFF087F5B),
+          unselectedColor: Color(0xFF68756F),
+        ),
+        const NavigationItem(
+          label: 'Favoris',
+          icon: Icons.favorite_outline,
+          selectedIcon: Icons.favorite,
+          selectedColor: Color(0xFF087F5B),
+          unselectedColor: Color(0xFF68756F),
+        ),
+        const NavigationItem(
+          label: 'Panier',
+          icon: Icons.shopping_bag_outlined,
+          selectedIcon: Icons.shopping_bag,
+          selectedColor: Color(0xFF087F5B),
+          unselectedColor: Color(0xFF68756F),
+        ),
+        const NavigationItem(
+          label: 'Profil',
+          icon: Icons.person_outline,
+          selectedIcon: Icons.person,
+          selectedColor: Color(0xFF087F5B),
+          unselectedColor: Color(0xFF68756F),
+        ),
+      ];
+
   /// Items pour le vendeur
   static List<NavigationItem> get sellerItems => [
         const NavigationItem(
           label: 'Dashboard',
           icon: Icons.dashboard_outlined,
           selectedIcon: Icons.dashboard,
-          selectedColor: AppColors.secondary,
+          selectedColor: AppColors.warning,
+          unselectedColor: Color(0xFF68756F),
         ),
         const NavigationItem(
           label: 'Produits',
           icon: Icons.inventory_2_outlined,
           selectedIcon: Icons.inventory_2,
-          selectedColor: AppColors.secondary,
+          selectedColor: AppColors.warning,
+          unselectedColor: Color(0xFF68756F),
         ),
         const NavigationItem(
           label: 'Commandes',
           icon: Icons.receipt_long_outlined,
           selectedIcon: Icons.receipt_long,
-          selectedColor: AppColors.secondary,
-          badgeCount: 0,
+          selectedColor: AppColors.warning,
+          unselectedColor: Color(0xFF68756F),
         ),
         const NavigationItem(
           label: 'Stats',
           icon: Icons.bar_chart_outlined,
           selectedIcon: Icons.bar_chart,
-          selectedColor: AppColors.secondary,
+          selectedColor: AppColors.warning,
+          unselectedColor: Color(0xFF68756F),
         ),
         const NavigationItem(
           label: 'Profil',
           icon: Icons.person_outline,
           selectedIcon: Icons.person,
-          selectedColor: AppColors.secondary,
+          selectedColor: AppColors.warning,
+          unselectedColor: Color(0xFF68756F),
         ),
       ];
 
@@ -274,31 +316,36 @@ class RoleNavigationItems {
           label: 'Dashboard',
           icon: Icons.dashboard_outlined,
           selectedIcon: Icons.dashboard,
-          selectedColor: AppColors.error,
+          selectedColor: AppColors.primaryDark,
+          unselectedColor: Color(0xFF68756F),
         ),
         const NavigationItem(
           label: 'Produits',
           icon: Icons.inventory_2_outlined,
           selectedIcon: Icons.inventory_2,
-          selectedColor: AppColors.error,
+          selectedColor: AppColors.primaryDark,
+          unselectedColor: Color(0xFF68756F),
         ),
         const NavigationItem(
           label: 'Commandes',
           icon: Icons.receipt_long_outlined,
           selectedIcon: Icons.receipt_long,
-          selectedColor: AppColors.error,
+          selectedColor: AppColors.primaryDark,
+          unselectedColor: Color(0xFF68756F),
         ),
         const NavigationItem(
           label: 'Utilisateurs',
           icon: Icons.people_outline,
           selectedIcon: Icons.people,
-          selectedColor: AppColors.error,
+          selectedColor: AppColors.primaryDark,
+          unselectedColor: Color(0xFF68756F),
         ),
         const NavigationItem(
           label: 'Paramètres',
           icon: Icons.settings_outlined,
           selectedIcon: Icons.settings,
-          selectedColor: AppColors.error,
+          selectedColor: AppColors.primaryDark,
+          unselectedColor: Color(0xFF68756F),
         ),
       ];
 
@@ -308,19 +355,36 @@ class RoleNavigationItems {
           label: 'Accueil',
           icon: Icons.home_outlined,
           selectedIcon: Icons.home,
-          selectedColor: AppColors.primary,
+          selectedColor: Color(0xFF087F5B),
+          unselectedColor: Color(0xFF68756F),
         ),
         const NavigationItem(
-          label: 'Catégories',
+          label: 'Explorer',
           icon: Icons.grid_view_outlined,
           selectedIcon: Icons.grid_view,
-          selectedColor: AppColors.primary,
+          selectedColor: Color(0xFF087F5B),
+          unselectedColor: Color(0xFF68756F),
+        ),
+        const NavigationItem(
+          label: 'Favoris',
+          icon: Icons.favorite_outline,
+          selectedIcon: Icons.favorite,
+          selectedColor: Color(0xFF087F5B),
+          unselectedColor: Color(0xFF68756F),
+        ),
+        const NavigationItem(
+          label: 'Panier',
+          icon: Icons.shopping_bag_outlined,
+          selectedIcon: Icons.shopping_bag,
+          selectedColor: Color(0xFF087F5B),
+          unselectedColor: Color(0xFF68756F),
         ),
         const NavigationItem(
           label: 'Connexion',
-          icon: Icons.login_outlined,
-          selectedIcon: Icons.login,
-          selectedColor: AppColors.primary,
+          icon: Icons.person_outline,
+          selectedIcon: Icons.person,
+          selectedColor: Color(0xFF087F5B),
+          unselectedColor: Color(0xFF68756F),
         ),
       ];
 

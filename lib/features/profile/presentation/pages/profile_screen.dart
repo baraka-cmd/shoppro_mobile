@@ -218,8 +218,8 @@ class ProfileScreen extends StatelessWidget {
               icon: Icons.language,
               title: 'Langue',
               subtitle: 'Français',
-              iconColor: AppColors.secondary,
-              iconBackgroundColor: AppColors.secondary.withValues(alpha: 0.1),
+              iconColor: AppColors.warning,
+              iconBackgroundColor: AppColors.warning.withValues(alpha: 0.1),
               onTap: () {
                 // TODO: Navigation vers langue
               },
@@ -244,8 +244,8 @@ class ProfileScreen extends StatelessWidget {
               icon: Icons.notifications,
               title: 'Notifications',
               subtitle: 'Gérer vos notifications',
-              iconColor: AppColors.accent,
-              iconBackgroundColor: AppColors.accent.withValues(alpha: 0.1),
+              iconColor: AppColors.info,
+              iconBackgroundColor: AppColors.info.withValues(alpha: 0.1),
               onTap: () {
                 // TODO: Navigation vers notifications
               },

@@ -53,6 +53,7 @@ flutter:
     - assets/images/categories/
     - assets/images/brands/
     - assets/images/avatars/
+    - assets/images/onboarding/
     - assets/js/
     - assets/fonts/
   

@@ -205,7 +205,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             label: 'Promos',
             count: provider.getPromotionNotifications().length,
             isSelected: _selectedFilter == 'promotion',
-            color: AppColors.secondary,
+            color: AppColors.warning,
             onTap: () {
               setState(() {
                 _selectedFilter = 'promotion';

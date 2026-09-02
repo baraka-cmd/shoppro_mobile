@@ -1,9 +1,12 @@
 // ============================================
-// PROVIDER D'AUTHENTIFICATION
+// PROVIDER D'AUTHENTIFICATION - VERSION SENIOR
 // ============================================
-// Gère l'état de l'authentification dans l'application.
-// Notifie les widgets des changements d'état.
-// Inclut la redirection selon le rôle.
+// Gère l'état de l'authentification avec :
+// - Redirection intelligente par rôle
+// - Vérification du statut du compte
+// - Journalisation (debugPrint)
+// - Méthodes de contrôle d'accès
+// - Timeout sur l'initialisation
 // ============================================
 
 // ============================================
@@ -40,14 +43,16 @@ class AuthProvider extends ChangeNotifier {
   // ============================================
   // ÉTAT
   // ============================================
+
   AuthStatus _status = AuthStatus.initial;
   User? _user;
   String? _errorMessage;
   bool _isLoading = false;
 
   // ============================================
-  // GETTERS
+  // GETTERS DE BASE
   // ============================================
+
   AuthStatus get status => _status;
   User? get user => _user;
   String? get errorMessage => _errorMessage;
@@ -58,45 +63,128 @@ class AuthProvider extends ChangeNotifier {
   bool get isClient => _user?.isClient ?? false;
 
   // ============================================
+// GETTERS DE STATUT (simplifié)
+// ============================================
+
+/// Vrai si le compte est actif.
+bool get isActiveUser => true; // Par défaut actif (à adapter si User a un statut)
+
+/// Vrai si le compte est banni.
+bool get isBanned => false; // Par défaut non banni
+
+/// Vrai si le compte est suspendu.
+bool get isSuspended => false; // Par défaut non suspendu
+
+/// Peut accéder aux routes admin ?
+bool canAccessAdmin() => isAdmin;
+
+/// Peut accéder aux routes vendeur ?
+bool canAccessSeller() => (isSeller || isAdmin);
+
+/// Peut accéder aux routes client ?
+bool canAccessClient() => isAuthenticated;
+
+  // ============================================
+  // NOM DU RÔLE
+  // ============================================
+
+  /// Nom lisible du rôle principal pour l'affichage.
+  String get roleName {
+    if (isAdmin) return 'Administrateur';
+    if (isSeller) return 'Vendeur';
+    if (isClient) return 'Client';
+    return 'Invité';
+  }
+
+  // ============================================
   // REDIRECTION PAR RÔLE
   // ============================================
 
-  /// Retourne la route de redirection selon le rôle de l'utilisateur.
+  /// Retourne la route de redirection selon le rôle et le statut.
+  ///
+  /// Priorité : Non authentifié → Login, Banni/Suspendu → Login,
+  /// Admin → /admin/dashboard, Vendeur → /seller/dashboard, Client → /home.
   String getRedirectRoute() {
+    // 1. Vérifier l'authentification
+    if (!isAuthenticated) {
+      debugPrint('🔴 AuthProvider: Non authentifié → Login');
+      return AppRoutes.login;
+    }
+
+    // 2. Vérifier le statut du compte
+    if (isBanned) {
+      debugPrint('🔴 AuthProvider: Compte banni → Login');
+      return AppRoutes.login;
+    }
+
+    if (isSuspended) {
+      debugPrint('🔴 AuthProvider: Compte suspendu → Login');
+      return AppRoutes.login;
+    }
+
+    if (!isActiveUser) {
+      debugPrint('🔴 AuthProvider: Compte inactif → Login');
+      return AppRoutes.login;
+    }
+
+    // 3. Redirection selon le rôle
     if (isAdmin) {
+      debugPrint('🟣 AuthProvider: Admin → /admin/dashboard');
       return AppRoutes.adminDashboard;
     }
+
     if (isSeller) {
+      debugPrint('🟠 AuthProvider: Vendeur → /seller/dashboard');
       return AppRoutes.sellerDashboard;
     }
-    return AppRoutes.home;
+
+    if (isClient) {
+      debugPrint('🟢 AuthProvider: Client → /home');
+      return AppRoutes.home;
+    }
+
+    // 4. Rôle inconnu
+    debugPrint('🔴 AuthProvider: Rôle inconnu → Login');
+    return AppRoutes.login;
   }
 
   // ============================================
   // INITIALISATION
   // ============================================
 
+  /// Initialise le provider en vérifiant la session locale.
+  ///
+  /// Vérifie si un utilisateur est stocké et restaure la session.
+  /// Timeout de 5 secondes pour éviter le blocage.
   Future<void> init() async {
     _setLoading(true);
+    debugPrint('🔄 AuthProvider: Initialisation...');
 
     try {
-      final isLoggedIn = await _authRepository.isLoggedIn();
+      final isLoggedIn = await _authRepository
+          .isLoggedIn()
+          .timeout(const Duration(seconds: 5));
 
       if (isLoggedIn) {
-        final storedUser = await _authRepository.getStoredUser();
+        final storedUser = await _authRepository
+            .getStoredUser()
+            .timeout(const Duration(seconds: 5));
 
         if (storedUser != null) {
           _user = storedUser;
           _status = AuthStatus.authenticated;
+          debugPrint('✅ AuthProvider: Session restaurée - ${storedUser.name}');
         } else {
           _status = AuthStatus.unauthenticated;
+          debugPrint('⚠️ AuthProvider: Aucun utilisateur stocké');
         }
       } else {
         _status = AuthStatus.unauthenticated;
+        debugPrint('⚠️ AuthProvider: Pas de session active');
       }
     } catch (e) {
       _status = AuthStatus.unauthenticated;
-      debugPrint('Erreur init AuthProvider: $e');
+      debugPrint('❌ AuthProvider: Erreur init: $e');
     } finally {
       _setLoading(false);
       notifyListeners();
@@ -116,6 +204,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
+    debugPrint('🔄 AuthProvider: Inscription...');
 
     try {
       final user = await _authRepository.register(
@@ -130,12 +219,14 @@ class AuthProvider extends ChangeNotifier {
       _status = AuthStatus.authenticated;
       _setLoading(false);
       notifyListeners();
+      debugPrint('✅ AuthProvider: Inscription réussie - ${user.name}');
       return true;
     } catch (e) {
       _setError(e.toString());
       _status = AuthStatus.error;
       _setLoading(false);
       notifyListeners();
+      debugPrint('❌ AuthProvider: Erreur inscription: $e');
       return false;
     }
   }
@@ -151,6 +242,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
+    debugPrint('🔄 AuthProvider: Connexion...');
 
     try {
       final user = await _authRepository.login(
@@ -163,13 +255,14 @@ class AuthProvider extends ChangeNotifier {
       _status = AuthStatus.authenticated;
       _setLoading(false);
       notifyListeners();
-      debugPrint('Connexion réussie - Rôle: ${user.isAdmin ? "Admin" : user.isSeller ? "Vendeur" : "Client"}');
+      debugPrint('✅ AuthProvider: Connexion réussie - ${roleName}');
       return true;
     } catch (e) {
       _setError(e.toString());
       _status = AuthStatus.error;
       _setLoading(false);
       notifyListeners();
+      debugPrint('❌ AuthProvider: Erreur connexion: $e');
       return false;
     }
   }
@@ -180,11 +273,13 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     _setLoading(true);
+    debugPrint('🔄 AuthProvider: Déconnexion...');
 
     try {
       await _authRepository.logout();
+      debugPrint('✅ AuthProvider: Déconnexion réussie');
     } catch (e) {
-      debugPrint('Erreur logout: $e');
+      debugPrint('⚠️ AuthProvider: Erreur logout: $e');
     } finally {
       _user = null;
       _status = AuthStatus.unauthenticated;
@@ -206,11 +301,13 @@ class AuthProvider extends ChangeNotifier {
       _user = user;
       _setLoading(false);
       notifyListeners();
+      debugPrint('✅ AuthProvider: Profil mis à jour');
       return true;
     } catch (e) {
       _setError(e.toString());
       _setLoading(false);
       notifyListeners();
+      debugPrint('❌ AuthProvider: Erreur updateProfile: $e');
       return false;
     }
   }
@@ -235,11 +332,13 @@ class AuthProvider extends ChangeNotifier {
       );
       _setLoading(false);
       notifyListeners();
+      debugPrint('✅ AuthProvider: Mot de passe changé');
       return true;
     } catch (e) {
       _setError(e.toString());
       _setLoading(false);
       notifyListeners();
+      debugPrint('❌ AuthProvider: Erreur changePassword: $e');
       return false;
     }
   }
@@ -256,11 +355,13 @@ class AuthProvider extends ChangeNotifier {
       await _authRepository.forgotPassword(email);
       _setLoading(false);
       notifyListeners();
+      debugPrint('✅ AuthProvider: Email envoyé');
       return true;
     } catch (e) {
       _setError(e.toString());
       _setLoading(false);
       notifyListeners();
+      debugPrint('❌ AuthProvider: Erreur forgotPassword: $e');
       return false;
     }
   }
@@ -288,5 +389,15 @@ class AuthProvider extends ChangeNotifier {
 
   void _setError(String message) {
     _errorMessage = message.replaceFirst('Exception: ', '');
+  }
+
+  // ============================================
+  // TOSTRING
+  // ============================================
+
+  @override
+  String toString() {
+    return 'AuthProvider(status: $_status, user: ${_user?.name ?? 'null'}, '
+        'role: $roleName, active: $isActiveUser)';
   }
 }

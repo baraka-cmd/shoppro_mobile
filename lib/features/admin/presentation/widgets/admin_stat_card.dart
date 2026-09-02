@@ -74,7 +74,7 @@ class AdminStatCard extends StatelessWidget {
     required this.value,
     required this.icon,
     this.iconBackgroundColor = const Color(0xFFFEF3C7),
-    this.iconColor = AppColors.secondary,
+    this.iconColor = AppColors.warning,
     this.variation,
     this.isPositiveVariation = true,
     this.variationLabel,

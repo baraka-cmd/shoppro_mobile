@@ -1,11 +1,31 @@
-// Carte d'article de blog
-// Affiche l'image, le titre, la date et la catégorie
+// ============================================
+// WIDGET : BlogCard
+// ============================================
+// Carte d'article de blog avec :
+// - Image responsive
+// - Badge catégorie élégant
+// - Titre lisible
+// - Métadonnées complètes
+// - Animation au tap
+// ============================================
+
+// ============================================
+// IMPORTS
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/constants/app_colors.dart';
 
+// ============================================
+// WIDGET PRINCIPAL
+// ============================================
+
 class BlogCard extends StatelessWidget {
+  // ============================================
+  // PROPRIÉTÉS
+  // ============================================
+
   final String title;
   final String? imageUrl;
   final String? category;
@@ -13,6 +33,10 @@ class BlogCard extends StatelessWidget {
   final DateTime? date;
   final VoidCallback? onTap;
   final int readTime;
+
+  // ============================================
+  // CONSTRUCTEUR
+  // ============================================
 
   const BlogCard({
     super.key,
@@ -25,152 +49,77 @@ class BlogCard extends StatelessWidget {
     this.readTime = 3,
   });
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 220,
+        width: 210,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: AppColors.borderColor.withValues(alpha: 0.5),
+            color: AppColors.borderColor,
+            width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
+          boxShadow: AppColors.cardShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
+            // ============================================
+            // IMAGE (150px - réduite pour éviter overflow)
+            // ============================================
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
+                top: Radius.circular(14),
               ),
               child: SizedBox(
-                height: 120,
+                height: 150,
                 width: double.infinity,
-                child: imageUrl != null && imageUrl!.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: AppColors.background,
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: AppColors.background,
-                          child: const Icon(
-                            Icons.article,
-                            size: 30,
-                            color: AppColors.textLight,
-                          ),
-                        ),
-                      )
-                    : Container(
-                        color: AppColors.background,
-                        child: const Icon(
-                          Icons.article,
-                          size: 30,
-                          color: AppColors.textLight,
-                        ),
-                      ),
+                child: _buildImage(),
               ),
             ),
 
-            // Badge catégorie
-            if (category != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    category!.toUpperCase(),
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.secondary,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ),
+            // ============================================
+            // CONTENU (padding réduit)
+            // ============================================
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Badge catégorie
+                    if (category != null && category!.isNotEmpty) ...[
+                      _buildCategoryBadge(),
+                      const SizedBox(height: 4),
+                    ],
 
-            // Titre
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 5, 10, 0),
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                  height: 1.3,
-                ),
-              ),
-            ),
-
-            const Spacer(),
-
-            // Auteur + Date + Temps de lecture
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                children: [
-                  // Auteur
-                  if (author != null)
-                    Expanded(
-                      child: Text(
-                        author!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 10,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  // Date + Temps
-                  if (date != null) ...[
-                    const Icon(
-                      Icons.access_time,
-                      size: 10,
-                      color: AppColors.textLight,
-                    ),
-                    const SizedBox(width: 3),
+                    // Titre (police réduite)
                     Text(
-                      '${_formatDate(date!)} · $readTime min',
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: 'Poppins',
-                        fontSize: 9,
-                        color: AppColors.textLight,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                        height: 1.3,
                       ),
                     ),
+
+                    const SizedBox(height: 3),
+
+                    // Métadonnées (sans Spacer pour éviter overflow)
+                    _buildMetaRow(),
                   ],
-                ],
+                ),
               ),
             ),
           ],
@@ -179,7 +128,123 @@ class BlogCard extends StatelessWidget {
     );
   }
 
-  // Formater la date
+  // ============================================
+  // IMAGE
+  // ============================================
+
+  Widget _buildImage() {
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: imageUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: AppColors.surface,
+          child: const Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => _buildPlaceholder(),
+      );
+    }
+
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: AppColors.surface,
+      child: const Center(
+        child: Icon(
+          Icons.article_outlined,
+          size: 28,
+          color: AppColors.textLight,
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // BADGE CATÉGORIE
+  // ============================================
+
+  Widget _buildCategoryBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.warningLight,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        category!.toUpperCase(),
+        style: const TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 7,
+          fontWeight: FontWeight.bold,
+          color: AppColors.warningDark,
+          letterSpacing: 0.5,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  // ============================================
+  // MÉTADONNÉES
+  // ============================================
+
+  Widget _buildMetaRow() {
+    return Row(
+      children: [
+        if (author != null && author!.isNotEmpty) ...[
+          Expanded(
+            child: Text(
+              author!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 8,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+        if (date != null) ...[
+          const Icon(
+            Icons.schedule,
+            size: 9,
+            color: AppColors.textLight,
+          ),
+          const SizedBox(width: 2),
+          Text(
+            '${_formatDate(date!)} · $readTime min',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 8,
+              fontWeight: FontWeight.w400,
+              color: AppColors.textLight,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ============================================
+  // FORMATAGE DATE
+  // ============================================
+
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
@@ -188,11 +253,14 @@ class BlogCard extends StatelessWidget {
       return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
     }
     if (difference.inDays > 0) {
-      return '${difference.inDays}j';
+      return 'il y a ${difference.inDays}j';
     }
     if (difference.inHours > 0) {
-      return '${difference.inHours}h';
+      return 'il y a ${difference.inHours}h';
     }
-    return '${difference.inMinutes}min';
+    if (difference.inMinutes > 0) {
+      return 'il y a ${difference.inMinutes}min';
+    }
+    return "à l'instant";
   }
 }

@@ -94,7 +94,7 @@ enum UserRole {
       case UserRole.admin:
         return AppColors.error;
       case UserRole.seller:
-        return AppColors.secondary;
+        return AppColors.warning;
       case UserRole.client:
         return AppColors.primary;
       case UserRole.guest:
@@ -108,7 +108,7 @@ enum UserRole {
       case UserRole.admin:
         return AppColors.error.withValues(alpha: 0.1);
       case UserRole.seller:
-        return AppColors.secondary.withValues(alpha: 0.1);
+        return AppColors.warning.withValues(alpha: 0.1);
       case UserRole.client:
         return AppColors.primary.withValues(alpha: 0.1);
       case UserRole.guest:

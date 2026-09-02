@@ -53,7 +53,7 @@ class FeaturedBadge extends StatelessWidget {
           gradient: LinearGradient(
             colors: [
               AppColors.warning,
-              AppColors.secondary,
+              AppColors.warning,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,

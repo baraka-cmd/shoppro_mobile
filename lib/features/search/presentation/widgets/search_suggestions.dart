@@ -115,13 +115,13 @@ class SearchSuggestions extends StatelessWidget {
                 width: 35,
                 height: 35,
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withValues(alpha: 0.1),
+                  color: AppColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.category,
                   size: 16,
-                  color: AppColors.secondary,
+                  color: AppColors.warning,
                 ),
               ),
               title: Text(

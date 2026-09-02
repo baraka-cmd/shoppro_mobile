@@ -1,15 +1,21 @@
 // ============================================
-// ÉCRAN DE CONNEXION COMPLET
+// ÉCRAN DE CONNEXION - VERSION PROFESSIONNELLE
 // ============================================
-// Formulaire avec validation, chargement, erreurs
-// et redirection selon le rôle de l'utilisateur.
+// Design moderne avec :
+// - Logo officiel
+// - Redirection centralisée par rôle
+// - Vérification de connexion Internet
+// - Mémorisation du dernier email
+// - Messages d'erreur clairs
 // ============================================
 
 // ============================================
 // IMPORTS
 // ============================================
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../routes/app_routes.dart';
@@ -35,13 +41,23 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool _rememberMe = false;
   bool _isLoading = false;
   String? _errorMessage;
+
+  // ============================================
+  // INIT
+  // ============================================
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedEmail();
+    _loadRememberMe();
+  }
 
   @override
   void dispose() {
@@ -51,17 +67,62 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // ============================================
+  // CHARGEMENT DES PRÉFÉRENCES
+  // ============================================
+
+  /// Charge le dernier email sauvegardé
+  Future<void> _loadSavedEmail() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmail = prefs.getString('saved_email');
+      if (savedEmail != null && savedEmail.isNotEmpty) {
+        _emailController.text = savedEmail;
+      }
+    } catch (e) {
+      debugPrint('Erreur chargement email: $e');
+    }
+  }
+
+  /// Charge la préférence "Se souvenir de moi"
+  Future<void> _loadRememberMe() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _rememberMe = prefs.getBool('remember_me') ?? false;
+      });
+    } catch (e) {
+      debugPrint('Erreur chargement rememberMe: $e');
+    }
+  }
+
+  // ============================================
+  // SAUVEGARDE DES PRÉFÉRENCES
+  // ============================================
+
+  /// Sauvegarde l'email et la préférence
+  Future<void> _savePreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setString('saved_email', _emailController.text.trim());
+        await prefs.setBool('remember_me', true);
+      } else {
+        await prefs.remove('saved_email');
+        await prefs.setBool('remember_me', false);
+      }
+    } catch (e) {
+      debugPrint('Erreur sauvegarde préférences: $e');
+    }
+  }
+
+  // ============================================
   // GÉRER LA CONNEXION
   // ============================================
 
   Future<void> _handleLogin() async {
-    // Masquer le clavier
     FocusScope.of(context).unfocus();
 
-    // Valider le formulaire
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
@@ -78,60 +139,57 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
 
     if (success) {
-      // ============================================
-      // ✅ REDIRECTION SELON LE RÔLE
-      // ============================================
-      _redirectByRole(authProvider);
+      await _savePreferences();
+      _navigateToDashboard(authProvider);
     } else {
       setState(() {
-        _errorMessage = authProvider.errorMessage;
+        _errorMessage = authProvider.errorMessage ?? 'Erreur de connexion';
       });
     }
   }
 
   // ============================================
-  // REDIRECTION PAR RÔLE
+  // NAVIGATION APRÈS CONNEXION
   // ============================================
 
-  void _redirectByRole(AuthProvider authProvider) {
-    String route;
+  void _navigateToDashboard(AuthProvider authProvider) {
+  // 1. Récupérer la route de redirection
+  final route = authProvider.getRedirectRoute();
 
-    if (authProvider.isAdmin) {
-      route = AppRoutes.adminDashboard;
-    } else if (authProvider.isSeller) {
-      route = AppRoutes.sellerDashboard;
-    } else {
-      route = AppRoutes.home;
-    }
+  // 2. Capturer le ScaffoldMessenger avant la navigation
+  final messenger = ScaffoldMessenger.of(context);
 
-    // Afficher un message de bienvenue
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Bienvenue ${authProvider.user?.name ?? ""} !',
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13,
-          ),
+  // 3. Naviguer D'ABORD (sans attendre le SnackBar)
+  Navigator.of(context).pushNamedAndRemoveUntil(
+    route,
+    (route) => false,
+  );
+
+  // 4. Afficher le SnackBar APRÈS la navigation
+  // Le ScaffoldMessenger est global, donc il s'affichera sur le nouvel écran
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(
+        'Bienvenue ${authProvider.user?.name ?? ""} !',
+        style: const TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 13,
+          color: Colors.white,
         ),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(20),
-        duration: const Duration(seconds: 2),
       ),
-    );
-
-    // Naviguer avec suppression des routes précédentes
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      route,
-      (route) => false,
-    );
-  }
+      backgroundColor: AppColors.success,
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.all(20),
+      duration: const Duration(seconds: 2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ),
+  );
+}
 
   // ============================================
   // BUILD
@@ -143,59 +201,71 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 30),
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 25),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // En-tête
+                // ============================================
+                // EN-TÊTE
+                // ============================================
                 Center(
                   child: Column(
                     children: [
-                      // Logo
+                      // Logo (image ou fallback icône)
                       Container(
-                        width: 70,
-                        height: 70,
+                        width: 80,
+                        height: 80,
                         decoration: BoxDecoration(
                           gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(22),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
+                              color: AppColors.primary.withValues(alpha: 0.25),
+                              blurRadius: 15,
+                              offset: const Offset(0, 6),
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.shopping_bag,
-                          size: 35,
-                          color: Colors.white,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(22),
+                          child: Image.asset(
+                            'assets/images/logo.jpg',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.shopping_bag,
+                                size: 38,
+                                color: Colors.white,
+                              );
+                            },
+                          ),
                         ),
                       ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      // Titre
+
+                      const SizedBox(height: 18),
+
                       const Text(
                         'Bon retour !',
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 28,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
+                          letterSpacing: 0.3,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 8),
-                      
-                      // Sous-titre
+
                       const Text(
-                        'Connectez-vous à votre compte',
+                        'Connectez-vous pour continuer',
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w400,
                           color: AppColors.textSecondary,
                         ),
@@ -203,60 +273,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: 40),
-                
-                // Message d'erreur
+
+                const SizedBox(height: 35),
+
+                // ============================================
+                // MESSAGE D'ERREUR
+                // ============================================
                 if (_errorMessage != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: AppColors.error.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.error.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: AppColors.error,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.error,
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _errorMessage = null;
-                            });
-                          },
-                          child: const Icon(
-                            Icons.close,
-                            color: AppColors.error,
-                            size: 18,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  _buildErrorBox(),
+                  const SizedBox(height: 18),
                 ],
-                
-                // Champ Email
+
+                // ============================================
+                // CHAMP EMAIL
+                // ============================================
                 AuthTextField(
                   controller: _emailController,
                   label: 'Adresse email',
@@ -264,55 +294,62 @@ class _LoginScreenState extends State<LoginScreen> {
                   icon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.email],
+                  textCapitalization: TextCapitalization.none,
                   validator: Validators.validateEmail,
                 ),
-                
-                // Champ Mot de passe
+
+                // ============================================
+                // CHAMP MOT DE PASSE
+                // ============================================
                 PasswordTextField(
                   controller: _passwordController,
                   label: 'Mot de passe',
                   hint: 'Entrez votre mot de passe',
-                  validator: Validators.validatePassword,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _handleLogin(),
+                  validator: Validators.validatePassword,
                 ),
-                
-                // Se souvenir + Mot de passe oublié
+
+                // ============================================
+                // SE SOUVENIR + MOT DE PASSE OUBLIÉ
+                // ============================================
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Checkbox Se souvenir
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: Checkbox(
-                            value: _rememberMe,
-                            onChanged: (value) {
-                              setState(() {
-                                _rememberMe = value ?? false;
-                              });
-                            },
-                            activeColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
+                    // Se souvenir de moi
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _rememberMe = !_rememberMe;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(6),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _rememberMe
+                                ? Icons.check_circle
+                                : Icons.circle_outlined,
+                            size: 20,
+                            color: _rememberMe
+                                ? AppColors.primary
+                                : AppColors.textTertiary,
+                          ),
+                          const SizedBox(width: 7),
+                          const Text(
+                            'Se souvenir',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Se souvenir de moi',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    
+
                     // Mot de passe oublié
                     GestureDetector(
                       onTap: () {
@@ -322,7 +359,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Mot de passe oublié ?',
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: AppColors.primary,
                         ),
@@ -330,26 +367,29 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-                
-                const SizedBox(height: 30),
-                
-                // Bouton Se connecter
+
+                const SizedBox(height: 28),
+
+                // ============================================
+                // BOUTON CONNEXION
+                // ============================================
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 55),
+                    minimumSize: const Size(double.infinity, 52),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    elevation: 0,
+                    elevation: 3,
+                    shadowColor: AppColors.primary.withValues(alpha: 0.3),
                     disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                          width: 24,
-                          height: 24,
+                          width: 22,
+                          height: 22,
                           child: CircularProgressIndicator(
                             color: Colors.white,
                             strokeWidth: 2.5,
@@ -359,16 +399,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           'SE CONNECTER',
                           style: TextStyle(
                             fontFamily: 'Poppins',
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1,
                           ),
                         ),
                 ),
-                
-                const SizedBox(height: 30),
-                
-                // Séparateur
+
+                const SizedBox(height: 25),
+
+                // ============================================
+                // SÉPARATEUR
+                // ============================================
                 Row(
                   children: [
                     Expanded(
@@ -378,12 +420,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 15),
+                      padding: EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
                         'ou continuer avec',
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textSecondary,
                         ),
@@ -397,42 +439,33 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-                
-                const SizedBox(height: 25),
-                
-                // Boutons sociaux
+
+                const SizedBox(height: 20),
+
+                // ============================================
+                // BOUTONS SOCIAUX
+                // ============================================
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Expanded(
-                      child: SocialButton.google(
-                        onPressed: () {
-                          // TODO: Connexion Google
-                        },
-                      ),
+                      child: SocialButton.google(),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: SocialButton.facebook(
-                        onPressed: () {
-                          // TODO: Connexion Facebook
-                        },
-                      ),
+                      child: SocialButton.facebook(),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: SocialButton.apple(
-                        onPressed: () {
-                          // TODO: Connexion Apple
-                        },
-                      ),
+                      child: SocialButton.apple(),
                     ),
                   ],
                 ),
-                
-                const SizedBox(height: 30),
-                
-                // Lien inscription
+
+                const SizedBox(height: 25),
+
+                // ============================================
+                // LIEN INSCRIPTION
+                // ============================================
                 Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -441,7 +474,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Pas de compte ? ',
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w400,
                           color: AppColors.textSecondary,
                         ),
@@ -454,7 +487,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'S\'inscrire',
                           style: TextStyle(
                             fontFamily: 'Poppins',
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
                           ),
@@ -467,6 +500,59 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ============================================
+  // WIDGETS INTERNES
+  // ============================================
+
+  /// Boîte d'erreur élégante
+  Widget _buildErrorBox() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.errorLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.error.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline,
+            color: AppColors.error,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.errorDark,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _errorMessage = null;
+              });
+            },
+            child: const Icon(
+              Icons.close,
+              color: AppColors.error,
+              size: 16,
+            ),
+          ),
+        ],
       ),
     );
   }

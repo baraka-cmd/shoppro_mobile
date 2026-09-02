@@ -291,15 +291,15 @@ class _AdminSalesChartState extends State<AdminSalesChart>
           Container(
             height: math.max(animatedHeight, 4),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.secondary : widget.barColor,
+              color: isSelected ? AppColors.warning : widget.barColor,
               borderRadius: BorderRadius.circular(4),
               gradient: isSelected
-                  ? AppColors.accentGradient
+                  ? AppColors.primaryGradient
                   : null,
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: AppColors.secondary.withOpacity(0.3),
+                        color: AppColors.warning.withOpacity(0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),

@@ -308,7 +308,7 @@ Widget build(BuildContext context) {
                 icon: Icons.star_outline,
                 label: 'Avis postés',
                 value: '8',
-                color: AppColors.secondary,
+                color: AppColors.warning,
                 bgColor: AppColors.warningLight,
               ),
             ],

@@ -1,208 +1,291 @@
-// AppBar de l'écran d'accueil
-// Avec logo, recherche, notifications et panier
+// ============================================
+// WIDGET : HomeAppBar
+// ============================================
+// Barre supérieure de l'accueil avec :
+// - Salutation personnalisée "Bonjour 👋"
+// - Barre de recherche proéminente
+// - Badge panier avec compteur
+// - Badge notifications
+// - Design épuré et moderne
+// ============================================
+
+// ============================================
+// IMPORTS
+// ============================================
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../routes/app_routes.dart';
+import '../../../cart/presentation/providers/cart_provider.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
 
-class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
+// ============================================
+// WIDGET PRINCIPAL
+// ============================================
+
+class HomeAppBar extends StatelessWidget {
+  // ============================================
+  // PROPRIÉTÉS
+  // ============================================
+
+  final String userName;
   final VoidCallback? onSearchTap;
-  final VoidCallback? onNotificationTap;
-  final VoidCallback? onCartTap;
-  final VoidCallback? onLogoTap;
-  final int notificationCount;
-  final int cartCount;
+  final VoidCallback? onNotificationsTap;
+
+  // ============================================
+  // CONSTRUCTEUR
+  // ============================================
 
   const HomeAppBar({
     super.key,
+    this.userName = 'Client',
     this.onSearchTap,
-    this.onNotificationTap,
-    this.onCartTap,
-    this.onLogoTap,
-    this.notificationCount = 0,
-    this.cartCount = 0,
+    this.onNotificationsTap,
   });
 
-  @override
-  Size get preferredSize => const Size.fromHeight(70);
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
+        color: AppColors.background,
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-          child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ============================================
+          // LIGNE 1 : Salutation + Actions
+          // ============================================
+          Row(
             children: [
-              // Logo
-              GestureDetector(
-                onTap: onLogoTap,
-                child: Row(
+              // Salutation
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 35,
-                      height: 35,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.shopping_bag,
-                        size: 20,
-                        color: AppColors.primary,
+                    Text(
+                      'Bonjour 👋',
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'ShopPro',
-                      style: TextStyle(
+                    const SizedBox(height: 2),
+                    Text(
+                      userName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontFamily: 'Poppins',
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(width: 15),
+              // ============================================
+              // NOTIFICATIONS
+              // ============================================
+              _buildNotificationButton(context),
 
-              // Barre de recherche
-              Expanded(
-                child: GestureDetector(
-                  onTap: onSearchTap,
-                  child: Container(
-                    height: 40,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.search,
-                          size: 18,
-                          color: Colors.white70,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Rechercher un produit...',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.white.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              const SizedBox(width: 6),
 
-              const SizedBox(width: 5),
-
-              // Notifications
-              Stack(
-                children: [
-                  IconButton(
-                    onPressed: onNotificationTap,
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
-                  if (notificationCount > 0)
-                    Positioned(
-                      right: 5,
-                      top: 5,
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color: AppColors.error,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white,
-                            width: 1.5,
-                          ),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 14,
-                          minHeight: 14,
-                        ),
-                        child: Text(
-                          notificationCount > 99 ? '99+' : '$notificationCount',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 7,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-
-              // Panier
-              Stack(
-                children: [
-                  IconButton(
-                    onPressed: onCartTap,
-                    icon: const Icon(
-                      Icons.shopping_cart_outlined,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
-                  if (cartCount > 0)
-                    Positioned(
-                      right: 5,
-                      top: 5,
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color: AppColors.error,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white,
-                            width: 1.5,
-                          ),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 14,
-                          minHeight: 14,
-                        ),
-                        child: Text(
-                          cartCount > 99 ? '99+' : '$cartCount',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 7,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+              // ============================================
+              // PANIER AVEC BADGE
+              // ============================================
+              _buildCartButton(context),
             ],
           ),
+
+          const SizedBox(height: 12),
+
+          // ============================================
+          // BARRE DE RECHERCHE (PROÉMINENTE)
+          // ============================================
+          _buildSearchBar(context),
+        ],
+      ),
+    );
+  }
+
+  // ============================================
+  // BOUTON NOTIFICATIONS
+  // ============================================
+
+  Widget _buildNotificationButton(BuildContext context) {
+    final notificationProvider = context.watch<NotificationProvider>();
+    final unreadCount = notificationProvider.unreadCount;
+
+    return Stack(
+      children: [
+        IconButton(
+          onPressed: onNotificationsTap ??
+              () => Navigator.of(context).pushNamed(AppRoutes.notifications),
+          icon: const Icon(
+            Icons.notifications_outlined,
+            size: 22,
+            color: AppColors.textPrimary,
+          ),
+          tooltip: 'Notifications',
+          visualDensity: VisualDensity.compact,
+        ),
+        if (unreadCount > 0)
+          Positioned(
+            top: 5,
+            right: 5,
+            child: Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: AppColors.promo,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.background,
+                  width: 1.5,
+                ),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
+              child: Text(
+                unreadCount > 99 ? '99+' : '$unreadCount',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ============================================
+  // BOUTON PANIER
+  // ============================================
+
+  Widget _buildCartButton(BuildContext context) {
+    final cartProvider = context.watch<CartProvider>();
+    final cartCount = cartProvider.totalItems;
+
+    return Stack(
+      children: [
+        IconButton(
+          onPressed: () => Navigator.of(context).pushNamed(AppRoutes.cart),
+          icon: const Icon(
+            Icons.shopping_bag_outlined,
+            size: 22,
+            color: AppColors.textPrimary,
+          ),
+          tooltip: 'Panier',
+          visualDensity: VisualDensity.compact,
+        ),
+        if (cartCount > 0)
+          Positioned(
+            top: 5,
+            right: 5,
+            child: Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.background,
+                  width: 1.5,
+                ),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
+              child: Text(
+                cartCount > 99 ? '99+' : '$cartCount',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ============================================
+  // BARRE DE RECHERCHE
+  // ============================================
+
+  Widget _buildSearchBar(BuildContext context) {
+    return GestureDetector(
+      onTap: onSearchTap ??
+          () => Navigator.of(context).pushNamed(AppRoutes.search),
+      child: Container(
+        height: 45,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.borderColor,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.search,
+              size: 20,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Rechercher un produit...',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textLight.withValues(alpha: 0.7),
+                ),
+              ),
+            ),
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: AppColors.primarySoft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.tune,
+                size: 14,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
         ),
       ),
     );

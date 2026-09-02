@@ -88,7 +88,7 @@ class _AdminPromotionsScreenState extends State<AdminPromotionsScreen> {
       onLogout: () {},
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToCreate(),
-        backgroundColor: AppColors.secondary,
+        backgroundColor: AppColors.warning,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       child: _buildContent(),
@@ -273,7 +273,7 @@ class _AdminPromotionsScreenState extends State<AdminPromotionsScreen> {
                         fontFamily: 'Poppins',
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.secondary,
+                        color: AppColors.warning,
                       ),
                     ),
                   ],

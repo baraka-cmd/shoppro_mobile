@@ -76,7 +76,7 @@ class FreeShippingProgress extends StatelessWidget {
               const Icon(
                 Icons.local_shipping,
                 size: 18,
-                color: AppColors.secondary,
+                color: AppColors.warning,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -102,7 +102,7 @@ class FreeShippingProgress extends StatelessWidget {
               value: progress,
               minHeight: 8,
               backgroundColor: AppColors.background,
-              color: AppColors.secondary,
+              color: AppColors.warning,
             ),
           ),
 
@@ -118,7 +118,7 @@ class FreeShippingProgress extends StatelessWidget {
                   fontFamily: 'Poppins',
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.secondary,
+                  color: AppColors.warning,
                 ),
               ),
               Text(

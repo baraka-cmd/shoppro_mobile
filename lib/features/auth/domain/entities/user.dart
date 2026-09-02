@@ -1,22 +1,56 @@
-// Entité User (Domaine)
-// 
-// Cette classe représente un utilisateur dans la couche domaine.
-// Elle ne dépend d'aucun framework ou bibliothèque externe.
+// ============================================
+// ENTITÉ USER (DOMAINE)
+// ============================================
+// Représente un utilisateur dans la couche domaine.
+// Ne dépend d'aucun framework ou bibliothèque externe.
+// ============================================
 
 class User {
+  // ============================================
+  // INFORMATIONS DE BASE
+  // ============================================
+
   final int id;
   final String name;
   final String email;
   final String? avatar;
   final String? phone;
+
+  // ============================================
+  // STATUT DU COMPTE
+  // ============================================
+
+  final bool isActive;
+  final bool isBanned;
+  final bool isSuspended;
+  final bool isVerified;
+
+  // ============================================
+  // PROFIL DÉTAILLÉ
+  // ============================================
+
   final String? firstName;
   final String? lastName;
   final String? country;
   final String? city;
+
+  // ============================================
+  // RÔLES ET PERMISSIONS
+  // ============================================
+
   final List<String> roles;
+
+  // ============================================
+  // STATISTIQUES
+  // ============================================
+
   final int totalOrders;
   final double totalSpent;
   final bool emailVerified;
+
+  // ============================================
+  // CONSTRUCTEUR
+  // ============================================
 
   const User({
     required this.id,
@@ -24,34 +58,94 @@ class User {
     required this.email,
     this.avatar,
     this.phone,
+    this.roles = const [],
+    this.isActive = true,
+    this.isBanned = false,
+    this.isSuspended = false,
+    this.isVerified = false,
     this.firstName,
     this.lastName,
     this.country,
     this.city,
-    this.roles = const [],
     this.totalOrders = 0,
     this.totalSpent = 0,
     this.emailVerified = false,
   });
 
-  // Nom complet (prénom + nom ou name)
+  // ============================================
+  // GETTERS DE NOM
+  // ============================================
+
+  /// Nom complet (prénom + nom ou name)
   String get fullName {
     if (firstName != null && lastName != null) {
       return '$firstName $lastName';
     }
+    if (firstName != null) return firstName!;
+    if (lastName != null) return lastName!;
     return name;
   }
 
-  // L'utilisateur est-il admin ?
+  /// Initiales pour l'avatar (ex: "Jean Dupont" → "JD")
+  String get initials {
+    final parts = fullName.split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return fullName.isNotEmpty ? fullName[0].toUpperCase() : '?';
+  }
+
+  // ============================================
+  // GETTERS DE RÔLE
+  // ============================================
+
   bool get isAdmin => roles.contains('admin');
-
-  // L'utilisateur est-il vendeur ?
   bool get isSeller => roles.contains('seller');
-
-  // L'utilisateur est-il client ?
   bool get isClient => roles.contains('client');
 
-  // Copier avec des modifications
+  /// Nom du rôle principal pour l'affichage
+  String get roleName {
+    if (isAdmin) return 'Administrateur';
+    if (isSeller) return 'Vendeur';
+    if (isClient) return 'Client';
+    return 'Invité';
+  }
+
+  // ============================================
+  // GETTERS DE STATUT
+  // ============================================
+
+  /// Vrai si le compte peut accéder à l'application
+  bool get canAccess => isActive && !isBanned && !isSuspended;
+
+  /// Vrai si l'email a été vérifié (soit emailVerified, soit isVerified)
+  bool get hasVerifiedEmail => emailVerified || isVerified;
+
+  // ============================================
+  // GETTERS DE STATISTIQUES
+  // ============================================
+
+  /// Total dépensé formaté en FCFA
+  String get totalSpentFormatted {
+    final buffer = StringBuffer();
+    final amountStr = totalSpent.round().toString();
+    for (int i = 0; i < amountStr.length; i++) {
+      buffer.write(amountStr[i]);
+      final remaining = amountStr.length - i - 1;
+      if (remaining > 0 && remaining % 3 == 0) {
+        buffer.write(' ');
+      }
+    }
+    return '$buffer FCFA';
+  }
+
+  /// Vrai si c'est un client fidèle (plus de 5 commandes)
+  bool get isLoyalCustomer => totalOrders >= 5;
+
+  // ============================================
+  // COPYWITH
+  // ============================================
+
   User copyWith({
     int? id,
     String? name,
@@ -66,6 +160,10 @@ class User {
     int? totalOrders,
     double? totalSpent,
     bool? emailVerified,
+    bool? isActive,
+    bool? isBanned,
+    bool? isSuspended,
+    bool? isVerified,
   }) {
     return User(
       id: id ?? this.id,
@@ -81,10 +179,18 @@ class User {
       totalOrders: totalOrders ?? this.totalOrders,
       totalSpent: totalSpent ?? this.totalSpent,
       emailVerified: emailVerified ?? this.emailVerified,
+      isActive: isActive ?? this.isActive,
+      isBanned: isBanned ?? this.isBanned,
+      isSuspended: isSuspended ?? this.isSuspended,
+      isVerified: isVerified ?? this.isVerified,
     );
   }
 
-  // Convertir en JSON
+  // ============================================
+  // CONVERSION JSON
+  // ============================================
+
+  /// Convertir en JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -100,9 +206,20 @@ class User {
       'total_orders': totalOrders,
       'total_spent': totalSpent,
       'email_verified': emailVerified,
+      'is_active': isActive,
+      'is_banned': isBanned,
+      'is_suspended': isSuspended,
+      'is_verified': isVerified,
     };
   }
 
+  // ============================================
+  // TOSTRING
+  // ============================================
+
   @override
-  String toString() => 'User(id: $id, name: $name, email: $email)';
+  String toString() {
+    return 'User(id: $id, name: $fullName, email: $email, '
+        'role: $roleName, active: $isActive)';
+  }
 }

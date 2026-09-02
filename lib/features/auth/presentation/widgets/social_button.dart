@@ -1,10 +1,29 @@
-// Bouton de connexion sociale personnalisé
-// Supporte Google, Facebook et Apple avec animations
+// ============================================
+// WIDGET : SocialButton
+// ============================================
+// Bouton de connexion sociale avec :
+// - Animation d'échelle au tap
+// - Feedback visuel (SnackBar "Bientôt disponible")
+// - Loading state
+// - Icônes correctes pour Google, Facebook, Apple
+// ============================================
+
+// ============================================
+// IMPORTS
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 
+// ============================================
+// WIDGET PRINCIPAL
+// ============================================
+
 class SocialButton extends StatefulWidget {
+  // ============================================
+  // PROPRIÉTÉS
+  // ============================================
+
   final String label;
   final IconData icon;
   final Color iconColor;
@@ -12,6 +31,10 @@ class SocialButton extends StatefulWidget {
   final Color borderColor;
   final VoidCallback? onPressed;
   final bool isLoading;
+
+  // ============================================
+  // CONSTRUCTEUR
+  // ============================================
 
   const SocialButton({
     super.key,
@@ -24,8 +47,15 @@ class SocialButton extends StatefulWidget {
     this.isLoading = false,
   });
 
-  // Boutons prédéfinis
-  factory SocialButton.google({VoidCallback? onPressed, bool isLoading = false}) {
+  // ============================================
+  // FACTORIES PRÉDÉFINIS
+  // ============================================
+
+  /// Bouton Google
+  factory SocialButton.google({
+    VoidCallback? onPressed,
+    bool isLoading = false,
+  }) {
     return SocialButton(
       label: 'Google',
       icon: Icons.g_mobiledata,
@@ -37,7 +67,11 @@ class SocialButton extends StatefulWidget {
     );
   }
 
-  factory SocialButton.facebook({VoidCallback? onPressed, bool isLoading = false}) {
+  /// Bouton Facebook
+  factory SocialButton.facebook({
+    VoidCallback? onPressed,
+    bool isLoading = false,
+  }) {
     return SocialButton(
       label: 'Facebook',
       icon: Icons.facebook,
@@ -49,7 +83,11 @@ class SocialButton extends StatefulWidget {
     );
   }
 
-  factory SocialButton.apple({VoidCallback? onPressed, bool isLoading = false}) {
+  /// Bouton Apple
+  factory SocialButton.apple({
+    VoidCallback? onPressed,
+    bool isLoading = false,
+  }) {
     return SocialButton(
       label: 'Apple',
       icon: Icons.apple,
@@ -65,6 +103,10 @@ class SocialButton extends StatefulWidget {
   State<SocialButton> createState() => _SocialButtonState();
 }
 
+// ============================================
+// STATE
+// ============================================
+
 class _SocialButtonState extends State<SocialButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
@@ -75,7 +117,7 @@ class _SocialButtonState extends State<SocialButton>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 100),
+      duration: const Duration(milliseconds: 120),
     );
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(
@@ -91,18 +133,61 @@ class _SocialButtonState extends State<SocialButton>
     super.dispose();
   }
 
+  // ============================================
+  // GESTION DU TAP
+  // ============================================
+
   void _onTapDown(TapDownDetails details) {
     _animationController.forward();
   }
 
   void _onTapUp(TapUpDetails details) {
     _animationController.reverse();
-    widget.onPressed?.call();
+    _handlePress();
   }
 
   void _onTapCancel() {
     _animationController.reverse();
   }
+
+  /// Gère l'action du bouton avec feedback
+  void _handlePress() {
+    if (widget.isLoading) return;
+
+    if (widget.onPressed != null) {
+      widget.onPressed!();
+    } else {
+      // ✅ Feedback si pas de handler
+      _showComingSoon();
+    }
+  }
+
+  /// Affiche un SnackBar "Bientôt disponible"
+  void _showComingSoon() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Connexion ${widget.label} bientôt disponible',
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 13,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.textPrimary,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
@@ -113,18 +198,18 @@ class _SocialButtonState extends State<SocialButton>
         onTapUp: _onTapUp,
         onTapCancel: _onTapCancel,
         child: Container(
-          height: 52,
+          height: 50,
           decoration: BoxDecoration(
             color: widget.backgroundColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: widget.borderColor,
-              width: 1.5,
+              width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 4,
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -132,8 +217,8 @@ class _SocialButtonState extends State<SocialButton>
           child: Center(
             child: widget.isLoading
                 ? SizedBox(
-                    width: 22,
-                    height: 22,
+                    width: 20,
+                    height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       color: widget.iconColor,
@@ -144,15 +229,15 @@ class _SocialButtonState extends State<SocialButton>
                     children: [
                       Icon(
                         widget.icon,
-                        size: 22,
+                        size: 20,
                         color: widget.iconColor,
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Text(
                         widget.label,
                         style: const TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),

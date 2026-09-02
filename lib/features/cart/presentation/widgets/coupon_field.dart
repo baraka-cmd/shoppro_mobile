@@ -73,7 +73,7 @@ class _CouponFieldState extends State<CouponField> {
               Icon(
                 Icons.local_offer,
                 size: 16,
-                color: AppColors.secondary,
+                color: AppColors.warning,
               ),
               SizedBox(width: 5),
               Text(

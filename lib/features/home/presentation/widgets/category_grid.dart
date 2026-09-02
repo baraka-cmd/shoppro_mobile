@@ -1,249 +1,190 @@
-// Grille des catégories
-// Affiche les catégories en grille avec icônes et noms
+// ============================================
+// WIDGET : CategoryGrid
+// ============================================
+// Grille de catégories horizontale avec :
+// - Icônes légères dans des cercles pastel
+// - Scroll horizontal fluide
+// - Design épuré
+// ============================================
+
+// ============================================
+// IMPORTS
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../products/domain/entities/category.dart';
 
+// ============================================
+// WIDGET PRINCIPAL
+// ============================================
+
 class CategoryGrid extends StatelessWidget {
   final List<Category> categories;
-  final bool isLoading;
-  final int crossAxisCount;
-  final VoidCallback? onSeeAll;
-  final void Function(Category)? onCategoryTap;
-  final bool showTitle;
+  final ValueChanged<Category>? onCategoryTap;
 
   const CategoryGrid({
     super.key,
     required this.categories,
-    this.isLoading = false,
-    this.crossAxisCount = 4,
-    this.onSeeAll,
     this.onCategoryTap,
-    this.showTitle = true,
   });
+
+  // ============================================
+  // COULEURS PASTEL POUR LES ICÔNES
+  // ============================================
+
+  static const List<Color> _pastelColors = [
+    Color(0xFFDBEAFE), // Bleu pastel
+    Color(0xFFD1FAE5), // Vert pastel
+    Color(0xFFFEF3C7), // Orange pastel
+    Color(0xFFFFE4E4), // Corail pastel
+    Color(0xFFF3E8FF), // Violet pastel
+    Color(0xFFE0F2FE), // Cyan pastel
+    Color(0xFFFCE7F3), // Rose pastel
+    Color(0xFFFEF9C3), // Jaune pastel
+  ];
+
+  static const List<Color> _iconColors = [
+    Color(0xFF2563EB), // Bleu Royal
+    Color(0xFF10B981), // Vert succès
+    Color(0xFFF59E0B), // Orange/Or
+    Color(0xFFFF6B6B), // Corail
+    Color(0xFF8B5CF6), // Violet
+    Color(0xFF06B6D4), // Cyan
+    Color(0xFFEC4899), // Rose
+    Color(0xFFCA8A04), // Jaune foncé
+  ];
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Titre + Voir tout
-        if (showTitle)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.category,
-                      size: 18,
-                      color: AppColors.secondary,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      'CATÉGORIES',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: onSeeAll,
-                  child: const Row(
-                    children: [
-                      Text(
-                        'Voir tout',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      SizedBox(width: 3),
-                      Icon(
-                        Icons.chevron_right,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+    if (categories.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-        const SizedBox(height: 12),
-
-        // Grille des catégories
-        if (isLoading)
-          _buildLoadingGrid()
-        else if (categories.isEmpty)
-          _buildEmptyState()
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 0.85,
-            ),
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final category = categories[index];
-              return _buildCategoryItem(category);
-            },
-          ),
-      ],
+    return Container(
+      height: 95,
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final colorIndex = index % _pastelColors.length;
+          return _buildCategoryItem(
+            category,
+            _pastelColors[colorIndex],
+            _iconColors[colorIndex],
+          );
+        },
+      ),
     );
   }
 
-  // Construire un item de catégorie
-  Widget _buildCategoryItem(Category category) {
+  // ============================================
+  // ITEM DE CATÉGORIE
+  // ============================================
+
+  Widget _buildCategoryItem(
+    Category category,
+    Color bgColor,
+    Color iconColor,
+  ) {
     return GestureDetector(
-      onTap: onCategoryTap != null
-          ? () => onCategoryTap!(category)
-          : null,
-      child: Column(
-        children: [
-          // Icône
-          Container(
-            width: 55,
-            height: 55,
-            decoration: BoxDecoration(
-              color: _getCategoryColor(category).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Icon(
-              _getCategoryIcon(category),
-              size: 25,
-              color: _getCategoryColor(category),
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          // Nom
-          Text(
-            category.name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-              height: 1.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Icône selon la catégorie
-  IconData _getCategoryIcon(Category category) {
-    final slug = category.slug.toLowerCase();
-
-    if (slug.contains('electro')) return Icons.phone_android;
-    if (slug.contains('mode') || slug.contains('vetement')) return Icons.checkroom;
-    if (slug.contains('maison') || slug.contains('jardin')) return Icons.home;
-    if (slug.contains('beaute') || slug.contains('sante')) return Icons.spa;
-    if (slug.contains('sport')) return Icons.sports_soccer;
-    if (slug.contains('aliment')) return Icons.restaurant;
-    if (slug.contains('jouet') || slug.contains('enfant')) return Icons.toys;
-    if (slug.contains('auto')) return Icons.directions_car;
-    return Icons.category;
-  }
-
-  // Couleur selon la catégorie
-  Color _getCategoryColor(Category category) {
-    final slug = category.slug.toLowerCase();
-
-    if (slug.contains('electro')) return AppColors.primary;
-    if (slug.contains('mode') || slug.contains('vetement')) return AppColors.secondary;
-    if (slug.contains('maison') || slug.contains('jardin')) return AppColors.success;
-    if (slug.contains('beaute') || slug.contains('sante')) return const Color(0xFFE91E63);
-    if (slug.contains('sport')) return AppColors.info;
-    if (slug.contains('aliment')) return const Color(0xFFFF9800);
-    if (slug.contains('jouet') || slug.contains('enfant')) return const Color(0xFF9C27B0);
-    if (slug.contains('auto')) return const Color(0xFF607D8B);
-    return AppColors.textSecondary;
-  }
-
-  // Grille de chargement
-  Widget _buildLoadingGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 0.85,
-      ),
-      itemCount: 8,
-      itemBuilder: (context, index) {
-        return Column(
+      onTap: () => onCategoryTap?.call(category),
+      child: Container(
+        width: 68,
+        margin: const EdgeInsets.only(right: 10),
+        child: Column(
           children: [
+            // ============================================
+            // CERCLE D'ICÔNE
+            // ============================================
             Container(
-              width: 55,
-              height: 55,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(15),
+                color: bgColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: iconColor.withValues(alpha: 0.12),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  _getCategoryIcon(category),
+                  size: 24,
+                  color: iconColor,
+                ),
               ),
             ),
+
             const SizedBox(height: 6),
-            Container(
-              width: 50,
-              height: 10,
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(4),
+
+            // ============================================
+            // NOM DE LA CATÉGORIE
+            // ============================================
+            Text(
+              category.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
               ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
-  // État vide
-  Widget _buildEmptyState() {
-    return Container(
-      height: 80,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.borderColor.withValues(alpha: 0.5),
-        ),
-      ),
-      child: const Center(
-        child: Text(
-          'Aucune catégorie',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ),
-    );
+  // ============================================
+  // ICÔNE SELON LA CATÉGORIE
+  // ============================================
+
+  IconData _getCategoryIcon(Category category) {
+    final name = category.name.toLowerCase();
+
+    if (name.contains('tech') || name.contains('electron')) {
+      return Icons.devices_outlined;
+    }
+    if (name.contains('mode') || name.contains('vet')) {
+      return Icons.checkroom_outlined;
+    }
+    if (name.contains('maison') || name.contains('home')) {
+      return Icons.home_outlined;
+    }
+    if (name.contains('beaut') || name.contains('soin')) {
+      return Icons.spa_outlined;
+    }
+    if (name.contains('sport')) {
+      return Icons.sports_basketball_outlined;
+    }
+    if (name.contains('jouet') || name.contains('toy')) {
+      return Icons.toys_outlined;
+    }
+    if (name.contains('livre') || name.contains('book')) {
+      return Icons.menu_book_outlined;
+    }
+    if (name.contains('auto') || name.contains('voiture')) {
+      return Icons.directions_car_outlined;
+    }
+    if (name.contains('aliment') || name.contains('food')) {
+      return Icons.restaurant_outlined;
+    }
+
+    return Icons.category_outlined;
   }
 }
