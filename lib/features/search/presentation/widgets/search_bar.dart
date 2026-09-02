@@ -1,5 +1,9 @@
-// Barre de recherche personnalisée
-// Avec auto-focus, effacement et debounce
+// ============================================
+// BARRE DE RECHERCHE PERSONNALISÉE - PREMIUM
+// ============================================
+// Avec auto-focus, effacement, debounce et
+// micro-interactions. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -23,7 +27,7 @@ class CustomSearchBar extends StatefulWidget {
     this.onClear,
     this.onBack,
     this.autoFocus = true,
-    this.debounceDuration = const Duration(milliseconds: 500),
+    this.debounceDuration = const Duration(milliseconds: 350),
     this.hintText = 'Rechercher un produit...',
   });
 
@@ -34,6 +38,7 @@ class CustomSearchBar extends StatefulWidget {
 class _CustomSearchBarState extends State<CustomSearchBar> {
   Timer? _debounce;
   bool _hasText = false;
+  bool _isFocused = false;
 
   @override
   void initState() {
@@ -49,16 +54,20 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
     super.dispose();
   }
 
-  // Détecter le changement de texte
+  // ============================================
+  // DÉTECTION DE TEXTE
+  // ============================================
+
   void _onTextChanged() {
-    setState(() {
-      _hasText = widget.controller.text.isNotEmpty;
-    });
+    final hasText = widget.controller.text.isNotEmpty;
 
-    // Annuler le debounce précédent
+    if (hasText != _hasText) {
+      setState(() {
+        _hasText = hasText;
+      });
+    }
+
     _debounce?.cancel();
-
-    // Créer un nouveau debounce
     _debounce = Timer(widget.debounceDuration, () {
       if (mounted) {
         widget.onChanged?.call(widget.controller.text);
@@ -66,29 +75,45 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
     });
   }
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 45,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: _isFocused ? Colors.white : AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.borderColor,
-          width: 1.5,
+          color: _isFocused ? AppColors.primary : AppColors.borderColor,
+          width: _isFocused ? 2 : 1.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 5,
-          ),
-        ],
+        boxShadow: _isFocused
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 5,
+                ),
+              ],
       ),
       child: Row(
         children: [
-          // Bouton retour
-          if (widget.onBack != null)
+          // ============================================
+          // BOUTON RETOUR
+          // ============================================
+          if (widget.onBack != null) ...[
             GestureDetector(
               onTap: widget.onBack,
               child: const Icon(
@@ -97,10 +122,12 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                 color: AppColors.textPrimary,
               ),
             ),
+            const SizedBox(width: 8),
+          ],
 
-          if (widget.onBack != null) const SizedBox(width: 8),
-
-          // Icône recherche
+          // ============================================
+          // ICÔNE RECHERCHE
+          // ============================================
           const Icon(
             Icons.search,
             size: 20,
@@ -109,53 +136,74 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
 
           const SizedBox(width: 10),
 
-          // Champ de texte
+          // ============================================
+          // CHAMP DE TEXTE
+          // ============================================
           Expanded(
-            child: TextField(
-              controller: widget.controller,
-              autofocus: widget.autoFocus,
-              textInputAction: TextInputAction.search,
-              onSubmitted: widget.onSubmitted,
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-              decoration: InputDecoration(
-                hintText: widget.hintText,
-                hintStyle: const TextStyle(
+            child: Focus(
+              onFocusChange: (isFocused) {
+                setState(() {
+                  _isFocused = isFocused;
+                });
+              },
+              child: TextField(
+                controller: widget.controller,
+                autofocus: widget.autoFocus,
+                textInputAction: TextInputAction.search,
+                onSubmitted: widget.onSubmitted,
+                style: const TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 13,
-                  color: AppColors.textLight,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
                 ),
-                border: InputBorder.none,
-                isDense: true,
+                cursorColor: AppColors.primary,
+                decoration: InputDecoration(
+                  hintText: widget.hintText,
+                  hintStyle: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    color: AppColors.textLight,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                ),
               ),
             ),
           ),
 
-          // Bouton effacer
-          if (_hasText)
-            GestureDetector(
-              onTap: () {
-                widget.controller.clear();
-                widget.onClear?.call();
-              },
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.close,
-                  size: 14,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
+          // ============================================
+          // BOUTON EFFACER (animé)
+          // ============================================
+          AnimatedScale(
+            scale: _hasText ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: _hasText
+                ? GestureDetector(
+                    onTap: () {
+                      widget.controller.clear();
+                      widget.onClear?.call();
+                    },
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        size: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  )
+                : const SizedBox(
+                    width: 24,
+                    height: 24,
+                  ),
+          ),
         ],
       ),
     );

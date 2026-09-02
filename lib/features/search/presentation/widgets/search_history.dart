@@ -1,5 +1,10 @@
-// Widget d'historique de recherche
+// ============================================
+// WIDGET D'HISTORIQUE DE RECHERCHE - PREMIUM
+// ============================================
 // Affiche les recherches récentes avec suppression
+// individuelle animée et effacement global.
+// Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,29 +34,33 @@ class _SearchHistoryState extends State<SearchHistory> {
     _loadHistory();
   }
 
-  // Charger l'historique
+  // ============================================
+  // CHARGEMENT
+  // ============================================
+
   Future<void> _loadHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final history = prefs.getStringList(_historyKey) ?? [];
-    setState(() {
-      _history = history;
-    });
+    if (mounted) {
+      setState(() {
+        _history = history;
+      });
+    }
   }
 
-  // Ajouter une recherche à l'historique
+  // ============================================
+  // AJOUTER À L'HISTORIQUE (statique)
+  // ============================================
+
   static Future<void> addToHistory(String query) async {
     if (query.trim().isEmpty) return;
 
     final prefs = await SharedPreferences.getInstance();
     final history = prefs.getStringList(_historyKey) ?? [];
 
-    // Supprimer si déjà présent
     history.removeWhere((item) => item.toLowerCase() == query.toLowerCase());
-
-    // Ajouter au début
     history.insert(0, query);
 
-    // Limiter à 10 éléments
     if (history.length > 10) {
       history.removeRange(10, history.length);
     }
@@ -59,29 +68,43 @@ class _SearchHistoryState extends State<SearchHistory> {
     await prefs.setStringList(_historyKey, history);
   }
 
-  // Supprimer une recherche
+  // ============================================
+  // SUPPRESSION INDIVIDUELLE
+  // ============================================
+
   Future<void> _removeFromHistory(String query) async {
     final prefs = await SharedPreferences.getInstance();
     final history = prefs.getStringList(_historyKey) ?? [];
     history.removeWhere((item) => item == query);
     await prefs.setStringList(_historyKey, history);
 
-    setState(() {
-      _history = history;
-    });
+    if (mounted) {
+      setState(() {
+        _history = history;
+      });
+    }
   }
 
-  // Effacer tout l'historique
+  // ============================================
+  // EFFACEMENT GLOBAL
+  // ============================================
+
   Future<void> _clearAllHistory() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_historyKey);
 
-    setState(() {
-      _history = [];
-    });
+    if (mounted) {
+      setState(() {
+        _history = [];
+      });
+    }
 
     widget.onClearAll?.call();
   }
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +115,9 @@ class _SearchHistoryState extends State<SearchHistory> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Titre + Effacer tout
+        // ============================================
+        // EN-TÊTE
+        // ============================================
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
@@ -136,43 +161,61 @@ class _SearchHistoryState extends State<SearchHistory> {
 
         const SizedBox(height: 10),
 
-        // Liste de l'historique
-        ..._history.map((query) {
-          return ListTile(
-            dense: true,
-            leading: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.history,
-                size: 14,
-                color: AppColors.textSecondary,
+        // ============================================
+        // LISTE DE L'HISTORIQUE (avec animations)
+        // ============================================
+        ..._history.asMap().entries.map((entry) {
+          final index = entry.key;
+          final query = entry.value;
+
+          return AnimatedOpacity(
+            duration: const Duration(milliseconds: 250),
+            opacity: 1.0,
+            child: AnimatedSlide(
+              duration: const Duration(milliseconds: 250),
+              offset: Offset.zero,
+              child: ListTile(
+                dense: true,
+                leading: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.history,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                title: Text(
+                  query,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                trailing: IconButton(
+                  onPressed: () => _removeFromHistory(query),
+                  icon: const Icon(
+                    Icons.close,
+                    size: 14,
+                    color: AppColors.textLight,
+                  ),
+                  tooltip: 'Supprimer',
+                ),
+                onTap: () {
+                  widget.onSearchSelected?.call(query);
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                hoverColor: AppColors.surface,
               ),
             ),
-            title: Text(
-              query,
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            trailing: IconButton(
-              onPressed: () => _removeFromHistory(query),
-              icon: const Icon(
-                Icons.close,
-                size: 14,
-                color: AppColors.textLight,
-              ),
-            ),
-            onTap: () {
-              widget.onSearchSelected?.call(query);
-            },
           );
         }),
 
