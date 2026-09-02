@@ -8,10 +8,14 @@ import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../cart/domain/entities/cart_item.dart';
 import '../../../orders/presentation/providers/order_provider.dart';
 import '../../../orders/domain/entities/order_item.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
+import '../../../notifications/domain/entities/app_notification.dart';
 import '../widgets/address_selector.dart';
 import '../widgets/shipping_selector.dart';
 import '../widgets/payment_selector.dart';
 import '../../../cart/presentation/widgets/cart_summary.dart';
+import '../../../../routes/app_routes.dart';
+import '../../../addresses/presentation/providers/address_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -26,23 +30,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   PaymentMethodData? _selectedPayment;
   bool _isProcessing = false;
 
-  // Adresses de démonstration
-  final List<AddressData> _addresses = const [
-    AddressData(
-      id: 1,
-      fullName: 'Jean Kamga',
-      phone: '+237 6 51 11 11 11',
-      addressLine1: 'Bonamoussadi, Rue 123',
-      addressLine2: 'Près de la pharmacie',
-      city: 'Douala',
-      state: 'Littoral',
-      country: 'Cameroun',
-      type: 'home',
-      isDefault: true,
-    ),
-  ];
+  List<AddressData> _addresses = const [];
 
-  // Méthodes de livraison
   final List<ShippingMethodData> _shippingMethods = const [
     ShippingMethodData(
       id: 1,
@@ -73,7 +62,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     ),
   ];
 
-  // Méthodes de paiement
   final List<PaymentMethodData> _paymentMethods = const [
     PaymentMethodData(
       id: 1,
@@ -100,6 +88,45 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       color: AppColors.primary,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAddresses();
+  }
+
+  // Charger les adresses depuis le provider
+  Future<void> _loadAddresses() async {
+    final addressProvider = context.read<AddressProvider>();
+    await addressProvider.loadAddresses();
+
+    if (mounted) {
+      setState(() {
+        _addresses = addressProvider.addresses.map((a) {
+          return AddressData(
+            id: a.id,
+            fullName: a.fullName,
+            phone: a.phone,
+            addressLine1: a.addressLine1,
+            addressLine2: a.addressLine2,
+            city: a.city,
+            state: a.state,
+            country: a.country,
+            type: a.type,
+            isDefault: a.isDefault,
+          );
+        }).toList();
+
+        // Sélectionner l'adresse par défaut
+        if (_selectedAddress == null && _addresses.isNotEmpty) {
+          _selectedAddress = _addresses.firstWhere(
+            (a) => a.isDefault,
+            orElse: () => _addresses.first,
+          );
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +160,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Adresse de livraison
             AddressSelector(
               addresses: _addresses,
               selectedAddress: _selectedAddress,
@@ -143,14 +169,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 });
               },
               onAddAddress: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Ajout d\'adresse à venir'),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                    margin: EdgeInsets.all(20),
-                  ),
-                );
+                Navigator.of(context)
+                    .pushNamed(AppRoutes.addressForm)
+                    .then((result) {
+                  if (result == true && mounted) {
+                    _loadAddresses();
+                  }
+                });
               },
             ),
 
@@ -159,7 +184,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
             const SizedBox(height: 15),
 
-            // Mode de livraison
             ShippingSelector(
               methods: _shippingMethods,
               selectedMethod: _selectedShipping,
@@ -175,7 +199,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
             const SizedBox(height: 15),
 
-            // Mode de paiement
             PaymentSelector(
               methods: _paymentMethods,
               selectedMethod: _selectedPayment,
@@ -191,7 +214,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
             const SizedBox(height: 15),
 
-            // Récapitulatif
             CartSummary(cart: cartProvider.cart),
 
             const SizedBox(height: 30),
@@ -214,7 +236,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           top: false,
           child: Row(
             children: [
-              // Total
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -241,12 +262,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ],
                 ),
               ),
-
-              // Bouton confirmer
               ElevatedButton(
-                onPressed: _isProcessing
-                    ? null
-                    : () => _confirmOrder(cartProvider),
+                onPressed: _isProcessing ? null : () => _confirmOrder(cartProvider),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -286,7 +303,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   // Confirmer la commande
   Future<void> _confirmOrder(CartProvider cartProvider) async {
-    // Vérifier les sélections
     if (_selectedAddress == null) {
       _showError('Veuillez sélectionner une adresse de livraison');
       return;
@@ -309,7 +325,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     try {
       final orderProvider = context.read<OrderProvider>();
 
-      // Convertir les items du panier en items de commande
       final orderItems = cartProvider.cart.activeItems.map((cartItem) {
         return OrderItem(
           id: cartItem.id,
@@ -326,7 +341,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }).toList();
 
-      // Créer la commande
       final order = await orderProvider.createOrder(
         items: orderItems,
         subtotal: cartProvider.cart.subtotal,
@@ -347,11 +361,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       });
 
       if (order != null) {
-        // Vider le panier
-        await cartProvider.clearCart();
+        // ✅ Créer la notification de commande
+        final notificationProvider = context.read<NotificationProvider>();
+        await notificationProvider.addNotification(
+          AppNotification(
+            id: DateTime.now().millisecondsSinceEpoch,
+            title: 'Commande confirmée !',
+            body: 'Votre commande ${order.orderNumber} a été enregistrée avec succès.',
+            type: 'order',
+            createdAt: DateTime.now(),
+          ),
+        );
 
-        // Afficher le succès
-        _showSuccess(order.orderNumber);
+        // Naviguer vers le paiement
+        Navigator.of(context).pushNamed(
+          AppRoutes.payment,
+          arguments: {'order': order},
+        );
       } else {
         _showError(orderProvider.errorMessage ?? 'Erreur lors de la commande');
       }
@@ -375,91 +401,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
       ),
-    );
-  }
-
-  // Afficher le succès
-  void _showSuccess(String orderNumber) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Column(
-            children: [
-              Icon(
-                Icons.check_circle,
-                size: 60,
-                color: AppColors.success,
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Commande réussie !',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Votre commande a été passée avec succès.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                orderNumber,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                Navigator.of(context).pushReplacementNamed('/orders');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'VOIR MES COMMANDES',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }

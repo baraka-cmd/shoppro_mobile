@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../products/presentation/providers/product_provider.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
+import '../../../notifications/domain/entities/app_notification.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/cart_item_widget.dart';
 import '../widgets/cart_summary.dart';
@@ -34,7 +36,6 @@ class _CartScreenState extends State<CartScreen> {
     final cartProvider = context.read<CartProvider>();
     await cartProvider.loadCart();
 
-    // Charger les suggestions (produits populaires)
     final productProvider = context.read<ProductProvider>();
     await productProvider.loadPopularProducts();
   }
@@ -57,9 +58,7 @@ class _CartScreenState extends State<CartScreen> {
         title: Consumer<CartProvider>(
           builder: (context, provider, child) {
             return Text(
-              provider.isEmpty
-                  ? 'Panier'
-                  : 'Panier (${provider.totalItems})',
+              provider.isEmpty ? 'Panier' : 'Panier (${provider.totalItems})',
               style: const TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 18,
@@ -70,7 +69,6 @@ class _CartScreenState extends State<CartScreen> {
           },
         ),
         actions: [
-          // Vider le panier
           Consumer<CartProvider>(
             builder: (context, provider, child) {
               if (provider.isEmpty) return const SizedBox.shrink();
@@ -90,9 +88,7 @@ class _CartScreenState extends State<CartScreen> {
         builder: (context, provider, child) {
           if (provider.isLoading) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
 
@@ -131,7 +127,7 @@ class _CartScreenState extends State<CartScreen> {
                 isLoading: productProvider.isLoading,
                 onProductTap: (product) {
                   Navigator.of(context).pushNamed(
-                    '/product/detail',
+                    AppRoutes.productDetail,
                     arguments: {'product_id': product.id},
                   );
                 },
@@ -159,7 +155,6 @@ class _CartScreenState extends State<CartScreen> {
           children: [
             const SizedBox(height: 10),
 
-            // Barre de progression livraison gratuite
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: FreeShippingProgress(cart: provider.cart),
@@ -167,7 +162,6 @@ class _CartScreenState extends State<CartScreen> {
 
             const SizedBox(height: 15),
 
-            // Liste des articles actifs
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
@@ -186,10 +180,7 @@ class _CartScreenState extends State<CartScreen> {
 
             ...provider.cart.activeItems.map((item) {
               return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 5,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                 child: CartItemWidget(
                   item: item,
                   onIncrement: () => provider.incrementQuantity(item.id),
@@ -198,7 +189,7 @@ class _CartScreenState extends State<CartScreen> {
                   onSaveForLater: () => provider.saveForLater(item.id),
                   onTap: () {
                     Navigator.of(context).pushNamed(
-                      '/product/detail',
+                      AppRoutes.productDetail,
                       arguments: {'product_id': item.productId},
                     );
                   },
@@ -206,19 +197,16 @@ class _CartScreenState extends State<CartScreen> {
               );
             }),
 
-            // Articles sauvegardés
             if (provider.cart.savedForLaterItems.isNotEmpty) ...[
               const SizedBox(height: 20),
               SavedForLaterSection(
                 savedItems: provider.cart.savedForLaterItems,
                 onMoveToCart: () {
-                  // Déplacer chaque item
                   for (final item in provider.cart.savedForLaterItems) {
                     provider.moveToCart(item.id);
                   }
                 },
                 onRemove: () {
-                  // Supprimer chaque item
                   for (final item in provider.cart.savedForLaterItems) {
                     provider.removeItem(item.id);
                   }
@@ -233,7 +221,6 @@ class _CartScreenState extends State<CartScreen> {
 
             const SizedBox(height: 20),
 
-            // Résumé
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: CartSummary(cart: provider.cart),
@@ -241,7 +228,6 @@ class _CartScreenState extends State<CartScreen> {
 
             const SizedBox(height: 15),
 
-            // Code promo
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: CouponField(
@@ -250,6 +236,9 @@ class _CartScreenState extends State<CartScreen> {
                 onApply: (code) {
                   provider.applyCoupon(code).then((success) {
                     if (success) {
+                      // ✅ Notification de promotion
+                      _addPromotionNotification(provider, code);
+
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Code promo appliqué !'),
@@ -280,7 +269,6 @@ class _CartScreenState extends State<CartScreen> {
 
             const SizedBox(height: 20),
 
-            // Suggestions
             Consumer<ProductProvider>(
               builder: (context, productProvider, child) {
                 return CartSuggestions(
@@ -288,12 +276,12 @@ class _CartScreenState extends State<CartScreen> {
                   isLoading: productProvider.isLoading,
                   onProductTap: (product) {
                     Navigator.of(context).pushNamed(
-                      '/product/detail',
+                      AppRoutes.productDetail,
                       arguments: {'product_id': product.id},
                     );
                   },
                   onSeeAll: () {
-                    Navigator.of(context).pushNamed('/product/list');
+                    Navigator.of(context).pushNamed(AppRoutes.productList);
                   },
                 );
               },
@@ -324,7 +312,6 @@ class _CartScreenState extends State<CartScreen> {
         top: false,
         child: Row(
           children: [
-            // Total
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -351,12 +338,9 @@ class _CartScreenState extends State<CartScreen> {
                 ],
               ),
             ),
-
-            // Bouton paiement
             ElevatedButton(
-              // Le bouton PAIEMENT doit utiliser AppRoutes.checkout
               onPressed: () {
-                Navigator.of(context).pushNamed(AppRoutes.checkout);  // ✅ PAS '/checkout' en dur
+                Navigator.of(context).pushNamed(AppRoutes.checkout);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -388,6 +372,20 @@ class _CartScreenState extends State<CartScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ✅ Ajouter une notification de promotion
+  Future<void> _addPromotionNotification(CartProvider provider, String code) async {
+    final notificationProvider = context.read<NotificationProvider>();
+    await notificationProvider.addNotification(
+      AppNotification(
+        id: DateTime.now().millisecondsSinceEpoch,
+        title: 'Promotion appliquée !',
+        body: 'Le code $code vous fait économiser ${provider.cart.couponDiscount.toStringAsFixed(0)} FCFA.',
+        type: 'promotion',
+        createdAt: DateTime.now(),
       ),
     );
   }

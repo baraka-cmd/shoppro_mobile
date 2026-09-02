@@ -1,21 +1,38 @@
 // Écran d'accueil complet
-// Assemble AppBar, bannières, catégories et sections produits
+// Assemble AppBar, bannières dynamiques, catégories et toutes les sections
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../routes/app_routes.dart';
+
+// Providers
 import '../../../products/presentation/providers/product_provider.dart';
 import '../../../products/presentation/providers/category_provider.dart';
+import '../../../cart/presentation/providers/cart_provider.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
+import '../providers/banner_provider.dart';
+
+// Widgets produits
 import '../../../products/presentation/widgets/featured_products_section.dart';
 import '../../../products/presentation/widgets/popular_products_section.dart';
 import '../../../products/presentation/widgets/recent_products_section.dart';
 import '../../../products/presentation/widgets/on_sale_products_section.dart';
+
+// Navigation
 import '../../../navigation/presentation/widgets/role_based_navigation.dart';
 import '../../../auth/domain/entities/user_role.dart';
+
+// Widgets Home
 import '../widgets/home_appbar.dart';
 import '../widgets/banner_carousel.dart';
 import '../widgets/category_grid.dart';
+import '../widgets/flash_sale_section.dart';
+import '../widgets/best_sellers_section.dart';
+import '../widgets/recommended_section.dart';
+import '../widgets/ad_banner.dart';
+import '../widgets/blog_section.dart';
+import '../widgets/dynamic_sections.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,10 +54,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadData() async {
     final productProvider = context.read<ProductProvider>();
     final categoryProvider = context.read<CategoryProvider>();
+    final bannerProvider = context.read<BannerProvider>();
 
     await Future.wait([
       productProvider.loadAllSections(),
       categoryProvider.loadCategories(),
+      bannerProvider.loadBanners(),
     ]);
   }
 
@@ -49,17 +68,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: HomeAppBar(
-        notificationCount: 3,
-        cartCount: 0,
-        
+        notificationCount: context.watch<NotificationProvider>().unreadCount,
+        cartCount: context.watch<CartProvider>().totalQuantity,
         onSearchTap: () {
-          Navigator.of(context).pushNamed(AppRoutes.search);  // ✅ AJOUTER
+          Navigator.of(context).pushNamed(AppRoutes.search);
         },
         onNotificationTap: () {
-          // Navigation vers notifications
+          Navigator.of(context).pushNamed(AppRoutes.notifications);
         },
         onCartTap: () {
-          Navigator.of(context).pushNamed(AppRoutes.cart);  // ✅ CORRIGÉ
+          Navigator.of(context).pushNamed(AppRoutes.cart);
         },
       ),
       body: RefreshIndicator(
@@ -71,35 +89,29 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 15),
-
-              // Bannières
               _buildBanners(),
-
               const SizedBox(height: 25),
-
-              // Catégories
               _buildCategories(),
-
               const SizedBox(height: 25),
-
-              // Produits en vedette
+              _buildFlashSale(),
+              const SizedBox(height: 25),
+             
               _buildFeaturedProducts(),
-
               const SizedBox(height: 25),
-
-              // Produits populaires
+              _buildBestSellers(),
+              const SizedBox(height: 25),
               _buildPopularProducts(),
-
               const SizedBox(height: 25),
-
-              // Produits récents
+              _buildRecommended(),
+              const SizedBox(height: 25),
+              
               _buildRecentProducts(),
-
               const SizedBox(height: 25),
-
-              // Produits en promotion
               _buildOnSaleProducts(),
-
+              const SizedBox(height: 25),
+              _buildBlogSection(),
+              const SizedBox(height: 25),
+              _buildDynamicSections(),
               const SizedBox(height: 30),
             ],
           ),
@@ -122,35 +134,67 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Bannières
+  // Bannières dynamiques depuis l'API
   Widget _buildBanners() {
-    return BannerCarousel(
-      banners: [
-        BannerItem(
-          backgroundColor: AppColors.primary,
-          title: 'SOLDE D\'ÉTÉ',
-          subtitle: 'Jusqu\'à -50% sur tout',
-          onTap: () {},
-        ),
-        BannerItem(
-          backgroundColor: AppColors.secondary,
-          title: 'NOUVEAUX PRODUITS',
-          subtitle: 'Découvrez les dernières tendances',
-          onTap: () {},
-        ),
-        BannerItem(
-          backgroundColor: AppColors.success,
-          title: 'LIVRAISON GRATUITE',
-          subtitle: 'Dès 50 000 FCFA d\'achat',
-          onTap: () {},
-        ),
-      ],
-      height: 170,
-      autoPlay: true,
-      autoPlayInterval: const Duration(seconds: 4),
-      showDots: true,
-      showCounter: true,
-    );
+  return Consumer<BannerProvider>(
+    builder: (context, bannerProvider, child) {
+      if (bannerProvider.isLoading && bannerProvider.banners.isEmpty) {
+        return BannerCarousel(
+          banners: const [
+            BannerItem(backgroundColor: AppColors.primary),
+            BannerItem(backgroundColor: AppColors.secondary),
+          ],
+          height: 170,
+          autoPlay: true,
+        );
+      }
+
+      // ✅ Utiliser TOUTES les bannières (pas seulement homeTop)
+      return BannerCarousel(
+        banners: bannerProvider.banners.map((banner) {
+          return BannerItem(
+            imageUrl: banner.imageUrl,
+            title: banner.title,
+            subtitle: banner.subtitle,
+            onTap: () => _handleBannerTap(banner),
+          );
+        }).toList(),
+        height: 170,
+        autoPlay: true,
+        autoPlayInterval: const Duration(seconds: 5),
+        showDots: bannerProvider.banners.length > 1,
+        showCounter: bannerProvider.banners.length > 1,
+      );
+    },
+  );
+}
+  // Gérer le tap sur une bannière
+  void _handleBannerTap(dynamic banner) {
+    switch (banner.targetType) {
+      case 'product':
+        Navigator.of(context).pushNamed(
+          AppRoutes.productDetail,
+          arguments: {'product_id': int.tryParse(banner.targetId ?? '') ?? 0},
+        );
+        break;
+      case 'category':
+        Navigator.of(context).pushNamed(
+          AppRoutes.categoryDetail,
+          arguments: {
+            'category_id': int.tryParse(banner.targetId ?? '') ?? 0,
+            'category_name': banner.title,
+          },
+        );
+        break;
+      case 'promotion':
+        Navigator.of(context).pushNamed(
+          AppRoutes.productList,
+          arguments: {'title': banner.title ?? 'Promotion'},
+        );
+        break;
+      default:
+        break;
+    }
   }
 
   // Catégories
@@ -178,6 +222,33 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Flash Sale
+  Widget _buildFlashSale() {
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, child) {
+        return FlashSaleSection(
+          products: productProvider.onSaleProducts,
+          isLoading: productProvider.isLoading,
+          endTime: DateTime.now().add(const Duration(hours: 2, minutes: 15)),
+          onSeeAll: () {
+            Navigator.of(context).pushNamed(
+              AppRoutes.productList,
+              arguments: {'title': 'Flash Sale'},
+            );
+          },
+          onProductTap: (product) {
+            Navigator.of(context).pushNamed(
+              AppRoutes.productDetail,
+              arguments: {'product_id': product.id},
+            );
+          },
+        );
+      },
+    );
+  }
+
+  
+
   // Produits en vedette
   Widget _buildFeaturedProducts() {
     return Consumer<ProductProvider>(
@@ -189,6 +260,30 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.of(context).pushNamed(
               AppRoutes.productList,
               arguments: {'title': 'Produits en vedette'},
+            );
+          },
+          onProductTap: (product) {
+            Navigator.of(context).pushNamed(
+              AppRoutes.productDetail,
+              arguments: {'product_id': product.id},
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Meilleures ventes
+  Widget _buildBestSellers() {
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, child) {
+        return BestSellersSection(
+          products: productProvider.popularProducts,
+          isLoading: productProvider.isLoading,
+          onSeeAll: () {
+            Navigator.of(context).pushNamed(
+              AppRoutes.productList,
+              arguments: {'title': 'Meilleures ventes'},
             );
           },
           onProductTap: (product) {
@@ -225,6 +320,32 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
+  // Recommandés
+  Widget _buildRecommended() {
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, child) {
+        return RecommendedSection(
+          products: productProvider.recentProducts,
+          isLoading: productProvider.isLoading,
+          userName: 'CLIENT',
+          onSeeAll: () {
+            Navigator.of(context).pushNamed(
+              AppRoutes.productList,
+              arguments: {'title': 'Recommandés'},
+            );
+          },
+          onProductTap: (product) {
+            Navigator.of(context).pushNamed(
+              AppRoutes.productDetail,
+              arguments: {'product_id': product.id},
+            );
+          },
+        );
+      },
+    );
+  }
+
 
   // Produits récents
   Widget _buildRecentProducts() {
@@ -274,33 +395,122 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Gérer le changement d'onglet
- void _handleTabChange(int index) {
-  switch (index) {
-    case 0: // Accueil
-      break;
-    case 1: // Catégories
-      Navigator.of(context).pushNamed(AppRoutes.categoryList);
-      break;
-    case 2: // Panier
-      Navigator.of(context).pushNamed(AppRoutes.cart);
-      break;
-    case 3: // Favoris
-      Navigator.of(context).pushNamed(AppRoutes.favorites);  // ✅ CORRIGÉ
-      break;
-    case 4: // Profil
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Profil bientôt disponible',
-            style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
-          ),
-          backgroundColor: AppColors.primary,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(20),
+  // Blog / Actualités
+  Widget _buildBlogSection() {
+    return BlogSection(
+      articles: const [
+        BlogArticle(
+          id: 1,
+          title: 'Comment choisir son smartphone en 2026 ?',
+          imageUrl: null,
+          category: 'Guide',
+          author: 'Équipe ShopPro',
+          date: null,
+          readTime: 5,
         ),
-      );
-      break;
+        BlogArticle(
+          id: 2,
+          title: 'Top 10 des meilleures sneakers',
+          imageUrl: null,
+          category: 'Mode',
+          author: 'Équipe ShopPro',
+          date: null,
+          readTime: 4,
+        ),
+        BlogArticle(
+          id: 3,
+          title: 'Conseils pour bien entretenir sa maison',
+          imageUrl: null,
+          category: 'Maison',
+          author: 'Équipe ShopPro',
+          date: null,
+          readTime: 3,
+        ),
+      ],
+      onSeeAll: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Blog bientôt disponible'),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(20),
+          ),
+        );
+      },
+      onArticleTap: (article) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Article : ${article.title}'),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(20),
+          ),
+        );
+      },
+    );
   }
-}
+
+  // Sections dynamiques
+  Widget _buildDynamicSections() {
+    return DynamicSections(
+      sections: const [
+        DynamicSectionData(
+          id: 1,
+          title: 'Nouveautés de la semaine',
+          subtitle: 'Les derniers produits ajoutés',
+          icon: Icons.new_releases,
+          color: AppColors.success,
+          productsCount: 12,
+          badgeText: 'NOUVEAU',
+          route: '/product/list',
+        ),
+        DynamicSectionData(
+          id: 2,
+          title: 'Meilleures offres',
+          subtitle: 'Promotions exclusives',
+          icon: Icons.local_offer,
+          color: AppColors.error,
+          productsCount: 8,
+          badgeText: '-50%',
+          route: '/product/list',
+        ),
+        DynamicSectionData(
+          id: 3,
+          title: 'Tendances actuelles',
+          subtitle: 'Ce que tout le monde achète',
+          icon: Icons.trending_up,
+          color: AppColors.warning,
+          productsCount: 15,
+          badgeText: 'TOP',
+          route: '/product/list',
+        ),
+      ],
+      onSectionTap: (section) {
+        Navigator.of(context).pushNamed(
+          AppRoutes.productList,
+          arguments: {'title': section.title},
+        );
+      },
+    );
+  }
+
+  // Gérer le changement d'onglet
+  void _handleTabChange(int index) {
+    switch (index) {
+      case 0: // Accueil
+        break;
+      case 1: // Catégories
+        Navigator.of(context).pushNamed(AppRoutes.categoryList);
+        break;
+      case 2: // Panier
+        Navigator.of(context).pushNamed(AppRoutes.cart);
+        break;
+      case 3: // Favoris
+        Navigator.of(context).pushNamed(AppRoutes.favorites);
+        break;
+      case 4: // Profil
+        Navigator.of(context).pushNamed(AppRoutes.profile);
+        break;
+    }
+  }
 }

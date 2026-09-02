@@ -1,9 +1,22 @@
+// ============================================
+// ÉCRAN DE DÉMARRAGE (SPLASH SCREEN)
+// ============================================
+// Affiche le logo animé puis redirige selon le rôle.
+// ============================================
+
+// ============================================
+// IMPORTS
+// ============================================
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../routes/app_routes.dart';
 import '../providers/auth_provider.dart';
+
+// ============================================
+// ÉCRAN PRINCIPAL
+// ============================================
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,12 +25,20 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
+// ============================================
+// STATE
+// ============================================
+
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
+
+  // ============================================
+  // INIT
+  // ============================================
 
   @override
   void initState() {
@@ -49,6 +70,10 @@ class _SplashScreenState extends State<SplashScreen>
     _animationController.forward();
   }
 
+  // ============================================
+  // SPLASH ET NAVIGATION
+  // ============================================
+
   Future<void> _startSplash() async {
     await Future.delayed(AppConstants.splashDuration);
     
@@ -65,17 +90,42 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     
     if (authProvider.isAuthenticated) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      // ============================================
+      // ✅ REDIRECTION SELON LE RÔLE
+      // ============================================
+      String route;
+      
+      if (authProvider.isAdmin) {
+        route = AppRoutes.adminDashboard;
+        debugPrint('✅ Splash: Redirection vers Admin Dashboard');
+      } else if (authProvider.isSeller) {
+        route = AppRoutes.sellerDashboard;
+        debugPrint('✅ Splash: Redirection vers Seller Dashboard');
+      } else {
+        route = AppRoutes.home;
+        debugPrint('✅ Splash: Redirection vers Home (Client)');
+      }
+      
+      Navigator.of(context).pushReplacementNamed(route);
     } else {
+      debugPrint('✅ Splash: Non authentifié → Onboarding');
       Navigator.of(context).pushReplacementNamed(AppRoutes.onboarding);
     }
   }
+
+  // ============================================
+  // DISPOSE
+  // ============================================
 
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
   }
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {

@@ -1,6 +1,13 @@
-// Écran de connexion complet
-// Formulaire avec validation, chargement, erreurs et navigation
+// ============================================
+// ÉCRAN DE CONNEXION COMPLET
+// ============================================
+// Formulaire avec validation, chargement, erreurs
+// et redirection selon le rôle de l'utilisateur.
+// ============================================
 
+// ============================================
+// IMPORTS
+// ============================================
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -11,12 +18,20 @@ import '../widgets/auth_textfield.dart';
 import '../widgets/password_textfield.dart';
 import '../widgets/social_button.dart';
 
+// ============================================
+// ÉCRAN PRINCIPAL
+// ============================================
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
+
+// ============================================
+// STATE
+// ============================================
 
 class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -35,7 +50,10 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // Gérer la connexion
+  // ============================================
+  // GÉRER LA CONNEXION
+  // ============================================
+
   Future<void> _handleLogin() async {
     // Masquer le clavier
     FocusScope.of(context).unfocus();
@@ -65,8 +83,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if (success) {
-      // Navigation vers Home
-      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      // ============================================
+      // ✅ REDIRECTION SELON LE RÔLE
+      // ============================================
+      _redirectByRole(authProvider);
     } else {
       setState(() {
         _errorMessage = authProvider.errorMessage;
@@ -74,9 +94,51 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // ============================================
+  // REDIRECTION PAR RÔLE
+  // ============================================
+
+  void _redirectByRole(AuthProvider authProvider) {
+    String route;
+
+    if (authProvider.isAdmin) {
+      route = AppRoutes.adminDashboard;
+    } else if (authProvider.isSeller) {
+      route = AppRoutes.sellerDashboard;
+    } else {
+      route = AppRoutes.home;
+    }
+
+    // Afficher un message de bienvenue
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Bienvenue ${authProvider.user?.name ?? ""} !',
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 13,
+          ),
+        ),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    // Naviguer avec suppression des routes précédentes
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      route,
+      (route) => false,
+    );
+  }
+
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(

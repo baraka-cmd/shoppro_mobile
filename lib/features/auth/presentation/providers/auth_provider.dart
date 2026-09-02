@@ -1,20 +1,35 @@
-// Provider d'authentification
-// 
+// ============================================
+// PROVIDER D'AUTHENTIFICATION
+// ============================================
 // Gère l'état de l'authentification dans l'application.
 // Notifie les widgets des changements d'état.
+// Inclut la redirection selon le rôle.
+// ============================================
 
+// ============================================
+// IMPORTS
+// ============================================
 import 'package:flutter/foundation.dart';
+import '../../../../routes/app_routes.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 
+// ============================================
+// ENUM D'ÉTAT
+// ============================================
+
 enum AuthStatus {
-  initial,      // État initial
-  loading,      // Chargement en cours
-  authenticated, // Connecté
-  unauthenticated, // Déconnecté
-  error,        // Erreur
+  initial,
+  loading,
+  authenticated,
+  unauthenticated,
+  error,
 }
+
+// ============================================
+// PROVIDER PRINCIPAL
+// ============================================
 
 class AuthProvider extends ChangeNotifier {
   final AuthRepository _authRepository;
@@ -22,13 +37,17 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider({AuthRepository? authRepository})
       : _authRepository = authRepository ?? AuthRepositoryImpl();
 
-  // 📊 État actuel
+  // ============================================
+  // ÉTAT
+  // ============================================
   AuthStatus _status = AuthStatus.initial;
   User? _user;
   String? _errorMessage;
   bool _isLoading = false;
 
-  // Getters
+  // ============================================
+  // GETTERS
+  // ============================================
   AuthStatus get status => _status;
   User? get user => _user;
   String? get errorMessage => _errorMessage;
@@ -38,17 +57,34 @@ class AuthProvider extends ChangeNotifier {
   bool get isSeller => _user?.isSeller ?? false;
   bool get isClient => _user?.isClient ?? false;
 
-  // Initialiser le provider
-  // Vérifie si un utilisateur est déjà connecté
+  // ============================================
+  // REDIRECTION PAR RÔLE
+  // ============================================
+
+  /// Retourne la route de redirection selon le rôle de l'utilisateur.
+  String getRedirectRoute() {
+    if (isAdmin) {
+      return AppRoutes.adminDashboard;
+    }
+    if (isSeller) {
+      return AppRoutes.sellerDashboard;
+    }
+    return AppRoutes.home;
+  }
+
+  // ============================================
+  // INITIALISATION
+  // ============================================
+
   Future<void> init() async {
     _setLoading(true);
-    
+
     try {
       final isLoggedIn = await _authRepository.isLoggedIn();
-      
+
       if (isLoggedIn) {
         final storedUser = await _authRepository.getStoredUser();
-        
+
         if (storedUser != null) {
           _user = storedUser;
           _status = AuthStatus.authenticated;
@@ -60,13 +96,17 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (e) {
       _status = AuthStatus.unauthenticated;
+      debugPrint('Erreur init AuthProvider: $e');
     } finally {
       _setLoading(false);
       notifyListeners();
     }
   }
 
-  // Inscription
+  // ============================================
+  // INSCRIPTION
+  // ============================================
+
   Future<bool> register({
     required String name,
     required String email,
@@ -76,7 +116,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final user = await _authRepository.register(
         name: name,
@@ -85,7 +125,7 @@ class AuthProvider extends ChangeNotifier {
         passwordConfirmation: passwordConfirmation,
         phone: phone,
       );
-      
+
       _user = user;
       _status = AuthStatus.authenticated;
       _setLoading(false);
@@ -100,7 +140,10 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Connexion
+  // ============================================
+  // CONNEXION
+  // ============================================
+
   Future<bool> login({
     required String email,
     required String password,
@@ -108,18 +151,19 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final user = await _authRepository.login(
         email: email,
         password: password,
         rememberMe: rememberMe,
       );
-      
+
       _user = user;
       _status = AuthStatus.authenticated;
       _setLoading(false);
       notifyListeners();
+      debugPrint('Connexion réussie - Rôle: ${user.isAdmin ? "Admin" : user.isSeller ? "Vendeur" : "Client"}');
       return true;
     } catch (e) {
       _setError(e.toString());
@@ -130,12 +174,17 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Déconnexion
+  // ============================================
+  // DÉCONNEXION
+  // ============================================
+
   Future<void> logout() async {
     _setLoading(true);
-    
+
     try {
       await _authRepository.logout();
+    } catch (e) {
+      debugPrint('Erreur logout: $e');
     } finally {
       _user = null;
       _status = AuthStatus.unauthenticated;
@@ -144,11 +193,14 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Mettre à jour le profil
+  // ============================================
+  // MISE À JOUR DU PROFIL
+  // ============================================
+
   Future<bool> updateProfile(Map<String, dynamic> data) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final user = await _authRepository.updateProfile(data);
       _user = user;
@@ -163,7 +215,10 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Changer le mot de passe
+  // ============================================
+  // CHANGEMENT DE MOT DE PASSE
+  // ============================================
+
   Future<bool> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -171,7 +226,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       await _authRepository.changePassword(
         currentPassword: currentPassword,
@@ -189,11 +244,14 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Mot de passe oublié
+  // ============================================
+  // MOT DE PASSE OUBLIÉ
+  // ============================================
+
   Future<bool> forgotPassword(String email) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       await _authRepository.forgotPassword(email);
       _setLoading(false);
@@ -207,13 +265,19 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Réinitialiser l'erreur
+  // ============================================
+  // MÉTHODES UTILITAIRES
+  // ============================================
+
   void clearError() {
     _clearError();
     notifyListeners();
   }
 
-  // Méthodes privées
+  // ============================================
+  // MÉTHODES PRIVÉES
+  // ============================================
+
   void _setLoading(bool value) {
     _isLoading = value;
   }
