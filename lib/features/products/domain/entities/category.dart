@@ -1,31 +1,35 @@
-// Entité Category (Domaine)
-// Représente une catégorie de produits dans la couche domaine
+// ============================================
+// ENTITÉ CATEGORY (DOMAINE)
+// ============================================
+// Représente une catégorie de produits avec
+// hiérarchie complète, images et statistiques.
+// ============================================
 
 class Category {
   final int id;
   final String name;
   final String slug;
   final String? description;
-  
+
   // Image
   final String? image;
   final String? icon;
-  
+
   // Hiérarchie
   final int? parentId;
   final Category? parent;
   final List<Category> children;
   final List<Subcategory> subcategories;
-  
+
   // Statistiques
   final int? productsCount;
   final int totalProductsCount;
-  
+
   // Statut
   final bool isActive;
   final bool isFeatured;
   final int position;
-  
+
   // Dates
   final DateTime? createdAt;
 
@@ -48,8 +52,25 @@ class Category {
     this.createdAt,
   });
 
+  // ============================================
+  // GETTERS STATISTIQUES
+  // ============================================
+
   /// Nombre total de produits (directs + sous-catégories)
   int get effectiveProductsCount => productsCount ?? totalProductsCount;
+
+  /// Formatage du compteur (ex: 248, 1.2k)
+  String get formattedProductsCount {
+    final count = effectiveProductsCount;
+    if (count >= 1000) {
+      return '${(count / 1000).toStringAsFixed(1)}k';
+    }
+    return '$count';
+  }
+
+  // ============================================
+  // GETTERS HIÉRARCHIE
+  // ============================================
 
   /// La catégorie a-t-elle des enfants ?
   bool get hasChildren => children.isNotEmpty;
@@ -60,8 +81,43 @@ class Category {
   /// La catégorie est-elle racine ?
   bool get isRoot => parentId == null;
 
-  /// URL de l'image
-  String? get imageUrl => image;
+  /// La catégorie a-t-elle une hiérarchie ?
+  bool get hasHierarchy => hasChildren || hasSubcategories;
+
+  /// Nombre total de sous-catégories (enfants + sous-catégories)
+  int get totalSubcategoriesCount => children.length + subcategories.length;
+
+  // ============================================
+  // GETTERS IMAGE
+  // ============================================
+
+  /// URL complète de l'image
+  String get fullImageUrl {
+    if (image == null || image!.isEmpty) return '';
+    if (image!.startsWith('http')) return image!;
+    return 'http://127.0.0.1:8000/storage/$image';
+  }
+
+  /// L'image est-elle disponible ?
+  bool get hasImage => image != null && image!.isNotEmpty;
+
+  // ============================================
+  // GETTERS STATUT
+  // ============================================
+
+  /// La catégorie est-elle réellement visible ?
+  bool get isVisible => isActive && (isFeatured || position > 0 || productsCount != null);
+
+  // ============================================
+  // VALIDATION
+  // ============================================
+
+  /// La catégorie a-t-elle des données valides ?
+  bool get isValid => id > 0 && name.isNotEmpty && slug.isNotEmpty;
+
+  // ============================================
+  // MÉTHODES
+  // ============================================
 
   /// Copier avec modifications
   Category copyWith({
@@ -80,6 +136,7 @@ class Category {
     bool? isActive,
     bool? isFeatured,
     int? position,
+    DateTime? createdAt,
   }) {
     return Category(
       id: id ?? this.id,
@@ -97,11 +154,21 @@ class Category {
       isActive: isActive ?? this.isActive,
       isFeatured: isFeatured ?? this.isFeatured,
       position: position ?? this.position,
+      createdAt: createdAt ?? this.createdAt,
     );
+  }
+
+  @override
+  String toString() {
+    return 'Category(id: $id, name: $name, products: $effectiveProductsCount, '
+        'children: ${children.length}, subcategories: ${subcategories.length})';
   }
 }
 
-// Sous-catégorie
+// ============================================
+// SOUS-CATÉGORIE
+// ============================================
+
 class Subcategory {
   final int id;
   final String name;
@@ -125,8 +192,18 @@ class Subcategory {
     this.isActive = true,
   });
 
-  /// URL de l'image
-  String? get imageUrl => image;
+  /// URL complète de l'image
+  String get fullImageUrl {
+    if (image == null || image!.isEmpty) return '';
+    if (image!.startsWith('http')) return image!;
+    return 'http://127.0.0.1:8000/storage/$image';
+  }
+
+  /// L'image est-elle disponible ?
+  bool get hasImage => image != null && image!.isNotEmpty;
+
+  /// La sous-catégorie a-t-elle des données valides ?
+  bool get isValid => id > 0 && name.isNotEmpty && slug.isNotEmpty;
 
   /// Copier avec modifications
   Subcategory copyWith({
@@ -151,5 +228,10 @@ class Subcategory {
       position: position ?? this.position,
       isActive: isActive ?? this.isActive,
     );
+  }
+
+  @override
+  String toString() {
+    return 'Subcategory(id: $id, name: $name, categoryId: $categoryId)';
   }
 }

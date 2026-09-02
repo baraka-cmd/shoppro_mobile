@@ -1,5 +1,10 @@
-// Carte produit standard
-// Design moderne avec image, badges, prix et actions
+// ============================================
+// CARTE PRODUIT STANDARD - VERSION PREMIUM
+// ============================================
+// Design moderne avec image dominante, badges,
+// prix, note, stock et bouton ajouter au panier.
+// Micro-interaction au toucher : scale léger.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,6 +17,7 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onAddToCart;
   final VoidCallback? onToggleFavorite;
   final bool isFavorite;
+  final bool showAddToCartButton;
 
   const ProductCard({
     super.key,
@@ -20,276 +26,298 @@ class ProductCard extends StatelessWidget {
     this.onAddToCart,
     this.onToggleFavorite,
     this.isFavorite = false,
+    this.showAddToCartButton = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap != null ? () => onTap!(product) : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppColors.borderColor.withValues(alpha: 0.5),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+      child: AnimatedScale(
+        scale: 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.borderColor.withValues(alpha: 0.5),
+              width: 1,
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image avec badges
-            Stack(
-              children: [
-                // Image du produit
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ============================================
+              // IMAGE AVEC BADGES
+              // ============================================
+              Stack(
+                children: [
+                  // Image du produit (75-80% de la carte)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: _buildProductImage(),
+                    ),
                   ),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: _buildProductImage(),
-                  ),
-                ),
 
-                // Badges
-                Positioned(
-                  top: 10,
-                  left: 10,
+                  // Badges (colonne gauche)
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (product.hasDiscount)
+                          _buildDiscountBadge(product.discountPercent),
+                        if (product.isNew) ...[
+                          const SizedBox(height: 4),
+                          _buildNewBadge(),
+                        ],
+                        if (product.isBestseller) ...[
+                          const SizedBox(height: 4),
+                          _buildBestsellerBadge(),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  // Bouton favori (haut droite)
+                  if (onToggleFavorite != null)
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: GestureDetector(
+                        onTap: onToggleFavorite,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isFavorite
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            size: 16,
+                            color: isFavorite
+                                ? AppColors.error
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Indicateur de rupture de stock
+                  if (!product.isInStock)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 5),
+                        color: Colors.black.withValues(alpha: 0.6),
+                        child: const Text(
+                          'Rupture de stock',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+
+              // ============================================
+              // INFORMATIONS
+              // ============================================
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (product.hasDiscount)
-                        _buildDiscountBadge(product.discountPercentage),
-                      if (product.isNew) ...[
-                        const SizedBox(height: 4),
-                        _buildNewBadge(),
-                      ],
-                      if (product.isBestseller) ...[
-                        const SizedBox(height: 4),
-                        _buildBestsellerBadge(),
-                      ],
-                    ],
-                  ),
-                ),
+                      // Nom du produit
+                      Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                          height: 1.3,
+                        ),
+                      ),
 
-                // Bouton favori
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: GestureDetector(
-                    onTap: onToggleFavorite,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 4,
+                      const SizedBox(height: 6),
+
+                      // Prix
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            product.formattedCurrentPrice,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: product.hasDiscount
+                                  ? AppColors.error
+                                  : AppColors.primary,
+                            ),
                           ),
+                          if (product.hasDiscount) ...[
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                product.formattedPrice,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w400,
+                                  color: AppColors.textLight,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
-                      child: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        size: 16,
-                        color: isFavorite ? AppColors.error : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
 
-                // Indicateur de stock
-                if (!product.isInStock)
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 5),
-                      color: Colors.black.withValues(alpha: 0.6),
-                      child: const Text(
-                        'Rupture de stock',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+                      const Spacer(),
 
-            // Informations
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Nom du produit
-                    Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                        height: 1.3,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    // Prix
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          product.formattedCurrentPrice,
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: product.hasDiscount
-                                ? AppColors.error
-                                : AppColors.primary,
-                          ),
-                        ),
-                        if (product.hasDiscount) ...[
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              product.formattedPrice,
-                              overflow: TextOverflow.ellipsis,
+                      // Note + stock
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (product.averageRating > 0) ...[
+                            const Icon(
+                              Icons.star,
+                              size: 12,
+                              color: AppColors.ratingColor,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              product.averageRating.toStringAsFixed(1),
                               style: const TextStyle(
                                 fontFamily: 'Poppins',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w400,
-                                color: AppColors.textLight,
-                                decoration: TextDecoration.lineThrough,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Color(product.stockColorHex),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Flexible(
+                            child: Text(
+                              product.stockLabel,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 9,
+                                fontWeight: FontWeight.w500,
+                                color: Color(product.stockColorHex),
                               ),
                             ),
                           ),
                         ],
-                      ],
-                    ),
-
-                    const Spacer(),
-
-                    // Note + stock
-Row(
-  mainAxisSize: MainAxisSize.min,  // ✅ AJOUTER
-  crossAxisAlignment: CrossAxisAlignment.center,
-  children: [
-    if (product.averageRating > 0) ...[
-      const Icon(
-        Icons.star,
-        size: 12,  // ✅ RÉDUIRE de 14 à 12
-        color: AppColors.ratingColor,
-      ),
-      const SizedBox(width: 2),
-      Text(
-        product.averageRating.toStringAsFixed(1),
-        style: const TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 10,  // ✅ RÉDUIRE de 11 à 10
-          fontWeight: FontWeight.w600,
-          color: AppColors.textSecondary,
-        ),
-      ),
-      const SizedBox(width: 4),
-    ],
-    Container(
-      width: 5,
-      height: 5,
-      decoration: BoxDecoration(
-        color: Color(product.stockColor),
-        shape: BoxShape.circle,
-      ),
-    ),
-    const SizedBox(width: 2),
-    Flexible(
-      child: Text(
-        product.stockLabel,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 9,  // ✅ RÉDUIRE de 10 à 9
-          fontWeight: FontWeight.w500,
-          color: Color(product.stockColor),
-        ),
-      ),
-    ),
-  ],
-),
-                  ],
-                ),
-              ),
-            ),
-
-            // Bouton ajouter au panier
-            if (product.isInStock)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: ElevatedButton(
-                  onPressed: onAddToCart,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_shopping_cart, size: 16),
-                      SizedBox(width: 6),
-                      Text(
-                        'Ajouter',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-          ],
+
+              // ============================================
+              // BOUTON AJOUTER AU PANIER
+              // ============================================
+              if (showAddToCartButton && product.isInStock)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: ElevatedButton(
+                    onPressed: onAddToCart,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_shopping_cart, size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          'Ajouter',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Construire l'image du produit
+  // ============================================
+  // IMAGE DU PRODUIT
+  // ============================================
+
   Widget _buildProductImage() {
-    final imageUrl = (product as dynamic).fullImageUrl ?? product.mainImage ?? '';
+    final imageUrl = product.fullImageUrl.isNotEmpty
+        ? product.fullImageUrl
+        : product.mainImage ?? '';
 
     if (imageUrl.isEmpty) {
       return Container(
-        color: AppColors.background,
+        color: AppColors.surface,
         child: const Icon(
-          Icons.image,
+          Icons.image_outlined,
           size: 50,
           color: AppColors.textLight,
         ),
@@ -300,7 +328,7 @@ Row(
       imageUrl: imageUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
-        color: AppColors.background,
+        color: AppColors.surface,
         child: const Center(
           child: SizedBox(
             width: 25,
@@ -313,9 +341,9 @@ Row(
         ),
       ),
       errorWidget: (context, url, error) => Container(
-        color: AppColors.background,
+        color: AppColors.surface,
         child: const Icon(
-          Icons.broken_image,
+          Icons.broken_image_outlined,
           size: 40,
           color: AppColors.textLight,
         ),
@@ -323,13 +351,22 @@ Row(
     );
   }
 
-  // Badge de réduction
+  // ============================================
+  // BADGES
+  // ============================================
+
   Widget _buildDiscountBadge(int? percentage) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.error,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.error.withValues(alpha: 0.3),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: Text(
         '-$percentage%',
@@ -343,13 +380,18 @@ Row(
     );
   }
 
-  // Badge nouveau
   Widget _buildNewBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.success,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.success.withValues(alpha: 0.3),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: const Text(
         'Nouveau',
@@ -363,13 +405,18 @@ Row(
     );
   }
 
-  // Badge bestseller
   Widget _buildBestsellerBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.warning,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warning.withValues(alpha: 0.3),
+            blurRadius: 4,
+          ),
+        ],
       ),
       child: const Text(
         'Best-seller',

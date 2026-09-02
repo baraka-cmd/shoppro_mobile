@@ -1,9 +1,15 @@
-// Écran de détail d'une catégorie
-// Affiche le header, les sous-catégories, les filtres et les produits
+// ============================================
+// ÉCRAN DE DÉTAIL D'UNE CATÉGORIE - PREMIUM
+// ============================================
+// Hero + sous-catégories + filtres + tri
+// + produits en grille avec pagination infinie.
+// Design conforme à la vision ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../routes/app_routes.dart';
 import '../../../products/domain/entities/category.dart';
 import '../../../products/domain/entities/product.dart';
 import '../../../products/presentation/providers/product_provider.dart';
@@ -39,17 +45,39 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
   String? _errorMessage;
   String _currentSort = 'created_at_desc';
   FilterData _currentFilters = const FilterData();
-  int _currentPage = 1;
-  bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
-  // Charger toutes les données
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // ============================================
+  // PAGINATION
+  // ============================================
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
+
+  // ============================================
+  // CHARGEMENT
+  // ============================================
+
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
@@ -60,24 +88,24 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
       final categoryProvider = context.read<CategoryProvider>();
       final productProvider = context.read<ProductProvider>();
 
-      // Charger les catégories si pas encore
       if (categoryProvider.categories.isEmpty) {
         await categoryProvider.loadCategories();
       }
 
-      // Trouver la catégorie
       Category? category;
       try {
         category = categoryProvider.categories.firstWhere(
-          (c) => c.id == widget.categoryId,
+          (c) => (c as Category).id == widget.categoryId,
         );
       } catch (e) {
         category = null;
       }
 
-      // Charger les produits
-      await productProvider.loadProducts();
-      await productProvider.filterProducts(categoryId: widget.categoryId);
+      await productProvider.filterProducts(
+        categoryId: widget.categoryId,
+        sortBy: _sortFromString(),
+        sortDirection: _directionFromString(),
+      );
 
       setState(() {
         _category = category;
@@ -93,43 +121,59 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     }
   }
 
-  // Charger plus de produits (pagination)
   Future<void> _loadMore() async {
-    if (_isLoadingMore || !_hasMore) return;
+    final provider = context.read<ProductProvider>();
+    if (_isLoadingMore || !provider.hasMore) return;
 
     setState(() {
       _isLoadingMore = true;
     });
 
-    try {
-      final provider = context.read<ProductProvider>();
-      await provider.loadMoreProducts();
+    await provider.loadMoreProducts();
 
+    if (mounted) {
       setState(() {
         _products = provider.products;
-        _isLoadingMore = false;
-        _hasMore = provider.hasMore;
-        _currentPage = provider.currentPage;
-      });
-    } catch (e) {
-      setState(() {
         _isLoadingMore = false;
       });
     }
   }
 
-  // Filtrer par sous-catégorie
+  // ============================================
+  // PARSING TRI
+  // ============================================
+
+  String _sortFromString() {
+    switch (_currentSort) {
+      case 'price_asc':
+      case 'price_desc':
+        return 'price';
+      case 'rating_desc':
+        return 'rating';
+      case 'popularity_desc':
+        return 'sales_count';
+      default:
+        return 'created_at';
+    }
+  }
+
+  String _directionFromString() {
+    return _currentSort.endsWith('_asc') ? 'asc' : 'desc';
+  }
+
+  // ============================================
+  // FILTRAGE ET TRI LOCAL
+  // ============================================
+
   List<Product> _getFilteredProducts() {
     var filtered = _products;
 
-    // Filtre par sous-catégorie
     if (_selectedSubcategoryId != 0) {
       filtered = filtered
           .where((p) => p.subcategoryId == _selectedSubcategoryId)
           .toList();
     }
 
-    // Filtre par prix
     if (_currentFilters.minPrice > 0) {
       filtered = filtered
           .where((p) => p.currentPrice >= _currentFilters.minPrice)
@@ -141,12 +185,10 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
           .toList();
     }
 
-    // Filtre par stock
     if (_currentFilters.inStockOnly) {
       filtered = filtered.where((p) => p.isInStock).toList();
     }
 
-    // Filtre par note
     if (_currentFilters.minRating > 0) {
       filtered = filtered
           .where((p) => p.averageRating >= _currentFilters.minRating)
@@ -156,7 +198,6 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     return filtered;
   }
 
-  // Appliquer le tri
   List<Product> _getSortedProducts(List<Product> products) {
     final sorted = [...products];
 
@@ -174,16 +215,15 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
         sorted.sort((a, b) => b.salesCount.compareTo(a.salesCount));
         break;
       case 'discount_desc':
-        sorted.sort((a, b) => (b.discountPercentage ?? 0).compareTo(a.discountPercentage ?? 0));
+        sorted.sort((a, b) => b.discountPercent.compareTo(a.discountPercent));
         break;
-      default: // created_at_desc
+      default:
         break;
     }
 
     return sorted;
   }
 
-  // Obtenir le label du tri
   String _getSortLabel() {
     switch (_currentSort) {
       case 'price_asc':
@@ -201,12 +241,16 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     }
   }
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -225,16 +269,6 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
             color: AppColors.textPrimary,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.search,
-              color: AppColors.textPrimary,
-              size: 22,
-            ),
-          ),
-        ],
       ),
       body: _isLoading
           ? const ShimmerProductGrid(itemCount: 6)
@@ -244,131 +278,154 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     );
   }
 
-  // Contenu principal
+  // ============================================
+  // CONTENU PRINCIPAL
+  // ============================================
+
   Widget _buildContent() {
+    if (_category == null) {
+      return const SizedBox.shrink();
+    }
+
     final filteredProducts = _getFilteredProducts();
     final sortedProducts = _getSortedProducts(filteredProducts);
 
     return RefreshIndicator(
       onRefresh: _loadData,
       color: AppColors.primary,
-      child: SingleChildScrollView(
+      child: CustomScrollView(
+        controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 5),
 
-            // Header de la catégorie
-            if (_category != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: CategoryHeader(
-                  category: _category!,
-                  productsCount: _products.length,
-                ),
-              ),
-
-            const SizedBox(height: 15),
-
-            // Sous-catégories en chips
-            if (_subcategories.isNotEmpty) ...[
-              SizedBox(
-                height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    SubcategoryChip(
-                      label: 'Tous',
-                      isSelected: _selectedSubcategoryId == 0,
-                      productCount: _products.length,
-                      onTap: () {
-                        setState(() {
-                          _selectedSubcategoryId = 0;
-                        });
-                      },
+                // ============================================
+                // HERO DE CATÉGORIE
+                // ============================================
+                if (_category != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: CategoryHeader(
+                      category: _category!,
+                      productsCount: _products.length,
                     ),
-                    const SizedBox(width: 8),
-                    ..._subcategories.map((subcategory) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: SubcategoryChip(
-                          label: subcategory.name,
-                          isSelected:
-                              _selectedSubcategoryId == subcategory.id,
+                  ),
+
+                const SizedBox(height: 15),
+
+                // ============================================
+                // SOUS-CATÉGORIES
+                // ============================================
+                if (_subcategories.isNotEmpty) ...[
+                  SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      children: [
+                        SubcategoryChip(
+                          label: 'Tous',
+                          isSelected: _selectedSubcategoryId == 0,
+                          productCount: _products.length,
                           onTap: () {
                             setState(() {
-                              _selectedSubcategoryId = subcategory.id;
+                              _selectedSubcategoryId = 0;
                             });
                           },
                         ),
-                      );
-                    }),
-                  ],
+                        const SizedBox(width: 8),
+                        ..._subcategories.map((subcategory) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: SubcategoryChip(
+                              label: subcategory.name,
+                              isSelected:
+                                  _selectedSubcategoryId == subcategory.id,
+                              onTap: () {
+                                setState(() {
+                                  _selectedSubcategoryId = subcategory.id;
+                                });
+                              },
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+
+                // ============================================
+                // BARRE DE FILTRES ET TRI
+                // ============================================
+                FilterBar(
+                  totalProducts: sortedProducts.length,
+                  currentSort: _getSortLabel(),
+                  hasActiveFilters: _currentFilters.hasActiveFilters,
+                  onFilterTap: _showFilters,
+                  onSortTap: _showSort,
                 ),
-              ),
 
-              const SizedBox(height: 10),
-            ],
-
-            // Barre de filtres et tri
-            FilterBar(
-              totalProducts: sortedProducts.length,
-              currentSort: _getSortLabel(),
-              hasActiveFilters: _currentFilters.hasActiveFilters,
-              onFilterTap: () => _showFilters(),
-              onSortTap: () => _showSort(),
+                const SizedBox(height: 10),
+              ],
             ),
+          ),
 
-            const SizedBox(height: 10),
-
-            // Grille de produits
-            if (sortedProducts.isEmpty)
-              _buildEmptyState()
-            else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(15),
+          // ============================================
+          // GRILLE DE PRODUITS
+          // ============================================
+          if (sortedProducts.isEmpty)
+            SliverToBoxAdapter(child: _buildEmptyState())
+          else
+            SliverPadding(
+              padding: const EdgeInsets.all(15),
+              sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 0.65,
+                  childAspectRatio: 0.55,
                 ),
-                itemCount: sortedProducts.length + (_hasMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  // Loader de pagination
-                  if (index == sortedProducts.length) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    );
-                  }
-
-                  final product = sortedProducts[index];
-                  return ProductGridItem(
-                    product: product,
-                    onTap: (p) {
-                      Navigator.of(context).pushReplacementNamed(
-                        '/product/detail',
-                        arguments: {'product_id': p.id},
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    if (index == sortedProducts.length) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       );
-                    },
-                  );
-                },
-              ),
+                    }
 
-            const SizedBox(height: 20),
-          ],
-        ),
+                    final product = sortedProducts[index];
+                    return ProductGridItem(
+                      product: product,
+                      onTap: (p) {
+                        Navigator.of(context).pushNamed(
+                          AppRoutes.productDetail,
+                          arguments: {'product_id': p.id},
+                        );
+                      },
+                    );
+                  },
+                  childCount: sortedProducts.length + (_isLoadingMore ? 1 : 0),
+                ),
+              ),
+            ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
       ),
     );
   }
 
-  // Afficher le sort sheet
+  // ============================================
+  // SHEETS
+  // ============================================
+
   void _showSort() {
     showSortSheet(
       context: context,
@@ -377,11 +434,11 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
         setState(() {
           _currentSort = value;
         });
+        _loadData();
       },
     );
   }
 
-  // Afficher le filter sheet
   void _showFilters() {
     showFilterSheet(
       context: context,
@@ -395,7 +452,10 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     });
   }
 
-  // État d'erreur
+  // ============================================
+  // ÉTATS
+  // ============================================
+
   Widget _buildErrorState() {
     return Center(
       child: Padding(
@@ -454,10 +514,9 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     );
   }
 
-  // État vide
   Widget _buildEmptyState() {
     return Container(
-      height: 200,
+      height: 250,
       margin: const EdgeInsets.all(20),
       child: Center(
         child: Column(
@@ -467,7 +526,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: AppColors.surface,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -496,6 +555,27 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                 color: AppColors.textSecondary,
               ),
             ),
+            const SizedBox(height: 20),
+            if (_currentFilters.hasActiveFilters)
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _currentFilters = const FilterData();
+                    _selectedSubcategoryId = 0;
+                  });
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                ),
+                child: const Text(
+                  'EFFACER LES FILTRES',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

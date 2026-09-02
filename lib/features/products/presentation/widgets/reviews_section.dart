@@ -1,5 +1,10 @@
-// Section des avis clients
-// Affiche la note moyenne, la distribution et la liste des avis
+// ============================================
+// SECTION DES AVIS CLIENTS - VERSION PREMIUM
+// ============================================
+// Affiche la note moyenne, la distribution,
+// la liste des avis et le bouton d'ajout.
+// Design conforme à la vision ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -13,6 +18,7 @@ class ReviewsSection extends StatelessWidget {
   final VoidCallback? onSeeAllReviews;
   final VoidCallback? onAddReview;
   final bool showAddButton;
+  final int maxDisplayedReviews;
 
   const ReviewsSection({
     super.key,
@@ -23,6 +29,7 @@ class ReviewsSection extends StatelessWidget {
     this.onSeeAllReviews,
     this.onAddReview,
     this.showAddButton = true,
+    this.maxDisplayedReviews = 3,
   });
 
   @override
@@ -34,7 +41,9 @@ class ReviewsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Titre
+        // ============================================
+        // TITRE + BOUTON AJOUTER
+        // ============================================
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -48,17 +57,20 @@ class ReviewsSection extends StatelessWidget {
                 letterSpacing: 1.5,
               ),
             ),
-            if (showAddButton)
+            if (showAddButton && onAddReview != null)
               GestureDetector(
                 onTap: onAddReview,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 5,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: const Row(
                     children: [
@@ -86,7 +98,9 @@ class ReviewsSection extends StatelessWidget {
 
         const SizedBox(height: 15),
 
-        // Résumé de la note
+        // ============================================
+        // RÉSUMÉ DE LA NOTE
+        // ============================================
         Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
@@ -95,8 +109,10 @@ class ReviewsSection extends StatelessWidget {
             border: Border.all(
               color: AppColors.borderColor.withValues(alpha: 0.5),
             ),
+            boxShadow: AppColors.softShadow,
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Note moyenne
               Column(
@@ -108,6 +124,7 @@ class ReviewsSection extends StatelessWidget {
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
+                      height: 1.1,
                     ),
                   ),
                   Text(
@@ -120,6 +137,7 @@ class ReviewsSection extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: List.generate(5, (index) {
                       final isFilled = index < averageRating.round();
                       return Icon(
@@ -143,7 +161,7 @@ class ReviewsSection extends StatelessWidget {
                     final star = 5 - index;
                     final count = ratingDistribution[star] ?? 0;
                     final percentage = totalReviews > 0
-                        ? (count / totalReviews * 100).clamp(0, 100)
+                        ? (count / totalReviews * 100).clamp(0.0, 100.0)
                         : 0.0;
 
                     return Padding(
@@ -172,7 +190,7 @@ class ReviewsSection extends StatelessWidget {
                               child: LinearProgressIndicator(
                                 value: percentage / 100,
                                 minHeight: 6,
-                                backgroundColor: AppColors.background,
+                                backgroundColor: AppColors.surface,
                                 color: AppColors.ratingColor,
                               ),
                             ),
@@ -182,6 +200,7 @@ class ReviewsSection extends StatelessWidget {
                             width: 25,
                             child: Text(
                               '$count',
+                              textAlign: TextAlign.right,
                               style: const TextStyle(
                                 fontFamily: 'Poppins',
                                 fontSize: 10,
@@ -201,8 +220,10 @@ class ReviewsSection extends StatelessWidget {
 
         const SizedBox(height: 15),
 
-        // Liste des avis (max 3 affichés)
-        ...reviews.take(3).map((review) {
+        // ============================================
+        // LISTE DES AVIS (limités)
+        // ============================================
+        ...reviews.take(maxDisplayedReviews).map((review) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: ReviewCard(
@@ -220,13 +241,19 @@ class ReviewsSection extends StatelessWidget {
           );
         }),
 
-        // Bouton voir tous les avis
-        if (totalReviews > 3)
+        // ============================================
+        // BOUTON VOIR TOUS LES AVIS
+        // ============================================
+        if (totalReviews > maxDisplayedReviews && onSeeAllReviews != null)
           Center(
             child: TextButton(
               onPressed: onSeeAllReviews,
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               child: Text(
                 'Voir tous les avis ($totalReviews)',
@@ -242,7 +269,10 @@ class ReviewsSection extends StatelessWidget {
     );
   }
 
-  // État vide
+  // ============================================
+  // ÉTAT VIDE
+  // ============================================
+
   Widget _buildEmptyState() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,19 +315,33 @@ class ReviewsSection extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 10),
-                if (showAddButton)
+                const SizedBox(height: 5),
+                const Text(
+                  'Soyez le premier à partager votre expérience',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 11,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                if (showAddButton && onAddReview != null)
                   ElevatedButton(
                     onPressed: onAddReview,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
+                      elevation: 0,
                     ),
                     child: const Text(
-                      'SOYEZ LE PREMIER À DONNER VOTRE AVIS',
+                      'DONNER MON AVIS',
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 11,
@@ -314,7 +358,10 @@ class ReviewsSection extends StatelessWidget {
   }
 }
 
-// Données d'un avis
+// ============================================
+// DONNÉES D'UN AVIS
+// ============================================
+
 class ReviewCardData {
   final String userName;
   final String? userAvatar;

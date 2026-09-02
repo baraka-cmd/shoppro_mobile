@@ -1,5 +1,9 @@
-// Sélecteur de quantité
-// Boutons +/- avec limite au stock
+// ============================================
+// SÉLECTEUR DE QUANTITÉ - VERSION PREMIUM
+// ============================================
+// Boutons +/- avec limite au stock, animations
+// et mode compact. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -32,10 +36,21 @@ class _QuantitySelectorState extends State<QuantitySelector> {
   @override
   void initState() {
     super.initState();
-    _quantity = widget.initialQuantity;
+    _quantity = widget.initialQuantity.clamp(widget.minQuantity, widget.maxQuantity);
   }
 
-  // Incrémenter
+  @override
+  void didUpdateWidget(QuantitySelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialQuantity != oldWidget.initialQuantity) {
+      _quantity = widget.initialQuantity.clamp(widget.minQuantity, widget.maxQuantity);
+    }
+  }
+
+  // ============================================
+  // ACTIONS
+  // ============================================
+
   void _increment() {
     if (_quantity < widget.maxQuantity) {
       setState(() {
@@ -45,7 +60,6 @@ class _QuantitySelectorState extends State<QuantitySelector> {
     }
   }
 
-  // Décrémenter
   void _decrement() {
     if (_quantity > widget.minQuantity) {
       setState(() {
@@ -54,6 +68,10 @@ class _QuantitySelectorState extends State<QuantitySelector> {
       widget.onQuantityChanged?.call(_quantity);
     }
   }
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
@@ -93,18 +111,31 @@ class _QuantitySelectorState extends State<QuantitySelector> {
                 isActive: _quantity > widget.minQuantity,
               ),
 
-              // Quantité
-              Container(
-                width: widget.compact ? 40 : 50,
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  '$_quantity',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: widget.compact ? 14 : 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+              // Quantité animée
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) {
+                  return ScaleTransition(
+                    scale: animation,
+                    child: FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    ),
+                  );
+                },
+                child: Container(
+                  key: ValueKey<int>(_quantity),
+                  width: widget.compact ? 40 : 50,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Text(
+                    '$_quantity',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: widget.compact ? 14 : 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -134,7 +165,10 @@ class _QuantitySelectorState extends State<QuantitySelector> {
     );
   }
 
-  // Bouton +/-
+  // ============================================
+  // BOUTON +/-
+  // ============================================
+
   Widget _buildButton({
     required IconData icon,
     required VoidCallback? onTap,
@@ -142,12 +176,13 @@ class _QuantitySelectorState extends State<QuantitySelector> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         width: widget.compact ? 35 : 45,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: isActive
-              ? AppColors.primary.withValues(alpha: 0.05)
+              ? AppColors.primary.withValues(alpha: 0.08)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),

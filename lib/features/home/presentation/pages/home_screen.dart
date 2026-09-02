@@ -259,6 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
     CategoryProvider categoryProvider,
     BannerProvider bannerProvider,
   ) {
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -391,7 +392,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
-
   // ============================================
   // NAVIGATION
   // ============================================

@@ -1,5 +1,9 @@
-// Widget de pagination
-// Gère le chargement infini, le bouton "Charger plus" et l'indicateur
+// ============================================
+// WIDGET DE PAGINATION - VERSION PREMIUM
+// ============================================
+// Gère le chargement infini, le bouton "Charger plus"
+// et l'indicateur. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -36,7 +40,10 @@ class PaginationLoader extends StatelessWidget {
     }
   }
 
-  // Infinite scroll : Spinner automatique
+  // ============================================
+  // INFINITE SCROLL
+  // ============================================
+
   Widget _buildInfiniteScroll() {
     if (isLoading) {
       return Padding(
@@ -99,7 +106,10 @@ class PaginationLoader extends StatelessWidget {
     return const SizedBox.shrink();
   }
 
-  // Load more : Bouton "Charger plus"
+  // ============================================
+  // BOUTON CHARGER PLUS
+  // ============================================
+
   Widget _buildLoadMoreButton() {
     if (!hasMore) {
       return Padding(
@@ -131,6 +141,8 @@ class PaginationLoader extends StatelessWidget {
               side: const BorderSide(color: AppColors.primary, width: 1.5),
             ),
             elevation: 0,
+            disabledBackgroundColor: Colors.white,
+            disabledForegroundColor: AppColors.primary.withValues(alpha: 0.5),
           ),
           child: isLoading
               ? const SizedBox(
@@ -154,7 +166,10 @@ class PaginationLoader extends StatelessWidget {
     );
   }
 
-  // Indicateur : Spinner + texte
+  // ============================================
+  // INDICATEUR
+  // ============================================
+
   Widget _buildIndicator() {
     if (isLoading) {
       return Padding(
@@ -220,7 +235,10 @@ class PaginationLoader extends StatelessWidget {
   }
 }
 
-// Type de pagination
+// ============================================
+// ENUM
+// ============================================
+
 enum PaginationType {
   infiniteScroll,   // Spinner automatique
   loadMoreButton,   // Bouton "Charger plus"

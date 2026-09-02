@@ -1,10 +1,15 @@
-// Bottom sheet pour ajouter un avis
-// Avec étoiles interactives, commentaire et upload photo
+// ============================================
+// BOTTOM SHEET POUR AJOUTER UN AVIS - PREMIUM
+// ============================================
+// Avec étoiles interactives, commentaire,
+// upload photos multiples et validation.
+// Design conforme à la vision ShopPro.
+// ============================================
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
-import 'dart:io';  // ✅ AJOUTER
 
 class AddReviewSheet extends StatefulWidget {
   final VoidCallback? onSubmit;
@@ -21,6 +26,7 @@ class AddReviewSheet extends StatefulWidget {
 }
 
 class _AddReviewSheetState extends State<AddReviewSheet> {
+  final TextEditingController _titleController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
@@ -29,14 +35,19 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
   double _priceRating = 0;
   double _shippingRating = 0;
   List<String> _selectedImages = [];
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
+    _titleController.dispose();
     _commentController.dispose();
     super.dispose();
   }
 
-  // Sélectionner des images
+  // ============================================
+  // SÉLECTION D'IMAGES
+  // ============================================
+
   Future<void> _pickImages() async {
     final images = await _picker.pickMultiImage(
       maxWidth: 800,
@@ -46,10 +57,59 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
 
     if (images.isNotEmpty) {
       setState(() {
-        _selectedImages.addAll(images.map((img) => img.path).toList());
+        // Limiter à 5 images maximum
+        for (final img in images) {
+          if (_selectedImages.length < 5) {
+            _selectedImages.add(img.path);
+          }
+        }
       });
     }
   }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+  }
+
+  // ============================================
+  // SOUMISSION
+  // ============================================
+
+  bool get _canSubmit => _rating > 0 && _commentController.text.trim().isNotEmpty;
+
+  void _handleSubmit() {
+    if (!_canSubmit || _isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    // Simuler un délai
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+
+      Navigator.of(context).pop();
+      widget.onReviewSubmitted?.call(
+        ReviewData(
+          rating: _rating,
+          comment: _commentController.text.trim(),
+          title: _titleController.text.trim().isEmpty
+              ? null
+              : _titleController.text.trim(),
+          qualityRating: _qualityRating,
+          priceRating: _priceRating,
+          shippingRating: _shippingRating,
+          images: _selectedImages,
+        ),
+      );
+    });
+  }
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +121,7 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
         ),
       ),
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -96,7 +156,9 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
 
               const SizedBox(height: 20),
 
-              // Note générale
+              // ============================================
+              // NOTE GÉNÉRALE
+              // ============================================
               _buildRatingSection(
                 label: 'Note générale',
                 rating: _rating,
@@ -107,51 +169,100 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
                 },
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 15),
 
-              // Note qualité
-              _buildRatingSection(
-                label: 'Qualité',
-                rating: _qualityRating,
-                onRatingChanged: (value) {
-                  setState(() {
-                    _qualityRating = value;
-                  });
-                },
-                compact: true,
-              ),
-
-              const SizedBox(height: 8),
-
-              // Note prix
-              _buildRatingSection(
-                label: 'Prix',
-                rating: _priceRating,
-                onRatingChanged: (value) {
-                  setState(() {
-                    _priceRating = value;
-                  });
-                },
-                compact: true,
-              ),
-
-              const SizedBox(height: 8),
-
-              // Note livraison
-              _buildRatingSection(
-                label: 'Livraison',
-                rating: _shippingRating,
-                onRatingChanged: (value) {
-                  setState(() {
-                    _shippingRating = value;
-                  });
-                },
-                compact: true,
+              // ============================================
+              // NOTES SPÉCIFIQUES
+              // ============================================
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildRatingSection(
+                      label: 'Qualité',
+                      rating: _qualityRating,
+                      onRatingChanged: (value) {
+                        setState(() {
+                          _qualityRating = value;
+                        });
+                      },
+                      compact: true,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildRatingSection(
+                      label: 'Prix',
+                      rating: _priceRating,
+                      onRatingChanged: (value) {
+                        setState(() {
+                          _priceRating = value;
+                        });
+                      },
+                      compact: true,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildRatingSection(
+                      label: 'Livraison',
+                      rating: _shippingRating,
+                      onRatingChanged: (value) {
+                        setState(() {
+                          _shippingRating = value;
+                        });
+                      },
+                      compact: true,
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 15),
 
-              // Champ commentaire
+              // ============================================
+              // TITRE DE L'AVIS
+              // ============================================
+              TextField(
+                controller: _titleController,
+                maxLength: 100,
+                decoration: InputDecoration(
+                  hintText: 'Titre de votre avis (optionnel)',
+                  hintStyle: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    color: AppColors.textLight,
+                  ),
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.borderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.borderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 2,
+                    ),
+                  ),
+                  counterText: '',
+                ),
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // ============================================
+              // COMMENTAIRE
+              // ============================================
               TextField(
                 controller: _commentController,
                 maxLines: 4,
@@ -164,7 +275,7 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
                     color: AppColors.textLight,
                   ),
                   filled: true,
-                  fillColor: AppColors.background,
+                  fillColor: AppColors.surface,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.borderColor),
@@ -189,10 +300,12 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
 
               const SizedBox(height: 10),
 
-              // Photos sélectionnées
+              // ============================================
+              // PHOTOS SÉLECTIONNÉES
+              // ============================================
               if (_selectedImages.isNotEmpty) ...[
                 SizedBox(
-                  height: 60,
+                  height: 70,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: _selectedImages.length,
@@ -200,8 +313,8 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
                       return Stack(
                         children: [
                           Container(
-                            width: 60,
-                            height: 60,
+                            width: 70,
+                            height: 70,
                             margin: const EdgeInsets.only(right: 8),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
@@ -221,14 +334,10 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
                             right: 10,
                             top: 0,
                             child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedImages.removeAt(index);
-                                });
-                              },
+                              onTap: () => _removeImage(index),
                               child: Container(
-                                width: 18,
-                                height: 18,
+                                width: 20,
+                                height: 20,
                                 decoration: const BoxDecoration(
                                   color: Colors.black54,
                                   shape: BoxShape.circle,
@@ -249,34 +358,44 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
                 const SizedBox(height: 10),
               ],
 
-              // Bouton ajouter photo
+              // ============================================
+              // BOUTON AJOUTER PHOTO
+              // ============================================
               GestureDetector(
-                onTap: _pickImages,
+                onTap: _selectedImages.length < 5 ? _pickImages : null,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.05),
+                    color: _selectedImages.length < 5
+                        ? AppColors.primary.withValues(alpha: 0.05)
+                        : AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.photo_camera,
                         size: 14,
-                        color: AppColors.primary,
+                        color: _selectedImages.length < 5
+                            ? AppColors.primary
+                            : AppColors.textLight,
                       ),
-                      SizedBox(width: 5),
+                      const SizedBox(width: 5),
                       Text(
-                        'Ajouter des photos',
+                        _selectedImages.isEmpty
+                            ? 'Ajouter des photos'
+                            : 'Ajouter plus (${_selectedImages.length}/5)',
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
+                          color: _selectedImages.length < 5
+                              ? AppColors.primary
+                              : AppColors.textLight,
                         ),
                       ),
                     ],
@@ -286,20 +405,11 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
 
               const SizedBox(height: 20),
 
-              // Bouton soumettre
+              // ============================================
+              // BOUTON SOUMETTRE
+              // ============================================
               ElevatedButton(
-                onPressed: _rating > 0 && _commentController.text.isNotEmpty
-                    ? () {
-                        Navigator.of(context).pop();
-                        widget.onReviewSubmitted?.call(
-                          ReviewData(
-                            rating: _rating,
-                            comment: _commentController.text,
-                            images: _selectedImages,
-                          ),
-                        );
-                      }
-                    : null,
+                onPressed: _canSubmit ? _handleSubmit : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -308,15 +418,26 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 0,
+                  disabledBackgroundColor: AppColors.borderColor,
+                  disabledForegroundColor: AppColors.textTertiary,
                 ),
-                child: const Text(
-                  'SOUMETTRE L\'AVIS',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : const Text(
+                        'SOUMETTRE L\'AVIS',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ],
           ),
@@ -325,7 +446,10 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
     );
   }
 
-  // Section de notation
+  // ============================================
+  // SECTION DE NOTATION
+  // ============================================
+
   Widget _buildRatingSection({
     required String label,
     required double rating,
@@ -367,20 +491,34 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
   }
 }
 
-// Données de l'avis
+// ============================================
+// DONNÉES DE L'AVIS
+// ============================================
+
 class ReviewData {
   final double rating;
   final String comment;
+  final String? title;
+  final double qualityRating;
+  final double priceRating;
+  final double shippingRating;
   final List<String> images;
 
   const ReviewData({
     required this.rating,
     required this.comment,
+    this.title,
+    this.qualityRating = 0,
+    this.priceRating = 0,
+    this.shippingRating = 0,
     this.images = const [],
   });
 }
 
-// Fonction pour afficher le sheet
+// ============================================
+// FONCTION POUR AFFICHER LE SHEET
+// ============================================
+
 Future<ReviewData?> showAddReviewSheet(BuildContext context) {
   return showModalBottomSheet<ReviewData>(
     context: context,

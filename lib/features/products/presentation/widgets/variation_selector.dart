@@ -1,9 +1,12 @@
-// Sélecteur de variations du produit
-// Permet de choisir couleur, taille et autres options
+// ============================================
+// SÉLECTEUR DE VARIATIONS DU PRODUIT - VERSION PREMIUM
+// ============================================
+// Permet de choisir couleur, taille et autres options.
+// Design avec swatches visuels, états et animations.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../domain/entities/product.dart';
 
 class VariationSelector extends StatefulWidget {
   final List<ProductVariant> variants;
@@ -27,7 +30,6 @@ class _VariationSelectorState extends State<VariationSelector> {
   @override
   void initState() {
     super.initState();
-    // Sélectionner la variante par défaut
     if (widget.variants.isNotEmpty) {
       _selectedVariant = widget.variants.firstWhere(
         (v) => v.isDefault,
@@ -35,11 +37,16 @@ class _VariationSelectorState extends State<VariationSelector> {
       );
       _selectedColor = _selectedVariant?.color;
       _selectedSize = _selectedVariant?.size;
-      widget.onVariantSelected?.call(_selectedVariant);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onVariantSelected?.call(_selectedVariant);
+      });
     }
   }
 
-  // Récupérer les couleurs uniques
+  // ============================================
+  // GETTERS
+  // ============================================
+
   List<String> get _availableColors {
     return widget.variants
         .map((v) => v.color)
@@ -49,7 +56,6 @@ class _VariationSelectorState extends State<VariationSelector> {
         .toList();
   }
 
-  // Récupérer les tailles uniques
   List<String> get _availableSizes {
     return widget.variants
         .map((v) => v.size)
@@ -58,6 +64,10 @@ class _VariationSelectorState extends State<VariationSelector> {
         .toSet()
         .toList();
   }
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
@@ -84,124 +94,76 @@ class _VariationSelectorState extends State<VariationSelector> {
 
         // Sélection de couleur
         if (_availableColors.isNotEmpty) ...[
-          _buildVariationGroup(
-            label: 'Couleur',
-            selectedValue: _selectedColor,
-            values: _availableColors,
-            colors: _getColorCodes(),
-            onSelected: (color) {
-              setState(() {
-                _selectedColor = color;
-                _findVariant();
-              });
-            },
-          ),
-          const SizedBox(height: 12),
+          _buildColorSection(),
+          const SizedBox(height: 15),
         ],
 
         // Sélection de taille
         if (_availableSizes.isNotEmpty) ...[
-          _buildVariationGroup(
-            label: 'Taille',
-            selectedValue: _selectedSize,
-            values: _availableSizes,
-            onSelected: (size) {
-              setState(() {
-                _selectedSize = size;
-                _findVariant();
-              });
-            },
-          ),
-          const SizedBox(height: 12),
+          _buildSizeSection(),
+          const SizedBox(height: 15),
         ],
 
-        // Variante sélectionnée
+        // Variante sélectionnée (résumé)
         if (_selectedVariant != null) ...[
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle,
-                  size: 14,
-                  color: AppColors.success,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _selectedVariant!.name,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  _formatPrice(_selectedVariant!.price ?? 0),
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildSelectedVariantSummary(),
         ],
       ],
     );
   }
 
-  // Construire un groupe de variations
-  Widget _buildVariationGroup({
-    required String label,
-    required String? selectedValue,
-    required List<String> values,
-    List<Color>? colors,
-    required ValueChanged<String> onSelected,
-  }) {
+  // ============================================
+  // SECTION COULEUR
+  // ============================================
+
+  Widget _buildColorSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
+        Row(
+          children: [
+            const Text(
+              'Couleur',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (_selectedColor != null)
+              Text(
+                ': $_selectedColor',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: values.asMap().entries.map((entry) {
+          spacing: 10,
+          runSpacing: 10,
+          children: _availableColors.asMap().entries.map((entry) {
             final index = entry.key;
-            final value = entry.value;
-            final isSelected = selectedValue == value;
+            final colorName = entry.value;
+            final colorCode = _getColorCodeForName(colorName);
+            final isSelected = _selectedColor == colorName;
 
-            if (colors != null && colors.isNotEmpty && index < colors.length) {
-              // Variation de couleur (cercle coloré)
-              return _buildColorChip(
-                color: colors[index],
-                value: value,
-                isSelected: isSelected,
-                onTap: () => onSelected(value),
-              );
-            }
-
-            // Variation de taille (texte)
-            return _buildTextChip(
-              value: value,
+            return _buildColorSwatch(
+              color: colorCode,
+              colorName: colorName,
               isSelected: isSelected,
-              onTap: () => onSelected(value),
+              onTap: () {
+                setState(() {
+                  _selectedColor = colorName;
+                  _findVariant();
+                });
+              },
             );
           }).toList(),
         ),
@@ -209,50 +171,177 @@ class _VariationSelectorState extends State<VariationSelector> {
     );
   }
 
-  // Chip de couleur
-  Widget _buildColorChip({
+  // ============================================
+  // SECTION TAILLE
+  // ============================================
+
+  Widget _buildSizeSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Taille',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (_selectedSize != null)
+              Text(
+                ': $_selectedSize',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _availableSizes.map((size) {
+            final isSelected = _selectedSize == size;
+            final isAvailable = _isSizeAvailable(size, _selectedColor);
+
+            return _buildSizeChip(
+              size: size,
+              isSelected: isSelected,
+              isAvailable: isAvailable,
+              onTap: isAvailable
+                  ? () {
+                      setState(() {
+                        _selectedSize = size;
+                        _findVariant();
+                      });
+                    }
+                  : null,
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  // ============================================
+  // RÉSUMÉ DE LA VARIANTE SÉLECTIONNÉE
+  // ============================================
+
+  Widget _buildSelectedVariantSummary() {
+    final variant = _selectedVariant!;
+    final isInStock = variant.stock > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isInStock
+            ? AppColors.success.withValues(alpha: 0.05)
+            : AppColors.error.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isInStock
+              ? AppColors.success.withValues(alpha: 0.2)
+              : AppColors.error.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isInStock ? Icons.check_circle : Icons.cancel,
+            size: 16,
+            color: isInStock ? AppColors.success : AppColors.error,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              variant.name,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          if (variant.price != null)
+            Text(
+              _formatPrice(variant.price!),
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================
+  // SWATCH DE COULEUR
+  // ============================================
+
+  Widget _buildColorSwatch({
     required Color color,
-    required String value,
+    required String colorName,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.borderColor,
-            width: isSelected ? 3 : 1,
+      child: Tooltip(
+        message: colorName,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.borderColor,
+              width: isSelected ? 3 : 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 5,
-                  ),
-                ]
+          child: isSelected
+              ? const Icon(
+                  Icons.check,
+                  size: 18,
+                  color: Colors.white,
+                )
               : null,
         ),
-        child: isSelected
-            ? const Icon(
-                Icons.check,
-                size: 18,
-                color: Colors.white,
-              )
-            : null,
       ),
     );
   }
 
-  // Chip de texte
-  Widget _buildTextChip({
-    required String value,
+  // ============================================
+  // CHIP DE TAILLE
+  // ============================================
+
+  Widget _buildSizeChip({
+    required String size,
     required bool isSelected,
-    required VoidCallback onTap,
+    required bool isAvailable,
+    required VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -260,27 +349,45 @@ class _VariationSelectorState extends State<VariationSelector> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
+          color: isSelected
+              ? AppColors.primary
+              : isAvailable
+                  ? Colors.white
+                  : AppColors.surface,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.borderColor,
+            color: isSelected
+                ? AppColors.primary
+                : isAvailable
+                    ? AppColors.borderColor
+                    : AppColors.borderColor.withValues(alpha: 0.5),
             width: 1.5,
           ),
         ),
         child: Text(
-          value,
+          size,
           style: TextStyle(
             fontFamily: 'Poppins',
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.textPrimary,
+            color: isSelected
+                ? Colors.white
+                : isAvailable
+                    ? AppColors.textPrimary
+                    : AppColors.textLight,
+            decoration: isAvailable
+                ? null
+                : TextDecoration.lineThrough,
           ),
         ),
       ),
     );
   }
 
-  // Trouver la variante correspondante
+  // ============================================
+  // MÉTHODES INTERNES
+  // ============================================
+
   void _findVariant() {
     ProductVariant? variant;
 
@@ -301,15 +408,26 @@ class _VariationSelectorState extends State<VariationSelector> {
     widget.onVariantSelected?.call(variant);
   }
 
-  // Récupérer les codes couleur
-  List<Color> _getColorCodes() {
-    return widget.variants
-        .where((v) => v.colorCode != null && v.colorCode!.isNotEmpty)
-        .map((v) => _parseHexColor(v.colorCode!))
-        .toList();
+  bool _isSizeAvailable(String size, String? color) {
+    for (final v in widget.variants) {
+      final matchesSize = v.size == size;
+      final matchesColor = color == null || v.color == color;
+      if (matchesSize && matchesColor && v.stock > 0) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  // Parser une couleur hexadécimale
+  Color _getColorCodeForName(String colorName) {
+    for (final v in widget.variants) {
+      if (v.color == colorName && v.colorCode != null) {
+        return _parseHexColor(v.colorCode!);
+      }
+    }
+    return Colors.grey;
+  }
+
   Color _parseHexColor(String hex) {
     hex = hex.replaceAll('#', '');
     if (hex.length == 6) {
@@ -318,7 +436,6 @@ class _VariationSelectorState extends State<VariationSelector> {
     return Color(int.parse(hex, radix: 16));
   }
 
-  // Formater le prix
   String _formatPrice(double amount) {
     final formatted = amount.toStringAsFixed(0);
     final buffer = StringBuffer();
@@ -332,7 +449,10 @@ class _VariationSelectorState extends State<VariationSelector> {
   }
 }
 
-// Classe de variante produit
+// ============================================
+// CLASSE VARIANTE PRODUIT
+// ============================================
+
 class ProductVariant {
   final int id;
   final String name;

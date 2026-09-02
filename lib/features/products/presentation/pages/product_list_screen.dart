@@ -1,14 +1,24 @@
-// Écran de liste des produits
-// Avec pagination infinie, filtres et tri
+// ============================================
+// ÉCRAN DE LISTE DES PRODUITS - VERSION PREMIUM
+// ============================================
+// Liste avec pagination infinie, filtres avancés,
+// tri intelligent et bascule grille/liste.
+// Design moderne conforme à la vision ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../domain/entities/product.dart';           // ✅ AJOUTER
+import '../../../../routes/app_routes.dart';
+import '../../domain/entities/product.dart';
 import '../providers/product_provider.dart';
 import '../widgets/product_list_item.dart';
-import '../widgets/product_grid_item.dart';            // ✅ AJOUTER
+import '../widgets/product_grid_item.dart';
 import '../widgets/shimmer_product_card.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/error_state.dart';
+import '../widgets/pagination_loader.dart';
+import '../widgets/filter_sheet.dart';
 
 class ProductListScreen extends StatefulWidget {
   final String title;
@@ -38,7 +48,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _loadProducts();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProducts();
+    });
   }
 
   @override
@@ -47,7 +59,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
     super.dispose();
   }
 
-  // Détecter le scroll pour la pagination
+  // ============================================
+  // PAGINATION
+  // ============================================
+
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
@@ -55,22 +70,27 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
-  // Charger les produits
+  // ============================================
+  // CHARGEMENT
+  // ============================================
+
   Future<void> _loadProducts() async {
     final provider = context.read<ProductProvider>();
 
-    if (widget.categoryId != null) {
-      await provider.filterProducts(categoryId: widget.categoryId);
-    } else if (widget.brandId != null) {
-      await provider.filterProducts(brandId: widget.brandId);
-    } else if (widget.searchQuery != null) {
+    if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
       await provider.searchProducts(widget.searchQuery!);
+    } else if (widget.categoryId != null || widget.brandId != null) {
+      await provider.filterProducts(
+        categoryId: widget.categoryId,
+        brandId: widget.brandId,
+        sortBy: _sortBy,
+        sortDirection: _sortDirection,
+      );
     } else {
       await provider.loadProducts();
     }
   }
 
-  // Charger plus de produits
   Future<void> _loadMore() async {
     final provider = context.read<ProductProvider>();
     if (provider.hasMore && !provider.isLoadingMore) {
@@ -78,12 +98,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
-  // Rafraîchir
   Future<void> _refresh() async {
     await _loadProducts();
   }
 
-  // Changer le tri
+  // ============================================
+  // TRI
+  // ============================================
+
   void _changeSort(String sortBy, String sortDirection) {
     setState(() {
       _sortBy = sortBy;
@@ -95,88 +117,232 @@ class _ProductListScreenState extends State<ProductListScreen> {
     _loadProducts();
   }
 
+  // ============================================
+  // FILTRES
+  // ============================================
+
+  void _showFilters() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (sheetContext) {
+        return FilterSheet(
+          categoryId: widget.categoryId,
+          brandId: widget.brandId,
+          onApply: (filters) {
+            Navigator.of(sheetContext).pop();
+            final provider = context.read<ProductProvider>();
+            provider.filterProducts(
+              categoryId: filters['category_id'] as int?,
+              brandId: filters['brand_id'] as int?,
+              minPrice: filters['min_price'] as double?,
+              maxPrice: filters['max_price'] as double?,
+              inStock: filters['in_stock'] as bool?,
+              minRating: filters['min_rating'] as double?,
+              onSale: filters['on_sale'] as bool?,
+              sortBy: _sortBy,
+              sortDirection: _sortDirection,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: AppColors.textPrimary,
-            size: 20,
-          ),
-        ),
-        title: Text(
-          widget.title,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        actions: [
-          // Toggle vue grille/liste
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _isGridView = !_isGridView;
-              });
-            },
-            icon: Icon(
-              _isGridView ? Icons.view_list : Icons.grid_view,
-              color: AppColors.textPrimary,
-              size: 22,
-            ),
-          ),
-          // Tri
-          IconButton(
-            onPressed: () => _showSortDialog(),
-            icon: const Icon(
-              Icons.sort,
-              color: AppColors.textPrimary,
-              size: 22,
-            ),
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
       body: Consumer<ProductProvider>(
         builder: (context, provider, child) {
           // Chargement initial
           if (provider.isLoading && provider.products.isEmpty) {
-            return _isGridView
-                ? const ShimmerProductGrid(itemCount: 8)
-                : const ShimmerProductList(itemCount: 6);
+            return _buildLoadingState();
           }
 
           // Erreur
           if (provider.hasError && provider.products.isEmpty) {
-            return _buildErrorState(provider.errorMessage);
+            return ErrorState(
+              message: provider.errorMessage,
+              onRetry: _refresh,
+            );
           }
 
           // Vide
           if (provider.products.isEmpty) {
-            return _buildEmptyState();
+            return EmptyState(
+              icon: Icons.inventory_2_outlined,
+              title: 'Aucun produit trouvé',
+              message: 'Essayez de modifier vos filtres ou votre recherche',
+              onAction: _refresh,
+              actionLabel: 'Rafraîchir',
+            );
           }
 
           // Produits
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            color: AppColors.primary,
-            child: _isGridView
-                ? _buildGridView(provider)
-                : _buildListView(provider),
+          return Column(
+            children: [
+              // Barre d'information
+              _buildInfoBar(provider),
+
+              // Liste ou grille
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _refresh,
+                  color: AppColors.primary,
+                  child: _isGridView
+                      ? _buildGridView(provider)
+                      : _buildListView(provider),
+                ),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
-  // Grille de produits
+  // ============================================
+  // APP BAR
+  // ============================================
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      leading: IconButton(
+        onPressed: () => Navigator.of(context).pop(),
+        icon: const Icon(
+          Icons.arrow_back_ios,
+          color: AppColors.textPrimary,
+          size: 20,
+        ),
+      ),
+      title: Text(
+        widget.title,
+        style: const TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      actions: [
+        // Filtres
+        IconButton(
+          onPressed: _showFilters,
+          icon: const Icon(
+            Icons.filter_list,
+            color: AppColors.textPrimary,
+            size: 22,
+          ),
+          tooltip: 'Filtrer',
+        ),
+        // Toggle vue grille/liste
+        IconButton(
+          onPressed: () {
+            setState(() {
+              _isGridView = !_isGridView;
+            });
+          },
+          icon: Icon(
+            _isGridView ? Icons.view_list : Icons.grid_view,
+            color: AppColors.textPrimary,
+            size: 22,
+          ),
+          tooltip: _isGridView ? 'Vue liste' : 'Vue grille',
+        ),
+        // Tri
+        IconButton(
+          onPressed: _showSortSheet,
+          icon: const Icon(
+            Icons.sort,
+            color: AppColors.textPrimary,
+            size: 22,
+          ),
+          tooltip: 'Trier',
+        ),
+      ],
+    );
+  }
+
+  // ============================================
+  // BARRE D'INFORMATION
+  // ============================================
+
+  Widget _buildInfoBar(ProductProvider provider) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: AppColors.surface,
+      child: Row(
+        children: [
+          Text(
+            '${provider.productsCount} produit${provider.productsCount > 1 ? 's' : ''}',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const Spacer(),
+          if (provider.hasActiveFilters)
+            GestureDetector(
+              onTap: () => provider.clearFilters(),
+              child: const Text(
+                'Effacer filtres',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================
+  // ÉTATS
+  // ============================================
+
+  Widget _buildLoadingState() {
+    if (_isGridView) {
+      return GridView.builder(
+        padding: const EdgeInsets.all(15),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 0.50,
+        ),
+        itemCount: 8,
+        itemBuilder: (context, index) => const ShimmerProductCard(),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(15),
+      itemCount: 6,
+      itemBuilder: (context, index) => const ShimmerProductCard(),
+    );
+  }
+
+  // ============================================
+  // GRILLE DE PRODUITS
+  // ============================================
+
   Widget _buildGridView(ProductProvider provider) {
     return GridView.builder(
       controller: _scrollController,
@@ -189,45 +355,33 @@ class _ProductListScreenState extends State<ProductListScreen> {
       ),
       itemCount: provider.products.length + (provider.hasMore ? 1 : 0),
       itemBuilder: (context, index) {
-        // Loader de pagination
         if (index == provider.products.length) {
-          return const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primary,
-            ),
-          );
+          return const PaginationLoader();
         }
 
         final product = provider.products[index];
         return ProductGridItem(
-            product: product,
-            onTap: (tappedProduct) {
-              Navigator.of(context).pushNamed(
-                '/product/detail',
-                arguments: {'product_id': tappedProduct.id},
-              );
-            },
-          );
+          product: product,
+          onTap: (tappedProduct) => _navigateToProduct(tappedProduct),
+        );
       },
     );
   }
 
-  // Liste de produits
+  // ============================================
+  // LISTE DE PRODUITS
+  // ============================================
+
   Widget _buildListView(ProductProvider provider) {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(15),
       itemCount: provider.products.length + (provider.hasMore ? 1 : 0),
       itemBuilder: (context, index) {
-        // Loader de pagination
         if (index == provider.products.length) {
           return const Padding(
             padding: EdgeInsets.all(20),
-            child: Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
-            ),
+            child: PaginationLoader(),
           );
         }
 
@@ -236,107 +390,23 @@ class _ProductListScreenState extends State<ProductListScreen> {
           padding: const EdgeInsets.only(bottom: 12),
           child: ProductListItem(
             product: product,
-            onTap: (tappedProduct) {
-              Navigator.of(context).pushNamed(
-                '/product/detail',
-                arguments: {'product_id': tappedProduct.id},
-              );
-            },
+            onTap: (tappedProduct) => _navigateToProduct(tappedProduct),
           ),
         );
       },
     );
   }
 
-  // État d'erreur
-  Widget _buildErrorState(String? message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.error_outline,
-            size: 60,
-            color: AppColors.error,
-          ),
-          const SizedBox(height: 15),
-          Text(
-            message ?? 'Une erreur est survenue',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _refresh,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'RÉESSAYER',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // ============================================
+  // BOTTOM SHEET DE TRI
+  // ============================================
 
-  // État vide
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.inventory_2_outlined,
-            size: 60,
-            color: AppColors.textLight,
-          ),
-          const SizedBox(height: 15),
-          const Text(
-            'Aucun produit trouvé',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 5),
-          const Text(
-            'Essayez de modifier vos filtres',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Dialog de tri
-  void _showSortDialog() {
+  void _showSortSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(25),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (sheetContext) {
         return SafeArea(
@@ -413,7 +483,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  // Option de tri
   Widget _buildSortOption(
     BuildContext sheetContext, {
     required IconData icon,
@@ -439,16 +508,23 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ),
       ),
       trailing: isSelected
-          ? const Icon(
-              Icons.check,
-              color: AppColors.primary,
-              size: 20,
-            )
+          ? const Icon(Icons.check, color: AppColors.primary, size: 20)
           : null,
       onTap: () {
         Navigator.of(sheetContext).pop();
         _changeSort(sortBy, sortDirection);
       },
+    );
+  }
+
+  // ============================================
+  // NAVIGATION
+  // ============================================
+
+  void _navigateToProduct(Product product) {
+    Navigator.of(context).pushNamed(
+      AppRoutes.productDetail,
+      arguments: {'product_id': product.id},
     );
   }
 }

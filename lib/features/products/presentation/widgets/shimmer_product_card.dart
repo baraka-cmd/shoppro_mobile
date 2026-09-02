@@ -1,5 +1,9 @@
-// Carte produit avec animation Shimmer
-// Affiche un placeholder animé pendant le chargement
+// ============================================
+// CARTE PRODUIT AVEC ANIMATION SHIMMER - PREMIUM
+// ============================================
+// Affiche un placeholder animé pendant le chargement.
+// Design ShopPro avec grille, liste et horizontal.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
@@ -40,7 +44,7 @@ class ShimmerProductCard extends StatelessWidget {
             Container(
               height: isGrid ? height * 0.5 : 100,
               decoration: const BoxDecoration(
-                color: AppColors.background,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
@@ -58,7 +62,7 @@ class ShimmerProductCard extends StatelessWidget {
                     Container(
                       height: 12,
                       decoration: BoxDecoration(
-                        color: AppColors.background,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -67,7 +71,7 @@ class ShimmerProductCard extends StatelessWidget {
                       width: width * 0.7,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: AppColors.background,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -79,7 +83,7 @@ class ShimmerProductCard extends StatelessWidget {
                       width: width * 0.5,
                       height: 16,
                       decoration: BoxDecoration(
-                        color: AppColors.background,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -91,7 +95,7 @@ class ShimmerProductCard extends StatelessWidget {
                       width: width * 0.4,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: AppColors.background,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -105,7 +109,7 @@ class ShimmerProductCard extends StatelessWidget {
               height: 35,
               margin: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -116,15 +120,20 @@ class ShimmerProductCard extends StatelessWidget {
   }
 }
 
-// Grille de shimmer
+// ============================================
+// GRILLE DE SHIMMER
+// ============================================
+
 class ShimmerProductGrid extends StatelessWidget {
   final int itemCount;
   final int crossAxisCount;
+  final EdgeInsetsGeometry padding;
 
   const ShimmerProductGrid({
     super.key,
     this.itemCount = 6,
     this.crossAxisCount = 2,
+    this.padding = const EdgeInsets.all(15),
   });
 
   @override
@@ -132,11 +141,12 @@ class ShimmerProductGrid extends StatelessWidget {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: padding,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 0.65,
+        childAspectRatio: 0.62,
       ),
       itemCount: itemCount,
       itemBuilder: (context, index) {
@@ -146,13 +156,18 @@ class ShimmerProductGrid extends StatelessWidget {
   }
 }
 
-// Liste de shimmer
+// ============================================
+// LISTE DE SHIMMER
+// ============================================
+
 class ShimmerProductList extends StatelessWidget {
   final int itemCount;
+  final EdgeInsetsGeometry padding;
 
   const ShimmerProductList({
     super.key,
     this.itemCount = 5,
+    this.padding = const EdgeInsets.all(15),
   });
 
   @override
@@ -160,6 +175,7 @@ class ShimmerProductList extends StatelessWidget {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: padding,
       itemCount: itemCount,
       itemBuilder: (context, index) {
         return Padding(
@@ -184,7 +200,7 @@ class ShimmerProductList extends StatelessWidget {
                     width: 100,
                     height: 100,
                     decoration: const BoxDecoration(
-                      color: AppColors.background,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.horizontal(
                         left: Radius.circular(16),
                       ),
@@ -200,7 +216,7 @@ class ShimmerProductList extends StatelessWidget {
                           Container(
                             height: 12,
                             decoration: BoxDecoration(
-                              color: AppColors.background,
+                              color: AppColors.surface,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -209,7 +225,7 @@ class ShimmerProductList extends StatelessWidget {
                             width: 150,
                             height: 12,
                             decoration: BoxDecoration(
-                              color: AppColors.background,
+                              color: AppColors.surface,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -218,7 +234,7 @@ class ShimmerProductList extends StatelessWidget {
                             width: 80,
                             height: 14,
                             decoration: BoxDecoration(
-                              color: AppColors.background,
+                              color: AppColors.surface,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -236,13 +252,18 @@ class ShimmerProductList extends StatelessWidget {
   }
 }
 
-// Section horizontale de shimmer
+// ============================================
+// SECTION HORIZONTALE DE SHIMMER
+// ============================================
+
 class ShimmerProductHorizontal extends StatelessWidget {
   final int itemCount;
+  final EdgeInsetsGeometry padding;
 
   const ShimmerProductHorizontal({
     super.key,
     this.itemCount = 3,
+    this.padding = const EdgeInsets.symmetric(horizontal: 20),
   });
 
   @override
@@ -251,6 +272,7 @@ class ShimmerProductHorizontal extends StatelessWidget {
       height: 250,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        padding: padding,
         itemCount: itemCount,
         itemBuilder: (context, index) {
           return const Padding(

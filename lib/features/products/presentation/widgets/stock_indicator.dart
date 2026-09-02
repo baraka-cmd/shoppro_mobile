@@ -1,5 +1,9 @@
-// Indicateur de stock
-// Affiche l'état du stock avec couleur, icône et barre de progression
+// ============================================
+// INDICATEUR DE STOCK - VERSION PREMIUM
+// ============================================
+// Affiche l'état du stock avec couleur, icône
+// et barre de progression. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -36,7 +40,10 @@ class StockIndicator extends StatelessWidget {
     }
   }
 
-  // Style : Point + label
+  // ============================================
+  // STYLE : POINT + LABEL
+  // ============================================
+
   Widget _buildDotStyle(StockState state) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -71,7 +78,10 @@ class StockIndicator extends StatelessWidget {
     );
   }
 
-  // Style : Badge
+  // ============================================
+  // STYLE : BADGE
+  // ============================================
+
   Widget _buildBadgeStyle(StockState state) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -108,7 +118,10 @@ class StockIndicator extends StatelessWidget {
     );
   }
 
-  // Style : Barre de progression
+  // ============================================
+  // STYLE : BARRE DE PROGRESSION
+  // ============================================
+
   Widget _buildProgressStyle(StockState state) {
     final progress = _calculateProgress();
 
@@ -149,7 +162,10 @@ class StockIndicator extends StatelessWidget {
     );
   }
 
-  // Calculer la progression du stock
+  // ============================================
+  // CALCULS
+  // ============================================
+
   double _calculateProgress() {
     if (maxStock == null || maxStock! <= 0) {
       return 1.0;
@@ -157,10 +173,9 @@ class StockIndicator extends StatelessWidget {
     return (currentStock / maxStock!).clamp(0.0, 1.0);
   }
 
-  // Déterminer l'état du stock
   StockState _getStockState() {
     if (currentStock <= 0) {
-      return StockState(
+      return const StockState(
         label: 'Rupture de stock',
         color: AppColors.error,
         icon: Icons.cancel,
@@ -169,13 +184,13 @@ class StockIndicator extends StatelessWidget {
 
     if (currentStock <= minStock) {
       return StockState(
-        label: 'Stock faible',
+        label: 'Plus que $currentStock en stock',
         color: AppColors.warning,
         icon: Icons.warning,
       );
     }
 
-    return StockState(
+    return const StockState(
       label: 'En stock',
       color: AppColors.success,
       icon: Icons.check_circle,
@@ -183,7 +198,10 @@ class StockIndicator extends StatelessWidget {
   }
 }
 
-// État du stock
+// ============================================
+// ÉTAT DU STOCK
+// ============================================
+
 class StockState {
   final String label;
   final Color color;
@@ -196,7 +214,10 @@ class StockState {
   });
 }
 
-// Style de l'indicateur
+// ============================================
+// ENUM
+// ============================================
+
 enum StockIndicatorStyle {
   dot,       // Point coloré
   badge,     // Badge avec icône

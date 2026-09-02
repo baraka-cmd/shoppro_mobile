@@ -1,5 +1,10 @@
-// Widget d'image produit avec lazy loading
-// Charge l'image seulement quand elle est visible
+// ============================================
+// WIDGET D'IMAGE PRODUIT AVEC LAZY LOADING
+// ============================================
+// Charge l'image seulement quand elle est visible.
+// Optimisé pour les connexions lentes (Goma/RDC).
+// Fade in élégant, cache mémoire intelligent.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -15,6 +20,8 @@ class LazyProductImage extends StatefulWidget {
   final Widget? errorWidget;
   final bool enableCache;
   final bool enableFadeIn;
+  final bool showLoadingIndicator;
+  final bool showErrorText;
 
   const LazyProductImage({
     super.key,
@@ -27,6 +34,8 @@ class LazyProductImage extends StatefulWidget {
     this.errorWidget,
     this.enableCache = true,
     this.enableFadeIn = true,
+    this.showLoadingIndicator = true,
+    this.showErrorText = true,
   });
 
   @override
@@ -37,11 +46,26 @@ class _LazyProductImageState extends State<LazyProductImage> {
   bool _isVisible = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Délai pour le lazy loading
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _isVisible = true;
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     Widget imageWidget;
 
-    if (widget.imageUrl == null || widget.imageUrl!.isEmpty) {
-      imageWidget = widget.placeholder ?? _buildDefaultPlaceholder();
+    if (!_isVisible) {
+      imageWidget = widget.placeholder ?? _buildLoadingPlaceholder();
+    } else if (widget.imageUrl == null || widget.imageUrl!.isEmpty) {
+      imageWidget = widget.errorWidget ?? _buildDefaultPlaceholder();
     } else {
       imageWidget = CachedNetworkImage(
         imageUrl: widget.imageUrl!,
@@ -57,6 +81,8 @@ class _LazyProductImageState extends State<LazyProductImage> {
         placeholderFadeInDuration: const Duration(milliseconds: 200),
         memCacheWidth: _getCacheWidth(),
         memCacheHeight: _getCacheHeight(),
+        maxWidthDiskCache: _getCacheWidth(),
+        maxHeightDiskCache: _getCacheHeight(),
       );
     }
 
@@ -78,43 +104,51 @@ class _LazyProductImageState extends State<LazyProductImage> {
     return imageWidget;
   }
 
-  // Largeur du cache mémoire (optimisation)
+  // ============================================
+  // OPTIMISATION CACHE
+  // ============================================
+
   int? _getCacheWidth() {
+    if (!widget.enableCache) return null;
     if (widget.width != null) {
       return (widget.width! * 2).round();
     }
     return null;
   }
 
-  // Hauteur du cache mémoire (optimisation)
   int? _getCacheHeight() {
+    if (!widget.enableCache) return null;
     if (widget.height != null) {
       return (widget.height! * 2).round();
     }
     return null;
   }
 
-  // Placeholder de chargement
+  // ============================================
+  // PLACEHOLDERS
+  // ============================================
+
   Widget _buildLoadingPlaceholder() {
     return Container(
-      color: AppColors.background,
+      color: AppColors.surface,
       child: Center(
-        child: SizedBox(
-          width: 25,
-          height: 25,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.primary.withValues(alpha: 0.5),
-          ),
-        ),
+        child: widget.showLoadingIndicator
+            ? SizedBox(
+                width: 25,
+                height: 25,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary.withValues(alpha: 0.5),
+                ),
+              )
+            : const SizedBox.shrink(),
       ),
     );
   }
 
-  // Placeholder par défaut
   Widget _buildDefaultPlaceholder() {
     return Container(
-      color: AppColors.background,
+      color: AppColors.surface,
       child: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -139,28 +173,29 @@ class _LazyProductImageState extends State<LazyProductImage> {
     );
   }
 
-  // Placeholder d'erreur
   Widget _buildErrorPlaceholder() {
     return Container(
-      color: AppColors.background,
-      child: const Center(
+      color: AppColors.surface,
+      child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.broken_image,
+              Icons.broken_image_outlined,
               size: 35,
               color: AppColors.textLight,
             ),
-            SizedBox(height: 5),
-            Text(
-              'Image indisponible',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 10,
-                color: AppColors.textLight,
+            if (widget.showErrorText) ...[
+              const SizedBox(height: 5),
+              const Text(
+                'Image indisponible',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 10,
+                  color: AppColors.textLight,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

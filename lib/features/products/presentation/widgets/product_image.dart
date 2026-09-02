@@ -1,5 +1,10 @@
-// Widget d'image produit
-// Gère le chargement, le placeholder, l'erreur et le zoom
+// ============================================
+// WIDGET D'IMAGE PRODUIT - VERSION PREMIUM
+// ============================================
+// Gère le chargement, le placeholder, l'erreur
+// et le zoom. Support des images locales et réseau.
+// Design conforme à la vision ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -14,6 +19,9 @@ class ProductImage extends StatelessWidget {
   final bool showZoomOnTap;
   final Widget? placeholder;
   final Widget? errorWidget;
+  final bool enableFadeIn;
+  final bool showLoadingIndicator;
+  final bool showErrorText;
 
   const ProductImage({
     super.key,
@@ -25,6 +33,9 @@ class ProductImage extends StatelessWidget {
     this.showZoomOnTap = false,
     this.placeholder,
     this.errorWidget,
+    this.enableFadeIn = true,
+    this.showLoadingIndicator = true,
+    this.showErrorText = true,
   });
 
   @override
@@ -46,7 +57,7 @@ class ProductImage extends StatelessWidget {
       );
     }
 
-    if (showZoomOnTap) {
+    if (showZoomOnTap && imageUrl != null && imageUrl!.isNotEmpty) {
       return GestureDetector(
         onTap: () => _showZoomDialog(context),
         child: imageWidget,
@@ -56,14 +67,17 @@ class ProductImage extends StatelessWidget {
     return imageWidget;
   }
 
-  // Construire l'image selon l'URL
+  // ============================================
+  // CONSTRUIRE L'IMAGE SELON L'URL
+  // ============================================
+
   Widget _buildImage() {
     if (imageUrl == null || imageUrl!.isEmpty) {
-      return _buildPlaceholder();
+      return errorWidget ?? _buildPlaceholder();
     }
 
-    // Si l'image est locale (fichier)
-    if (imageUrl!.startsWith('file://') || imageUrl!.startsWith('/')) {
+    // Si l'image est locale (fichier asset)
+    if (imageUrl!.startsWith('assets/')) {
       return Image.asset(
         imageUrl!,
         fit: fit,
@@ -76,36 +90,43 @@ class ProductImage extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: imageUrl!,
       fit: fit,
-      placeholder: (context, url) => placeholder ?? _buildLoadingPlaceholder(),
+      placeholder: (context, url) =>
+          placeholder ?? _buildLoadingPlaceholder(),
       errorWidget: (context, url, error) =>
           errorWidget ?? _buildErrorPlaceholder(),
-      fadeInDuration: const Duration(milliseconds: 300),
+      fadeInDuration: enableFadeIn
+          ? const Duration(milliseconds: 300)
+          : Duration.zero,
       fadeOutDuration: const Duration(milliseconds: 200),
       placeholderFadeInDuration: const Duration(milliseconds: 200),
     );
   }
 
-  // Placeholder de chargement
+  // ============================================
+  // PLACEHOLDERS
+  // ============================================
+
   Widget _buildLoadingPlaceholder() {
     return Container(
-      color: AppColors.background,
+      color: AppColors.surface,
       child: Center(
-        child: SizedBox(
-          width: 30,
-          height: 30,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.primary.withValues(alpha: 0.5),
-          ),
-        ),
+        child: showLoadingIndicator
+            ? SizedBox(
+                width: 30,
+                height: 30,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary.withValues(alpha: 0.5),
+                ),
+              )
+            : const SizedBox.shrink(),
       ),
     );
   }
 
-  // Placeholder par défaut (pas d'image)
   Widget _buildPlaceholder() {
     return Container(
-      color: AppColors.background,
+      color: AppColors.surface,
       child: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -130,65 +151,93 @@ class ProductImage extends StatelessWidget {
     );
   }
 
-  // Placeholder d'erreur
   Widget _buildErrorPlaceholder() {
     return Container(
-      color: AppColors.background,
-      child: const Center(
+      color: AppColors.surface,
+      child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.broken_image,
+            const Icon(
+              Icons.broken_image_outlined,
               size: 40,
               color: AppColors.textLight,
             ),
-            SizedBox(height: 5),
-            Text(
-              'Image indisponible',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 10,
-                color: AppColors.textLight,
+            if (showErrorText) ...[
+              const SizedBox(height: 5),
+              const Text(
+                'Image indisponible',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 10,
+                  color: AppColors.textLight,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  // Afficher le zoom
+  // ============================================
+  // ZOOM PLEIN ÉCRAN
+  // ============================================
+
   void _showZoomDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.transparent,
-          child: GestureDetector(
-            onTap: () => Navigator.of(dialogContext).pop(),
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 4,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl!,
-                  fit: BoxFit.contain,
-                  placeholder: (context, url) => const Center(
-                    child: CircularProgressIndicator(),
+          child: Stack(
+            children: [
+              InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  errorWidget: (context, url, error) => const Icon(
-                    Icons.broken_image,
-                    size: 80,
-                    color: AppColors.textLight,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl!,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => const Icon(
+                      Icons.broken_image_outlined,
+                      size: 80,
+                      color: AppColors.textLight,
+                    ),
                   ),
                 ),
               ),
-            ),
+              // Bouton fermer
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(dialogContext).pop(),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },

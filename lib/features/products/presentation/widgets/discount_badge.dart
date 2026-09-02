@@ -1,5 +1,9 @@
-// Badge de réduction
+// ============================================
+// BADGE DE RÉDUCTION - VERSION PREMIUM
+// ============================================
 // Affiche le pourcentage ou le montant de réduction
+// avec 3 styles et 3 tailles. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -30,7 +34,7 @@ class DiscountBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.local_offer,
+            Icons.local_offer_outlined,
             size: _buildIconSize(),
             color: _buildTextColor(),
           ),
@@ -42,6 +46,7 @@ class DiscountBadge extends StatelessWidget {
               fontSize: _buildFontSize(),
               fontWeight: FontWeight.bold,
               color: _buildTextColor(),
+              letterSpacing: 0.3,
             ),
           ),
         ],
@@ -49,18 +54,24 @@ class DiscountBadge extends StatelessWidget {
     );
   }
 
-  // Construire le label
+  // ============================================
+  // LABEL
+  // ============================================
+
   String _buildLabel() {
     if (percentage != null && percentage! > 0) {
       return '-$percentage%';
     }
     if (amount != null && amount! > 0) {
-      return '-${amount!.toStringAsFixed(0)} F';
+      return '-${amount!.toStringAsFixed(0)} FCFA';
     }
     return '';
   }
 
-  // Padding selon la taille
+  // ============================================
+  // PADDING
+  // ============================================
+
   EdgeInsets _buildPadding() {
     switch (size) {
       case DiscountBadgeSize.small:
@@ -72,7 +83,10 @@ class DiscountBadge extends StatelessWidget {
     }
   }
 
-  // Décoration selon le style
+  // ============================================
+  // DÉCORATION
+  // ============================================
+
   BoxDecoration _buildDecoration() {
     switch (style) {
       case DiscountBadgeStyle.solid:
@@ -120,7 +134,10 @@ class DiscountBadge extends StatelessWidget {
     }
   }
 
-  // Taille de l'icône
+  // ============================================
+  // TAILLES
+  // ============================================
+
   double _buildIconSize() {
     switch (size) {
       case DiscountBadgeSize.small:
@@ -132,7 +149,6 @@ class DiscountBadge extends StatelessWidget {
     }
   }
 
-  // Taille du texte
   double _buildFontSize() {
     switch (size) {
       case DiscountBadgeSize.small:
@@ -144,7 +160,10 @@ class DiscountBadge extends StatelessWidget {
     }
   }
 
-  // Couleur du texte
+  // ============================================
+  // COULEUR DU TEXTE
+  // ============================================
+
   Color _buildTextColor() {
     switch (style) {
       case DiscountBadgeStyle.solid:
@@ -156,14 +175,16 @@ class DiscountBadge extends StatelessWidget {
   }
 }
 
-// Taille du badge
+// ============================================
+// ENUMS
+// ============================================
+
 enum DiscountBadgeSize {
   small,
   medium,
   large,
 }
 
-// Style du badge
 enum DiscountBadgeStyle {
   solid,
   outlined,

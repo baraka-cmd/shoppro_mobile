@@ -1,5 +1,9 @@
-// Provider des produits
-// Gère l'état des produits dans l'application
+// ============================================
+// PROVIDER DES PRODUITS
+// ============================================
+// Gère l'état des produits avec pagination,
+// filtres, tri et recherche intelligente.
+// ============================================
 
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/product.dart';
@@ -31,6 +35,16 @@ class ProductProvider extends ChangeNotifier {
   String _sortBy = 'created_at';
   String _sortDirection = 'desc';
 
+  // Filtres actifs
+  int? _categoryIdFilter;
+  int? _brandIdFilter;
+  double? _minPriceFilter;
+  double? _maxPriceFilter;
+  bool? _inStockFilter;
+  double? _minRatingFilter;
+  bool? _onSaleFilter;
+  String _searchQuery = '';
+
   // ============================================
   // LISTES DE PRODUITS
   // ============================================
@@ -42,9 +56,10 @@ class ProductProvider extends ChangeNotifier {
   List<Product> _onSaleProducts = [];
   List<Product> _searchResults = [];
   List<Product> _similarProducts = [];
+  List<Product> _recentlyViewedProducts = [];
 
   // ============================================
-  // GETTERS
+  // GETTERS DE BASE
   // ============================================
 
   ProductStatus get status => _status;
@@ -54,6 +69,8 @@ class ProductProvider extends ChangeNotifier {
   bool get isLoading => _status == ProductStatus.loading;
   bool get isLoadingMore => _status == ProductStatus.loadingMore;
   bool get hasError => _status == ProductStatus.error;
+  bool get isLoaded => _status == ProductStatus.loaded;
+  bool get isEmpty => _products.isEmpty;
 
   List<Product> get products => _products;
   List<Product> get featuredProducts => _featuredProducts;
@@ -62,6 +79,66 @@ class ProductProvider extends ChangeNotifier {
   List<Product> get onSaleProducts => _onSaleProducts;
   List<Product> get searchResults => _searchResults;
   List<Product> get similarProducts => _similarProducts;
+  List<Product> get recentlyViewedProducts => _recentlyViewedProducts;
+
+  /// Nombre total de produits chargés
+  int get productsCount => _products.length;
+
+  /// Produits en vedette (triés)
+  List<Product> get featuredProductsSorted {
+    final sorted = [..._featuredProducts];
+    sorted.sort((a, b) => b.averageRating.compareTo(a.averageRating));
+    return sorted;
+  }
+
+  /// Produits en promotion (triés par réduction)
+  List<Product> get onSaleProductsSorted {
+    final sorted = [..._onSaleProducts];
+    sorted.sort((a, b) => b.discountPercent.compareTo(a.discountPercent));
+    return sorted;
+  }
+
+  // ============================================
+  // GETTERS FILTRES ACTIFS
+  // ============================================
+
+  bool get hasActiveFilters {
+    return _categoryIdFilter != null ||
+        _brandIdFilter != null ||
+        _minPriceFilter != null ||
+        _maxPriceFilter != null ||
+        _inStockFilter != null ||
+        _minRatingFilter != null ||
+        _onSaleFilter != null;
+  }
+
+  int get activeFiltersCount {
+    var count = 0;
+    if (_categoryIdFilter != null) count++;
+    if (_brandIdFilter != null) count++;
+    if (_minPriceFilter != null || _maxPriceFilter != null) count++;
+    if (_inStockFilter != null) count++;
+    if (_minRatingFilter != null) count++;
+    if (_onSaleFilter != null) count++;
+    return count;
+  }
+
+  String get currentSortLabel {
+    switch (_sortBy) {
+      case 'price':
+        return _sortDirection == 'asc' ? 'Prix croissant' : 'Prix décroissant';
+      case 'name':
+        return _sortDirection == 'asc' ? 'Nom A-Z' : 'Nom Z-A';
+      case 'rating':
+        return 'Meilleures notes';
+      case 'sales_count':
+        return 'Plus populaires';
+      case 'created_at':
+        return _sortDirection == 'asc' ? 'Plus anciens' : 'Plus récents';
+      default:
+        return 'Tri par défaut';
+    }
+  }
 
   // ============================================
   // CHARGEMENT DES PRODUITS
@@ -179,10 +256,12 @@ class ProductProvider extends ChangeNotifier {
   Future<void> searchProducts(String query) async {
     if (query.trim().isEmpty) {
       _searchResults = [];
+      _searchQuery = '';
       notifyListeners();
       return;
     }
 
+    _searchQuery = query.trim();
     _setStatus(ProductStatus.loading);
 
     try {
@@ -199,6 +278,7 @@ class ProductProvider extends ChangeNotifier {
   /// Effacer les résultats de recherche
   void clearSearch() {
     _searchResults = [];
+    _searchQuery = '';
     notifyListeners();
   }
 
@@ -219,6 +299,16 @@ class ProductProvider extends ChangeNotifier {
     String? sortDirection,
   }) async {
     _setStatus(ProductStatus.loading);
+    _clearError();
+
+    // Sauvegarder les filtres
+    _categoryIdFilter = categoryId;
+    _brandIdFilter = brandId;
+    _minPriceFilter = minPrice;
+    _maxPriceFilter = maxPrice;
+    _inStockFilter = inStock;
+    _minRatingFilter = minRating;
+    _onSaleFilter = onSale;
 
     try {
       _products = await _productRepository.filterProducts(
@@ -244,10 +334,23 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Effacer tous les filtres
+  Future<void> clearFilters() async {
+    _categoryIdFilter = null;
+    _brandIdFilter = null;
+    _minPriceFilter = null;
+    _maxPriceFilter = null;
+    _inStockFilter = null;
+    _minRatingFilter = null;
+    _onSaleFilter = null;
+    await loadProducts();
+  }
+
   /// Changer le tri
   void setSort(String sortBy, String sortDirection) {
     _sortBy = sortBy;
     _sortDirection = sortDirection;
+    notifyListeners();
   }
 
   // ============================================
@@ -264,6 +367,57 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  /// Effacer les produits similaires
+  void clearSimilarProducts() {
+    _similarProducts = [];
+    notifyListeners();
+  }
+
+  // ============================================
+  // PRODUITS RÉCEMMENT CONSULTÉS
+  // ============================================
+
+  /// Charger les produits récemment consultés
+  Future<void> loadRecentlyViewedProducts() async {
+    try {
+      _recentlyViewedProducts = await _productRepository.getRecentlyViewedProducts();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Erreur recently viewed: $e');
+    }
+  }
+
+  /// Ajouter un produit aux récemment consultés
+  Future<void> addToRecentlyViewed(int productId) async {
+    try {
+      await _productRepository.addToRecentlyViewed(productId);
+      await loadRecentlyViewedProducts();
+    } catch (e) {
+      debugPrint('Erreur addToRecentlyViewed: $e');
+    }
+  }
+
+  /// Effacer les récemment consultés
+  Future<void> clearRecentlyViewed() async {
+    try {
+      await _productRepository.clearRecentlyViewed();
+      _recentlyViewedProducts = [];
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Erreur clearRecentlyViewed: $e');
+    }
+  }
+
+  // ============================================
+  // EFFACEMENT
+  // ============================================
+
+  /// Effacer l'erreur
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   // ============================================
   // MÉTHODES PRIVÉES
   // ============================================
@@ -278,5 +432,12 @@ class ProductProvider extends ChangeNotifier {
 
   void _setError(String message) {
     _errorMessage = message.replaceFirst('Exception: ', '');
+  }
+
+  @override
+  String toString() {
+    return 'ProductProvider(status: $_status, products: ${_products.length}, '
+        'page: $_currentPage, hasMore: $_hasMore, filters: $activeFiltersCount, '
+        'sort: $currentSortLabel)';
   }
 }

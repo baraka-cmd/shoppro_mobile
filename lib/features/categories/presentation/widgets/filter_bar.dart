@@ -1,5 +1,10 @@
-// Barre de filtres et tri
+// ============================================
+// BARRE DE FILTRES ET TRI - VERSION PREMIUM
+// ============================================
 // Affiche les boutons de filtrage et de tri
+// avec état actif et compteur dynamique.
+// Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -10,6 +15,7 @@ class FilterBar extends StatelessWidget {
   final VoidCallback? onSortTap;
   final String currentSort;
   final bool hasActiveFilters;
+  final int activeFiltersCount;
 
   const FilterBar({
     super.key,
@@ -18,6 +24,7 @@ class FilterBar extends StatelessWidget {
     this.onSortTap,
     this.currentSort = 'Plus récents',
     this.hasActiveFilters = false,
+    this.activeFiltersCount = 0,
   });
 
   @override
@@ -34,10 +41,12 @@ class FilterBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Nombre de produits
+          // ============================================
+          // NOMBRE DE PRODUITS
+          // ============================================
           Expanded(
             child: Text(
-              '$totalProducts produits',
+              '$totalProducts produit${totalProducts > 1 ? 's' : ''}',
               style: const TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 13,
@@ -47,15 +56,18 @@ class FilterBar extends StatelessWidget {
             ),
           ),
 
-          // Bouton Filtres
+          // ============================================
+          // BOUTON FILTRES
+          // ============================================
           GestureDetector(
             onTap: onFilterTap,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: hasActiveFilters
                     ? AppColors.primary.withValues(alpha: 0.1)
-                    : AppColors.background,
+                    : AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: hasActiveFilters
@@ -74,7 +86,9 @@ class FilterBar extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Filtres',
+                    hasActiveFilters
+                        ? 'Filtres ($activeFiltersCount)'
+                        : 'Filtres',
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 12,
@@ -91,13 +105,15 @@ class FilterBar extends StatelessWidget {
 
           const SizedBox(width: 8),
 
-          // Bouton Tri
+          // ============================================
+          // BOUTON TRI
+          // ============================================
           GestureDetector(
             onTap: onSortTap,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.borderColor),
               ),

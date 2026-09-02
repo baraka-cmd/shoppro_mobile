@@ -1,5 +1,10 @@
-// Galerie d'images produit
-// PageView avec zoom, swipe, thumbnails et indicateurs
+// ============================================
+// GALERIE D'IMAGES PRODUIT - VERSION PREMIUM
+// ============================================
+// PageView avec zoom, swipe, thumbnails animés,
+// effet de flottement prononcé et fond Cream.
+// Design conforme à la vision ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,17 +17,19 @@ class ProductGallery extends StatefulWidget {
   final bool showDots;
   final bool showCounter;
   final bool enableZoom;
+  final bool enableFloatingAnimation;
   final bool autoPlay;
   final Duration autoPlayInterval;
 
   const ProductGallery({
     super.key,
     required this.imageUrls,
-    this.height = 320,
+    this.height = 400,
     this.showThumbnails = true,
     this.showDots = true,
     this.showCounter = true,
     this.enableZoom = true,
+    this.enableFloatingAnimation = true,
     this.autoPlay = false,
     this.autoPlayInterval = const Duration(seconds: 5),
   });
@@ -31,28 +38,58 @@ class ProductGallery extends StatefulWidget {
   State<ProductGallery> createState() => _ProductGalleryState();
 }
 
-class _ProductGalleryState extends State<ProductGallery> {
+class _ProductGalleryState extends State<ProductGallery>
+    with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _isAutoPlaying = false;
+
+  // Animation de flottement
+  AnimationController? _floatController;
+  Animation<double>? _floatAnimation;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialiser l'animation de flottement avec grande amplitude
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+
+    _floatAnimation = Tween<double>(begin: -12, end: 12).animate(
+      CurvedAnimation(
+        parent: _floatController!,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    if (widget.enableFloatingAnimation && widget.imageUrls.isNotEmpty) {
+      _floatController!.repeat(reverse: true);
+    }
+
     if (widget.autoPlay && widget.imageUrls.length > 1) {
+      _isAutoPlaying = true;
       _startAutoPlay();
     }
   }
 
   @override
   void dispose() {
+    _isAutoPlaying = false;
+    _floatController?.dispose();
     _pageController.dispose();
     super.dispose();
   }
 
-  // Auto-play
+  // ============================================
+  // AUTO-PLAY
+  // ============================================
+
   void _startAutoPlay() {
     Future.delayed(widget.autoPlayInterval, () {
-      if (!mounted) return;
+      if (!mounted || !_isAutoPlaying) return;
 
       if (_currentPage < widget.imageUrls.length - 1) {
         _pageController.nextPage(
@@ -70,6 +107,10 @@ class _ProductGalleryState extends State<ProductGallery> {
     });
   }
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
     if (widget.imageUrls.isEmpty) {
@@ -78,23 +119,37 @@ class _ProductGalleryState extends State<ProductGallery> {
 
     return Column(
       children: [
-        // Galerie principale
-        SizedBox(
+        // ============================================
+        // GALERIE PRINCIPALE AVEC FOND CREAM
+        // ============================================
+        Container(
           height: widget.height,
+          decoration: const BoxDecoration(
+            color: AppColors.cream,
+          ),
           child: Stack(
             children: [
-              // PageView d'images
-              PageView.builder(
-                controller: _pageController,
-                itemCount: widget.imageUrls.length,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
+              // PageView d'images avec animation de flottement prononcée
+              AnimatedBuilder(
+                animation: _floatAnimation!,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0, _floatAnimation!.value),
+                    child: child,
+                  );
                 },
-                itemBuilder: (context, index) {
-                  return _buildImage(widget.imageUrls[index]);
-                },
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: widget.imageUrls.length,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    return _buildImage(widget.imageUrls[index]);
+                  },
+                ),
               ),
 
               // Boutons navigation
@@ -163,13 +218,14 @@ class _ProductGalleryState extends State<ProductGallery> {
                       widget.imageUrls.length,
                       (index) => AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
                         margin: const EdgeInsets.symmetric(horizontal: 3),
                         width: index == _currentPage ? 20 : 8,
                         height: 8,
                         decoration: BoxDecoration(
                           color: index == _currentPage
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.5),
+                              ? AppColors.primary
+                              : AppColors.primary.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -180,11 +236,13 @@ class _ProductGalleryState extends State<ProductGallery> {
           ),
         ),
 
-        // Thumbnails
+        // ============================================
+        // THUMBNAILS
+        // ============================================
         if (widget.showThumbnails && widget.imageUrls.length > 1) ...[
           const SizedBox(height: 10),
           SizedBox(
-            height: 60,
+            height: 65,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -193,9 +251,11 @@ class _ProductGalleryState extends State<ProductGallery> {
                 final isSelected = _currentPage == index;
                 return GestureDetector(
                   onTap: () => _goToPage(index),
-                  child: Container(
-                    width: 55,
-                    height: 55,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    width: 60,
+                    height: 60,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
@@ -203,34 +263,56 @@ class _ProductGalleryState extends State<ProductGallery> {
                         color: isSelected
                             ? AppColors.primary
                             : AppColors.borderColor,
-                        width: isSelected ? 2 : 1,
+                        width: isSelected ? 2.5 : 1,
                       ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl: widget.imageUrls[index],
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: AppColors.background,
-                          child: const Center(
-                            child: SizedBox(
-                              width: 15,
-                              height: 15,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CachedNetworkImage(
+                            imageUrl: widget.imageUrls[index],
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: AppColors.surface,
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 15,
+                                  height: 15,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.5,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: AppColors.surface,
+                              child: const Icon(
+                                Icons.image_outlined,
+                                size: 20,
+                                color: AppColors.textLight,
                               ),
                             ),
                           ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: AppColors.background,
-                          child: const Icon(
-                            Icons.image,
-                            size: 20,
-                            color: AppColors.textLight,
-                          ),
-                        ),
+                          if (isSelected)
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -243,41 +325,44 @@ class _ProductGalleryState extends State<ProductGallery> {
     );
   }
 
-  // Construire une image avec zoom
+  // ============================================
+  // IMAGE AVEC ZOOM
+  // ============================================
+
   Widget _buildImage(String imageUrl) {
     Widget image = CachedNetworkImage(
       imageUrl: imageUrl,
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       placeholder: (context, url) => Container(
-        color: AppColors.background,
+        color: AppColors.cream,
         child: const Center(
           child: SizedBox(
-            width: 30,
-            height: 30,
+            width: 35,
+            height: 35,
             child: CircularProgressIndicator(
-              strokeWidth: 2,
+              strokeWidth: 2.5,
               color: AppColors.primary,
             ),
           ),
         ),
       ),
       errorWidget: (context, url, error) => Container(
-        color: AppColors.background,
+        color: AppColors.cream,
         child: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.broken_image,
-                size: 40,
+                Icons.broken_image_outlined,
+                size: 45,
                 color: AppColors.textLight,
               ),
-              SizedBox(height: 5),
+              SizedBox(height: 8),
               Text(
                 'Image indisponible',
                 style: TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 10,
+                  fontSize: 11,
                   color: AppColors.textLight,
                 ),
               ),
@@ -297,53 +382,83 @@ class _ProductGalleryState extends State<ProductGallery> {
     return image;
   }
 
-  // Dialog de zoom
+  // ============================================
+  // DIALOG DE ZOOM
+  // ============================================
+
   void _showZoomDialog(String imageUrl) {
     showDialog(
       context: context,
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.transparent,
-          child: GestureDetector(
-            onTap: () => Navigator.of(dialogContext).pop(),
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 5,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  fit: BoxFit.contain,
-                  placeholder: (context, url) => const Center(
-                    child: CircularProgressIndicator(),
+          child: Stack(
+            children: [
+              InteractiveViewer(
+                minScale: 1,
+                maxScale: 5,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  errorWidget: (context, url, error) => const Icon(
-                    Icons.broken_image,
-                    size: 80,
-                    color: AppColors.textLight,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => const Icon(
+                      Icons.broken_image_outlined,
+                      size: 80,
+                      color: AppColors.textLight,
+                    ),
                   ),
                 ),
               ),
-            ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(dialogContext).pop(),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  // Bouton navigation
+  // ============================================
+  // BOUTON NAVIGATION
+  // ============================================
+
   Widget _buildNavButton({
     required IconData icon,
     required VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 34,
+        height: 34,
         decoration: BoxDecoration(
           color: onTap != null
               ? Colors.white
@@ -358,18 +473,21 @@ class _ProductGalleryState extends State<ProductGallery> {
         ),
         child: Icon(
           icon,
-          size: 18,
+          size: 20,
           color: onTap != null ? AppColors.textPrimary : AppColors.textLight,
         ),
       ),
     );
   }
 
-  // État vide
+  // ============================================
+  // ÉTAT VIDE
+  // ============================================
+
   Widget _buildEmptyState() {
     return Container(
       height: widget.height,
-      color: AppColors.background,
+      color: AppColors.surface,
       child: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -394,16 +512,20 @@ class _ProductGalleryState extends State<ProductGallery> {
     );
   }
 
+  // ============================================
+  // NAVIGATION
+  // ============================================
+
   void _goToPrevious() {
     _pageController.previousPage(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
     );
   }
 
   void _goToNext() {
     _pageController.nextPage(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
     );
   }
@@ -411,7 +533,7 @@ class _ProductGalleryState extends State<ProductGallery> {
   void _goToPage(int index) {
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
     );
   }

@@ -1,5 +1,9 @@
-// Section d'informations du produit
-// Affiche nom, note, prix et badges
+// ============================================
+// SECTION D'INFORMATIONS DU PRODUIT - PREMIUM
+// ============================================
+// Affiche nom, note, prix, badges, stock
+// et métadonnées. Design conforme ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -20,7 +24,9 @@ class ProductInfoSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Nom du produit
+        // ============================================
+        // NOM DU PRODUIT
+        // ============================================
         Text(
           product.name,
           style: const TextStyle(
@@ -34,8 +40,11 @@ class ProductInfoSection extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        // Note, avis et ventes
+        // ============================================
+        // NOTE, AVIS ET VENTES
+        // ============================================
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Note
             if (product.averageRating > 0) ...[
@@ -54,8 +63,9 @@ class ProductInfoSection extends StatelessWidget {
                   color: AppColors.textPrimary,
                 ),
               ),
+              const SizedBox(width: 3),
               Text(
-                ' (${product.reviewsCount} avis)',
+                '(${product.reviewsCount} avis)',
                 style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 12,
@@ -65,13 +75,51 @@ class ProductInfoSection extends StatelessWidget {
               const SizedBox(width: 15),
             ],
 
+            // Badge vérifié si bestseller
+            if (product.isBestseller) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.local_fire_department,
+                      size: 12,
+                      color: AppColors.warning,
+                    ),
+                    SizedBox(width: 3),
+                    Text(
+                      'Best-seller',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.warning,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+
             // Ventes
-            Text(
-              'Vendu : ${product.salesCount}',
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 12,
-                color: AppColors.textSecondary,
+            Flexible(
+              child: Text(
+                'Vendu : ${product.salesCount}',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ],
@@ -79,7 +127,9 @@ class ProductInfoSection extends StatelessWidget {
 
         const SizedBox(height: 15),
 
-        // Prix
+        // ============================================
+        // PRIX
+        // ============================================
         if (product.hasDiscount)
           DiscountPriceDisplay(
             originalPrice: product.price,
@@ -100,7 +150,9 @@ class ProductInfoSection extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // Stock
+        // ============================================
+        // STOCK
+        // ============================================
         StockIndicator(
           currentStock: product.stock,
           minStock: product.minStock,
@@ -109,14 +161,18 @@ class ProductInfoSection extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        // SKU et catégorie
-        Row(
+        // ============================================
+        // SKU ET CATÉGORIE
+        // ============================================
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             // SKU
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -129,17 +185,34 @@ class ProductInfoSection extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
             // Catégorie
             if (product.category != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   product.category!.name,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            // Marque
+            if (product.brand != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  product.brand!.name,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 10,

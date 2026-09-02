@@ -1,5 +1,10 @@
-// Section des produits récemment consultés
-// Affiche l'historique des produits vus par l'utilisateur
+// ============================================
+// SECTION DES PRODUITS RÉCEMMENT CONSULTÉS
+// ============================================
+// Affiche l'historique des produits vus par
+// l'utilisateur avec carrousel horizontal.
+// Design conforme à la vision ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +17,6 @@ class RecentlyViewedSection extends StatefulWidget {
   final ValueChanged<Product>? onProductTap;
   final VoidCallback? onClearAll;
 
-  // ✅ Clé de stockage statique
   static const String _storageKey = 'recently_viewed_products';
 
   const RecentlyViewedSection({
@@ -21,7 +25,7 @@ class RecentlyViewedSection extends StatefulWidget {
     this.onClearAll,
   });
 
-  // ✅ Méthode statique pour ajouter un produit
+  /// Méthode statique pour ajouter un produit à l'historique
   static Future<void> addToRecentlyViewed(Product product) async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getStringList(_storageKey) ?? [];
@@ -32,11 +36,14 @@ class RecentlyViewedSection extends StatefulWidget {
       'slug': product.slug,
       'price': product.price,
       'current_price': product.currentPrice,
+      'discount_price': product.discountPrice,
       'stock': product.stock,
       'is_in_stock': product.isInStock,
       'stock_status': product.stockStatus,
       'sku': product.sku,
       'main_image': product.mainImage,
+      'average_rating': product.averageRating,
+      'reviews_count': product.reviewsCount,
     });
 
     // Supprimer si déjà présent
@@ -73,39 +80,50 @@ class _RecentlyViewedSectionState extends State<RecentlyViewedSection> {
     _loadRecentProducts();
   }
 
-  // Charger les produits récents
+  // ============================================
+  // CHARGEMENT
+  // ============================================
+
   Future<void> _loadRecentProducts() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getStringList(RecentlyViewedSection._storageKey) ?? [];
 
     setState(() {
       _recentProducts = data
-          .map((json) {
-            try {
-              final map = jsonDecode(json) as Map<String, dynamic>;
-              return Product(
-                id: map['id'] as int? ?? 0,
-                name: map['name'] as String? ?? '',
-                slug: map['slug'] as String? ?? '',
-                price: (map['price'] as num?)?.toDouble() ?? 0,
-                currentPrice: (map['current_price'] as num?)?.toDouble() ?? 0,
-                stock: map['stock'] as int? ?? 0,
-                isInStock: map['is_in_stock'] as bool? ?? false,
-                stockStatus: map['stock_status'] as String? ?? 'out_of_stock',
-                sku: map['sku'] as String? ?? '',
-                mainImage: map['main_image'] as String?,
-              );
-            } catch (e) {
-              return null;
-            }
-          })
+          .map((json) => _parseProduct(json))
           .whereType<Product>()
           .take(10)
           .toList();
     });
   }
 
-  // Effacer tous les récents
+  Product? _parseProduct(String json) {
+    try {
+      final map = jsonDecode(json) as Map<String, dynamic>;
+      return Product(
+        id: map['id'] as int? ?? 0,
+        name: map['name'] as String? ?? '',
+        slug: map['slug'] as String? ?? '',
+        price: (map['price'] as num?)?.toDouble() ?? 0,
+        discountPrice: (map['discount_price'] as num?)?.toDouble(),
+        currentPrice: (map['current_price'] as num?)?.toDouble() ?? 0,
+        stock: map['stock'] as int? ?? 0,
+        isInStock: map['is_in_stock'] as bool? ?? false,
+        stockStatus: map['stock_status'] as String? ?? 'out_of_stock',
+        sku: map['sku'] as String? ?? '',
+        mainImage: map['main_image'] as String?,
+        averageRating: (map['average_rating'] as num?)?.toDouble() ?? 0,
+        reviewsCount: map['reviews_count'] as int? ?? 0,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ============================================
+  // EFFACER
+  // ============================================
+
   Future<void> _clearAll() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(RecentlyViewedSection._storageKey);
@@ -117,6 +135,10 @@ class _RecentlyViewedSectionState extends State<RecentlyViewedSection> {
     widget.onClearAll?.call();
   }
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
     if (_recentProducts.isEmpty) {
@@ -126,7 +148,9 @@ class _RecentlyViewedSectionState extends State<RecentlyViewedSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Titre + Effacer
+        // ============================================
+        // EN-TÊTE
+        // ============================================
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
@@ -170,9 +194,11 @@ class _RecentlyViewedSectionState extends State<RecentlyViewedSection> {
 
         const SizedBox(height: 12),
 
-        // Liste horizontale
+        // ============================================
+        // CARROUSEL HORIZONTAL
+        // ============================================
         SizedBox(
-          height: 220,
+          height: 280,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -182,10 +208,11 @@ class _RecentlyViewedSectionState extends State<RecentlyViewedSection> {
               return Padding(
                 padding: const EdgeInsets.only(right: 10),
                 child: SizedBox(
-                  width: 150,
+                  width: 170,
                   child: ProductCard(
                     product: product,
                     onTap: widget.onProductTap,
+                    showAddToCartButton: false,
                   ),
                 ),
               );

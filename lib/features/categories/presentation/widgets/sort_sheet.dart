@@ -1,5 +1,10 @@
-// Bottom sheet de tri
-// Affiche les options de tri des produits
+// ============================================
+// BOTTOM SHEET DE TRI - VERSION PREMIUM
+// ============================================
+// Affiche les options de tri des produits.
+// Pertinence par défaut, 8 options complètes.
+// Design conforme à la vision ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -54,42 +59,56 @@ class SortSheet extends StatelessWidget {
 
             const SizedBox(height: 15),
 
-            // Options de tri
+            // ============================================
+            // OPTIONS DE TRI
+            // ============================================
+            _buildSortOption(
+              context,
+              icon: Icons.auto_awesome,
+              label: 'Pertinence',
+              value: 'created_at_desc',
+            ),
+            _buildSortOption(
+              context,
+              icon: Icons.local_fire_department,
+              label: 'Popularité',
+              value: 'popularity_desc',
+            ),
             _buildSortOption(
               context,
               icon: Icons.access_time,
-              label: 'Plus récents',
+              label: 'Nouveautés',
               value: 'created_at_desc',
             ),
             _buildSortOption(
               context,
               icon: Icons.trending_up,
-              label: 'Prix croissant',
+              label: 'Prix : croissant',
               value: 'price_asc',
             ),
             _buildSortOption(
               context,
               icon: Icons.trending_down,
-              label: 'Prix décroissant',
+              label: 'Prix : décroissant',
               value: 'price_desc',
+            ),
+            _buildSortOption(
+              context,
+              icon: Icons.sort_by_alpha,
+              label: 'Nom : A → Z',
+              value: 'name_asc',
+            ),
+            _buildSortOption(
+              context,
+              icon: Icons.sort_by_alpha,
+              label: 'Nom : Z → A',
+              value: 'name_desc',
             ),
             _buildSortOption(
               context,
               icon: Icons.star,
               label: 'Meilleures notes',
               value: 'rating_desc',
-            ),
-            _buildSortOption(
-              context,
-              icon: Icons.local_fire_department,
-              label: 'Populaires',
-              value: 'popularity_desc',
-            ),
-            _buildSortOption(
-              context,
-              icon: Icons.percent,
-              label: 'Meilleures réductions',
-              value: 'discount_desc',
             ),
 
             const SizedBox(height: 20),
@@ -99,7 +118,10 @@ class SortSheet extends StatelessWidget {
     );
   }
 
-  // Construire une option de tri
+  // ============================================
+  // OPTION DE TRI
+  // ============================================
+
   Widget _buildSortOption(
     BuildContext sheetContext, {
     required IconData icon,
@@ -109,13 +131,14 @@ class SortSheet extends StatelessWidget {
     final isSelected = currentSort == value;
 
     return ListTile(
-      leading: Container(
+      leading: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
         width: 40,
         height: 40,
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.1)
-              : AppColors.background,
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
@@ -148,7 +171,10 @@ class SortSheet extends StatelessWidget {
   }
 }
 
-// Fonction pour afficher le sort sheet
+// ============================================
+// FONCTION POUR AFFICHER LE SORT SHEET
+// ============================================
+
 Future<void> showSortSheet({
   required BuildContext context,
   required String currentSort,

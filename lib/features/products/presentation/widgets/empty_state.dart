@@ -1,5 +1,9 @@
-// Widget d'état vide
-// Affiche un message quand il n'y a pas de données
+// ============================================
+// WIDGET D'ÉTAT VIDE - VERSION PREMIUM
+// ============================================
+// Affiche un message quand il n'y a pas de données.
+// 3 styles : full, compact, minimal. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -38,7 +42,10 @@ class EmptyState extends StatelessWidget {
     }
   }
 
-  // Style plein : Icône + titre + message + action
+  // ============================================
+  // STYLE PLEIN
+  // ============================================
+
   Widget _buildFullStyle() {
     return Center(
       child: Padding(
@@ -46,7 +53,6 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icône
             Container(
               width: 80,
               height: 80,
@@ -64,7 +70,6 @@ class EmptyState extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Titre
             Text(
               title!,
               textAlign: TextAlign.center,
@@ -106,6 +111,7 @@ class EmptyState extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 0,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
                 ),
                 child: Text(
                   actionLabel!,
@@ -123,7 +129,10 @@ class EmptyState extends StatelessWidget {
     );
   }
 
-  // Style compact : Icône + message en ligne
+  // ============================================
+  // STYLE COMPACT
+  // ============================================
+
   Widget _buildCompactStyle() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -133,6 +142,7 @@ class EmptyState extends StatelessWidget {
         border: Border.all(
           color: AppColors.borderColor.withValues(alpha: 0.5),
         ),
+        boxShadow: AppColors.softShadow,
       ),
       child: Row(
         children: [
@@ -197,7 +207,10 @@ class EmptyState extends StatelessWidget {
     );
   }
 
-  // Style minimal : Juste le texte
+  // ============================================
+  // STYLE MINIMAL
+  // ============================================
+
   Widget _buildMinimalStyle() {
     return Center(
       child: Column(
@@ -236,7 +249,10 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-// Style de l'état vide
+// ============================================
+// ENUM
+// ============================================
+
 enum EmptyStateStyle {
   full,      // Icône + titre + message + action
   compact,   // Icône + message en ligne

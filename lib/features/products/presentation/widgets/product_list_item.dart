@@ -1,5 +1,9 @@
-// Élément de liste produit
-// Design horizontal pour affichage en liste verticale
+// ============================================
+// ÉLÉMENT DE LISTE PRODUIT - VERSION PREMIUM
+// ============================================
+// Design horizontal pour affichage en liste verticale.
+// Image 100x100, infos complètes, badges et actions.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -46,7 +50,9 @@ class ProductListItem extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
+            // ============================================
+            // IMAGE
+            // ============================================
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: SizedBox(
@@ -58,7 +64,9 @@ class ProductListItem extends StatelessWidget {
 
             const SizedBox(width: 12),
 
-            // Informations
+            // ============================================
+            // INFORMATIONS
+            // ============================================
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,7 +88,8 @@ class ProductListItem extends StatelessWidget {
                   const SizedBox(height: 4),
 
                   // Description courte
-                  if (product.shortDescription != null)
+                  if (product.shortDescription != null &&
+                      product.shortDescription!.isNotEmpty)
                     Text(
                       product.shortDescription!,
                       maxLines: 2,
@@ -137,7 +146,7 @@ class ProductListItem extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '-${product.discountPercentage}%',
+                            '-${product.discountPercent}%',
                             style: const TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 10,
@@ -154,6 +163,7 @@ class ProductListItem extends StatelessWidget {
 
                   // Badges et stock
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       if (product.averageRating > 0) ...[
                         const Icon(
@@ -209,7 +219,7 @@ class ProductListItem extends StatelessWidget {
                         width: 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: Color(product.stockColor),
+                          color: Color(product.stockColorHex),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -222,7 +232,7 @@ class ProductListItem extends StatelessWidget {
                             fontFamily: 'Poppins',
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
-                            color: Color(product.stockColor),
+                            color: Color(product.stockColorHex),
                           ),
                         ),
                       ),
@@ -234,26 +244,32 @@ class ProductListItem extends StatelessWidget {
 
             const SizedBox(width: 8),
 
-            // Actions
+            // ============================================
+            // ACTIONS
+            // ============================================
             Column(
               children: [
                 // Favori
-                GestureDetector(
-                  onTap: onToggleFavorite,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      size: 16,
-                      color: isFavorite ? AppColors.error : AppColors.textSecondary,
+                if (onToggleFavorite != null)
+                  GestureDetector(
+                    onTap: onToggleFavorite,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        size: 16,
+                        color: isFavorite
+                            ? AppColors.error
+                            : AppColors.textSecondary,
+                      ),
                     ),
                   ),
-                ),
 
                 const SizedBox(height: 8),
 
@@ -267,6 +283,13 @@ class ProductListItem extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.25),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: const Icon(
                         Icons.add_shopping_cart,
@@ -283,15 +306,20 @@ class ProductListItem extends StatelessWidget {
     );
   }
 
-  // Construire l'image du produit
+  // ============================================
+  // IMAGE DU PRODUIT
+  // ============================================
+
   Widget _buildProductImage() {
-    final imageUrl = (product as dynamic).fullImageUrl ?? product.mainImage ?? '';
+    final imageUrl = product.fullImageUrl.isNotEmpty
+        ? product.fullImageUrl
+        : product.mainImage ?? '';
 
     if (imageUrl.isEmpty) {
       return Container(
-        color: AppColors.background,
+        color: AppColors.surface,
         child: const Icon(
-          Icons.image,
+          Icons.image_outlined,
           size: 30,
           color: AppColors.textLight,
         ),
@@ -302,7 +330,7 @@ class ProductListItem extends StatelessWidget {
       imageUrl: imageUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
-        color: AppColors.background,
+        color: AppColors.surface,
         child: const Center(
           child: SizedBox(
             width: 20,
@@ -315,9 +343,9 @@ class ProductListItem extends StatelessWidget {
         ),
       ),
       errorWidget: (context, url, error) => Container(
-        color: AppColors.background,
+        color: AppColors.surface,
         child: const Icon(
-          Icons.broken_image,
+          Icons.broken_image_outlined,
           size: 30,
           color: AppColors.textLight,
         ),

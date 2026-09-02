@@ -1,5 +1,9 @@
-// Badge produit en vedette
-// Affiche un badge distinctif pour les produits mis en avant
+// ============================================
+// BADGE PRODUIT EN VEDETTE - PREMIUM
+// ============================================
+// Affiche un badge distinctif pour les produits
+// mis en avant. 3 styles disponibles. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -45,19 +49,15 @@ class FeaturedBadge extends StatelessWidget {
     );
   }
 
-  // Décoration selon le style
+  // ============================================
+  // DÉCORATION
+  // ============================================
+
   BoxDecoration _buildDecoration() {
     switch (style) {
       case FeaturedBadgeStyle.solid:
         return BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppColors.warning,
-              AppColors.warning,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          gradient: AppColors.promoGradient,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -86,7 +86,10 @@ class FeaturedBadge extends StatelessWidget {
     }
   }
 
-  // Couleur du texte selon le style
+  // ============================================
+  // COULEUR DU TEXTE
+  // ============================================
+
   Color _buildTextColor() {
     switch (style) {
       case FeaturedBadgeStyle.solid:
@@ -98,9 +101,12 @@ class FeaturedBadge extends StatelessWidget {
   }
 }
 
-// Style du badge
+// ============================================
+// ENUM
+// ============================================
+
 enum FeaturedBadgeStyle {
-  solid,     // Dégradé orange
-  outlined,  // Blanc avec bordure
+  solid,     // Gradient corail → orange
+  outlined,  // Blanc avec bordure orange
   soft,      // Fond orange clair
 }

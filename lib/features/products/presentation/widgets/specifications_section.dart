@@ -1,5 +1,9 @@
-// Section des spécifications techniques
-// Affiche les caractéristiques du produit groupées
+// ============================================
+// SECTION DES SPÉCIFICATIONS TECHNIQUES - PREMIUM
+// ============================================
+// Affiche les caractéristiques du produit avec
+// icônes, labels et valeurs. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -21,7 +25,9 @@ class SpecificationsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Titre
+        // ============================================
+        // TITRE
+        // ============================================
         const Text(
           'SPÉCIFICATIONS',
           style: TextStyle(
@@ -35,7 +41,9 @@ class SpecificationsSection extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // Tableau des spécifications
+        // ============================================
+        // TABLEAU DES SPÉCIFICATIONS
+        // ============================================
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -43,6 +51,7 @@ class SpecificationsSection extends StatelessWidget {
             border: Border.all(
               color: AppColors.borderColor.withValues(alpha: 0.5),
             ),
+            boxShadow: AppColors.softShadow,
           ),
           child: Column(
             children: specifications.asMap().entries.map((entry) {
@@ -66,7 +75,7 @@ class SpecificationsSection extends StatelessWidget {
                           width: 35,
                           height: 35,
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.05),
+                            color: AppColors.primary.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
@@ -80,7 +89,7 @@ class SpecificationsSection extends StatelessWidget {
 
                         // Label
                         SizedBox(
-                          width: 120,
+                          width: 110,
                           child: Text(
                             spec.label,
                             style: const TextStyle(
@@ -126,7 +135,10 @@ class SpecificationsSection extends StatelessWidget {
   }
 }
 
-// Item de spécification
+// ============================================
+// ITEM DE SPÉCIFICATION
+// ============================================
+
 class SpecificationItem {
   final String label;
   final String value;

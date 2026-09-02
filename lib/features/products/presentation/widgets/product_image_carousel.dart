@@ -1,5 +1,10 @@
-// Carousel d'images produit
-// Galerie avec indicateur, zoom et navigation
+// ============================================
+// CAROUSEL D'IMAGES PRODUIT - VERSION PREMIUM
+// ============================================
+// Galerie avec indicateurs animés, navigation,
+// zoom plein écran et thumbnails synchronisés.
+// Design conforme à la vision ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -10,6 +15,7 @@ class ProductImageCarousel extends StatefulWidget {
   final double height;
   final bool showIndicators;
   final bool showThumbnails;
+  final bool showCounter;
   final bool enableZoom;
   final bool autoPlay;
   final Duration autoPlayInterval;
@@ -20,6 +26,7 @@ class ProductImageCarousel extends StatefulWidget {
     this.height = 300,
     this.showIndicators = true,
     this.showThumbnails = false,
+    this.showCounter = true,
     this.enableZoom = true,
     this.autoPlay = false,
     this.autoPlayInterval = const Duration(seconds: 5),
@@ -32,25 +39,31 @@ class ProductImageCarousel extends StatefulWidget {
 class _ProductImageCarouselState extends State<ProductImageCarousel> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _isAutoPlaying = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.autoPlay && widget.imageUrls.length > 1) {
+      _isAutoPlaying = true;
       _startAutoPlay();
     }
   }
 
   @override
   void dispose() {
+    _isAutoPlaying = false;
     _pageController.dispose();
     super.dispose();
   }
 
-  // Démarrer l'auto-play
+  // ============================================
+  // AUTO-PLAY
+  // ============================================
+
   void _startAutoPlay() {
     Future.delayed(widget.autoPlayInterval, () {
-      if (!mounted) return;
+      if (!mounted || !_isAutoPlaying) return;
 
       if (_currentPage < widget.imageUrls.length - 1) {
         _pageController.nextPage(
@@ -68,6 +81,10 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
     });
   }
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
     if (widget.imageUrls.isEmpty) {
@@ -76,7 +93,9 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
 
     return Column(
       children: [
-        // Carousel principal
+        // ============================================
+        // CAROUSEL PRINCIPAL
+        // ============================================
         SizedBox(
           height: widget.height,
           child: Stack(
@@ -123,7 +142,7 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
                 ),
               ],
 
-              // Indicateur de page
+              // Indicateur de page (dots)
               if (widget.showIndicators && widget.imageUrls.length > 1)
                 Positioned(
                   bottom: 10,
@@ -135,6 +154,7 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
                       widget.imageUrls.length,
                       (index) => AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
                         margin: const EdgeInsets.symmetric(horizontal: 3),
                         width: index == _currentPage ? 20 : 8,
                         height: 8,
@@ -150,7 +170,7 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
                 ),
 
               // Compteur
-              if (widget.imageUrls.length > 1)
+              if (widget.showCounter && widget.imageUrls.length > 1)
                 Positioned(
                   top: 10,
                   right: 10,
@@ -178,19 +198,24 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
           ),
         ),
 
-        // Thumbnails
+        // ============================================
+        // THUMBNAILS
+        // ============================================
         if (widget.showThumbnails && widget.imageUrls.length > 1) ...[
           const SizedBox(height: 10),
           SizedBox(
             height: 60,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               itemCount: widget.imageUrls.length,
               itemBuilder: (context, index) {
                 final isSelected = _currentPage == index;
                 return GestureDetector(
                   onTap: () => _goToPage(index),
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
                     width: 55,
                     height: 55,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -202,32 +227,54 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
                             : AppColors.borderColor,
                         width: isSelected ? 2 : 1,
                       ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.25),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl: widget.imageUrls[index],
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: AppColors.background,
-                          child: const Center(
-                            child: SizedBox(
-                              width: 15,
-                              height: 15,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CachedNetworkImage(
+                            imageUrl: widget.imageUrls[index],
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: AppColors.surface,
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 15,
+                                  height: 15,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.5,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: AppColors.surface,
+                              child: const Icon(
+                                Icons.image_outlined,
+                                size: 20,
+                                color: AppColors.textLight,
                               ),
                             ),
                           ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: AppColors.background,
-                          child: const Icon(
-                            Icons.image,
-                            size: 20,
-                            color: AppColors.textLight,
-                          ),
-                        ),
+                          if (isSelected)
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -240,13 +287,16 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
     );
   }
 
-  // Construire une image
+  // ============================================
+  // IMAGE
+  // ============================================
+
   Widget _buildImage(String imageUrl) {
     Widget image = CachedNetworkImage(
       imageUrl: imageUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
-        color: AppColors.background,
+        color: AppColors.surface,
         child: const Center(
           child: SizedBox(
             width: 30,
@@ -259,13 +309,13 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
         ),
       ),
       errorWidget: (context, url, error) => Container(
-        color: AppColors.background,
+        color: AppColors.surface,
         child: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.broken_image,
+                Icons.broken_image_outlined,
                 size: 40,
                 color: AppColors.textLight,
               ),
@@ -294,11 +344,14 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
     return image;
   }
 
-  // État vide
+  // ============================================
+  // ÉTAT VIDE
+  // ============================================
+
   Widget _buildEmptyState() {
     return Container(
       height: widget.height,
-      color: AppColors.background,
+      color: AppColors.surface,
       child: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -323,14 +376,18 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
     );
   }
 
-  // Bouton de navigation
+  // ============================================
+  // BOUTON NAVIGATION
+  // ============================================
+
   Widget _buildNavButton({
     required IconData icon,
     required VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         width: 32,
         height: 32,
         decoration: BoxDecoration(
@@ -354,7 +411,10 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
     );
   }
 
-  // Aller à la page précédente
+  // ============================================
+  // NAVIGATION
+  // ============================================
+
   void _goToPrevious() {
     _pageController.previousPage(
       duration: const Duration(milliseconds: 400),
@@ -362,7 +422,6 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
     );
   }
 
-  // Aller à la page suivante
   void _goToNext() {
     _pageController.nextPage(
       duration: const Duration(milliseconds: 400),
@@ -370,7 +429,6 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
     );
   }
 
-  // Aller à une page spécifique
   void _goToPage(int index) {
     _pageController.animateToPage(
       index,
@@ -379,37 +437,64 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
     );
   }
 
-  // Afficher le zoom
+  // ============================================
+  // ZOOM PLEIN ÉCRAN
+  // ============================================
+
   void _showZoomDialog(String imageUrl) {
     showDialog(
       context: context,
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.transparent,
-          child: GestureDetector(
-            onTap: () => Navigator.of(dialogContext).pop(),
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 5,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  fit: BoxFit.contain,
-                  placeholder: (context, url) => const Center(
-                    child: CircularProgressIndicator(),
+          child: Stack(
+            children: [
+              InteractiveViewer(
+                minScale: 1,
+                maxScale: 5,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  errorWidget: (context, url, error) => const Icon(
-                    Icons.broken_image,
-                    size: 80,
-                    color: AppColors.textLight,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => const Icon(
+                      Icons.broken_image_outlined,
+                      size: 80,
+                      color: AppColors.textLight,
+                    ),
                   ),
                 ),
               ),
-            ),
+              // Bouton fermer
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(dialogContext).pop(),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },

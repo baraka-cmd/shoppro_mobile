@@ -1,7 +1,12 @@
-// Carte d'avis client
-// Affiche avatar, nom, note, commentaire et badges
+// ============================================
+// CARTE D'AVIS CLIENT - VERSION PREMIUM
+// ============================================
+// Affiche avatar, nom, note, commentaire,
+// badges et actions utiles. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/constants/app_colors.dart';
 
 class ReviewCard extends StatelessWidget {
@@ -44,12 +49,16 @@ class ReviewCard extends StatelessWidget {
         border: Border.all(
           color: AppColors.borderColor.withValues(alpha: 0.5),
         ),
+        boxShadow: AppColors.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // En-tête : Avatar + Nom + Badge
+          // ============================================
+          // EN-TÊTE : AVATAR + NOM + BADGE
+          // ============================================
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Avatar
               Container(
@@ -58,15 +67,18 @@ class ReviewCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.primary.withValues(alpha: 0.1),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
                 ),
                 child: userAvatar != null && userAvatar!.isNotEmpty
                     ? ClipOval(
-                        child: Image.network(
-                          userAvatar!,
+                        child: CachedNetworkImage(
+                          imageUrl: userAvatar!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildInitials();
-                          },
+                          placeholder: (context, url) => _buildInitials(),
+                          errorWidget: (context, url, error) => _buildInitials(),
                         ),
                       )
                     : _buildInitials(),
@@ -74,11 +86,12 @@ class ReviewCard extends StatelessWidget {
 
               const SizedBox(width: 10),
 
-              // Nom + date
+              // Nom + badge + date
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Nom + badge vérifié
                     Row(
                       children: [
                         Flexible(
@@ -143,26 +156,28 @@ class ReviewCard extends StatelessWidget {
                   ],
                 ),
               ),
+
+              // Étoiles (droite)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(5, (index) {
+                  final isFilled = index < rating.round();
+                  return Icon(
+                    isFilled ? Icons.star : Icons.star_border,
+                    size: 14,
+                    color: isFilled ? AppColors.ratingColor : AppColors.textLight,
+                  );
+                }),
+              ),
             ],
           ),
 
           const SizedBox(height: 10),
 
-          // Étoiles
-          Row(
-            children: List.generate(5, (index) {
-              final isFilled = index < rating.round();
-              return Icon(
-                isFilled ? Icons.star : Icons.star_border,
-                size: 16,
-                color: isFilled ? AppColors.ratingColor : AppColors.textLight,
-              );
-            }),
-          ),
-
-          // Titre
+          // ============================================
+          // TITRE
+          // ============================================
           if (title != null && title!.isNotEmpty) ...[
-            const SizedBox(height: 8),
             Text(
               title!,
               style: const TextStyle(
@@ -172,10 +187,12 @@ class ReviewCard extends StatelessWidget {
                 color: AppColors.textPrimary,
               ),
             ),
+            const SizedBox(height: 6),
           ],
 
-          // Commentaire
-          const SizedBox(height: 8),
+          // ============================================
+          // COMMENTAIRE
+          // ============================================
           Text(
             comment,
             style: const TextStyle(
@@ -187,7 +204,9 @@ class ReviewCard extends StatelessWidget {
             ),
           ),
 
-          // Images de l'avis
+          // ============================================
+          // IMAGES DE L'AVIS
+          // ============================================
           if (images != null && images!.isNotEmpty) ...[
             const SizedBox(height: 10),
             SizedBox(
@@ -196,28 +215,40 @@ class ReviewCard extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 itemCount: images!.length,
                 itemBuilder: (context, index) {
-                  return Container(
-                    width: 60,
-                    height: 60,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.borderColor.withValues(alpha: 0.5),
+                  return GestureDetector(
+                    onTap: () => _showImageDialog(context, images![index]),
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.borderColor.withValues(alpha: 0.5),
+                        ),
                       ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(9),
-                      child: Image.network(
-                        images![index],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.broken_image,
-                            size: 20,
-                            color: AppColors.textLight,
-                          );
-                        },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(9),
+                        child: CachedNetworkImage(
+                          imageUrl: images![index],
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: AppColors.surface,
+                            child: const Icon(
+                              Icons.image_outlined,
+                              size: 20,
+                              color: AppColors.textLight,
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.surface,
+                            child: const Icon(
+                              Icons.broken_image_outlined,
+                              size: 20,
+                              color: AppColors.textLight,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   );
@@ -226,8 +257,12 @@ class ReviewCard extends StatelessWidget {
             ),
           ],
 
-          // Actions utiles
+          // ============================================
+          // ACTIONS UTILES
+          // ============================================
           if (onHelpful != null || onNotHelpful != null) ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -243,13 +278,14 @@ class ReviewCard extends StatelessWidget {
                 // Utile
                 GestureDetector(
                   onTap: onHelpful,
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.05),
+                      color: AppColors.success.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Row(
@@ -277,13 +313,14 @@ class ReviewCard extends StatelessWidget {
                 // Pas utile
                 GestureDetector(
                   onTap: onNotHelpful,
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withValues(alpha: 0.05),
+                      color: AppColors.error.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Row(
@@ -315,7 +352,73 @@ class ReviewCard extends StatelessWidget {
     );
   }
 
-  // Initiales
+  // ============================================
+  // ZOOM IMAGE
+  // ============================================
+
+  void _showImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Stack(
+            children: [
+              InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => const Icon(
+                      Icons.broken_image_outlined,
+                      size: 80,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(dialogContext).pop(),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ============================================
+  // INITIALES
+  // ============================================
+
   Widget _buildInitials() {
     final initials = _getInitials(userName);
     return Center(
@@ -331,7 +434,6 @@ class ReviewCard extends StatelessWidget {
     );
   }
 
-  // Récupérer les initiales
   String _getInitials(String fullName) {
     final parts = fullName.trim().split(' ');
     if (parts.length >= 2) {
@@ -343,7 +445,10 @@ class ReviewCard extends StatelessWidget {
     return '?';
   }
 
-  // Formater la date
+  // ============================================
+  // FORMATAGE DATE
+  // ============================================
+
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
@@ -359,6 +464,9 @@ class ReviewCard extends StatelessWidget {
     }
     if (difference.inHours > 0) {
       return '${difference.inHours} heure(s)';
+    }
+    if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} min';
     }
     return 'À l\'instant';
   }

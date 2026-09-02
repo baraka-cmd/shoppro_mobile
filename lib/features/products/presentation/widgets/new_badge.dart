@@ -1,5 +1,9 @@
-// Badge produit nouveau
-// Affiche un badge "Nouveau" avec animation optionnelle
+// ============================================
+// BADGE PRODUIT NOUVEAU - PREMIUM
+// ============================================
+// Affiche un badge "Nouveau" avec 4 styles
+// disponibles. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -47,7 +51,10 @@ class NewBadge extends StatelessWidget {
     );
   }
 
-  // Décoration selon le style
+  // ============================================
+  // DÉCORATION
+  // ============================================
+
   BoxDecoration _buildDecoration() {
     switch (style) {
       case NewBadgeStyle.solid:
@@ -81,14 +88,7 @@ class NewBadge extends StatelessWidget {
 
       case NewBadgeStyle.gradient:
         return BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppColors.success,
-              AppColors.info,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          gradient: AppColors.successGradient,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -101,7 +101,10 @@ class NewBadge extends StatelessWidget {
     }
   }
 
-  // Couleur du texte selon le style
+  // ============================================
+  // COULEUR DU TEXTE
+  // ============================================
+
   Color _buildTextColor() {
     switch (style) {
       case NewBadgeStyle.solid:
@@ -114,10 +117,13 @@ class NewBadge extends StatelessWidget {
   }
 }
 
-// Style du badge
+// ============================================
+// ENUM
+// ============================================
+
 enum NewBadgeStyle {
   solid,     // Vert plein
   outlined,  // Blanc avec bordure
   soft,      // Fond vert clair
-  gradient,  // Dégradé vert-bleu
+  gradient,  // Dégradé vert → vert clair
 }

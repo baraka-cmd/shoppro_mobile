@@ -1,10 +1,13 @@
-// Modèle Product (Data)
-// Gère la sérialisation/désérialisation JSON du produit
+// ============================================
+// MODÈLE PRODUCT (DATA)
+// ============================================
+// Gère la sérialisation/désérialisation JSON
+// avec parsing robuste, valeurs par défaut
+// et validation des données.
+// ============================================
 
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_image.dart';
-import '../../domain/entities/category.dart';
-import '../../domain/entities/brand.dart';
 import 'category_model.dart';
 import 'brand_model.dart';
 import 'product_image_model.dart';
@@ -51,89 +54,66 @@ class ProductModel extends Product {
 
   /// Créer un ProductModel depuis JSON
   factory ProductModel.fromJson(Map<String, dynamic> json) {
-    
     return ProductModel(
-      id: json['id'] as int? ?? 0,
-      name: json['name'] as String? ?? '',
-      slug: json['slug'] as String? ?? '',
-      shortDescription: json['short_description'] as String?,
-      description: json['description'] as String?,
-      
+      id: _parseInt(json['id']),
+      name: _parseString(json['name']),
+      slug: _parseString(json['slug']),
+      shortDescription: _parseNullableString(json['short_description']),
+      description: _parseNullableString(json['description']),
+
       // Prix
       price: _parseDouble(json['price']),
       discountPrice: _parseNullableDouble(json['discount_price']),
       currentPrice: _parseDouble(json['current_price'] ?? json['price']),
-      discountPercentage: json['discount_percentage'] as int?,
-      
+      discountPercentage: _parseNullableInt(json['discount_percentage']),
+
       // Stock
-      stock: json['stock'] as int? ?? 0,
-      isInStock: json['is_in_stock'] as bool? ?? false,
-      stockStatus: json['stock_status'] as String? ?? 'out_of_stock',
-      minStock: json['min_stock'] as int? ?? 5,
-      
+      stock: _parseInt(json['stock']),
+      isInStock: _parseBool(json['is_in_stock']),
+      stockStatus: _parseString(json['stock_status'], defaultValue: 'out_of_stock'),
+      minStock: _parseInt(json['min_stock'], defaultValue: 5),
+
       // SKU
-      sku: json['sku'] as String? ?? '',
-      barcode: json['barcode'] as String?,
-      
+      sku: _parseString(json['sku']),
+      barcode: _parseNullableString(json['barcode']),
+
       // Relations
-      category: json['category'] != null
+      category: json['category'] is Map<String, dynamic>
           ? CategoryModel.fromJson(json['category'] as Map<String, dynamic>)
           : null,
-      brand: json['brand'] != null
+      brand: json['brand'] is Map<String, dynamic>
           ? BrandModel.fromJson(json['brand'] as Map<String, dynamic>)
           : null,
       images: _parseImages(json['images']),
-      
+
       // Image principale
-      mainImage: json['main_image'] as String?,
-      mainImageThumbnail: json['main_image_thumbnail'] as String?,
-      
+      mainImage: _parseNullableString(json['main_image']),
+      mainImageThumbnail: _parseNullableString(json['main_image_thumbnail']),
+
       // Statistiques
-      viewsCount: json['views_count'] as int? ?? 0,
-      salesCount: json['sales_count'] as int? ?? 0,
-      favoritesCount: json['favorites_count'] as int? ?? 0,
+      viewsCount: _parseInt(json['views_count']),
+      salesCount: _parseInt(json['sales_count']),
+      favoritesCount: _parseInt(json['favorites_count']),
       averageRating: _parseDouble(json['average_rating']),
-      reviewsCount: json['reviews_count'] as int? ?? 0,
-      
+      reviewsCount: _parseInt(json['reviews_count']),
+
       // Badges
-      isFeatured: json['is_featured'] as bool? ?? false,
-      isNew: json['is_new'] as bool? ?? false,
-      isBestseller: json['is_bestseller'] as bool? ?? false,
-      isOnSale: json['is_on_sale'] as bool? ?? false,
-      
+      isFeatured: _parseBool(json['is_featured']),
+      isNew: _parseBool(json['is_new']),
+      isBestseller: _parseBool(json['is_bestseller']),
+      isOnSale: _parseBool(json['is_on_sale']),
+
       // Disponibilité
-      isActive: json['is_active'] as bool? ?? true,
-      isAvailable: json['is_available'] as bool? ?? true,
-      availableFrom: json['available_from'] != null
-          ? DateTime.tryParse(json['available_from'] as String)
-          : null,
-      availableUntil: json['available_until'] != null
-          ? DateTime.tryParse(json['available_until'] as String)
-          : null,
-      
+      isActive: _parseBool(json['is_active'], defaultValue: true),
+      isAvailable: _parseBool(json['is_available'], defaultValue: true),
+      availableFrom: _parseDate(json['available_from']),
+      availableUntil: _parseDate(json['available_until']),
+
       // Dates
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'] as String)
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'] as String)
-          : null,
-      subcategoryId: json['subcategory_id'] as int?,
+      createdAt: _parseDate(json['created_at']),
+      updatedAt: _parseDate(json['updated_at']),
+      subcategoryId: _parseNullableInt(json['subcategory_id']),
     );
-  }
-
-  /// URL complète de l'image principale
-  String get fullImageUrl {
-    if (mainImage == null || mainImage!.isEmpty) return '';
-    if (mainImage!.startsWith('http')) return mainImage!;
-    return 'http://127.0.0.1:8000/storage/$mainImage';
-  }
-
-  /// URL complète de la miniature
-  String get fullThumbnailUrl {
-    if (mainImageThumbnail == null || mainImageThumbnail!.isEmpty) return '';
-    if (mainImageThumbnail!.startsWith('http')) return mainImageThumbnail!;
-    return 'http://127.0.0.1:8000/storage/$mainImageThumbnail';
   }
 
   /// Convertir en JSON
@@ -154,9 +134,16 @@ class ProductModel extends Product {
       'min_stock': minStock,
       'sku': sku,
       'barcode': barcode,
-      'category': category != null ? (category as CategoryModel).toJson() : null,
-      'brand': brand != null ? (brand as BrandModel).toJson() : null,
-      'images': images.map((image) => (image as ProductImageModel).toJson()).toList(),
+      'category': category is CategoryModel
+          ? (category as CategoryModel).toJson()
+          : null,
+      'brand': brand is BrandModel
+          ? (brand as BrandModel).toJson()
+          : null,
+      'images': images
+          .whereType<ProductImageModel>()
+          .map((image) => image.toJson())
+          .toList(),
       'main_image': mainImage,
       'main_image_thumbnail': mainImageThumbnail,
       'views_count': viewsCount,
@@ -174,10 +161,72 @@ class ProductModel extends Product {
       'available_until': availableUntil?.toIso8601String(),
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'subcategory_id': subcategoryId,
     };
   }
 
-  /// Parser un double
+  /// Copier depuis l'entité
+  static ProductModel fromEntity(Product product) {
+    return ProductModel(
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      shortDescription: product.shortDescription,
+      description: product.description,
+      price: product.price,
+      discountPrice: product.discountPrice,
+      currentPrice: product.currentPrice,
+      discountPercentage: product.discountPercentage,
+      stock: product.stock,
+      isInStock: product.isInStock,
+      stockStatus: product.stockStatus,
+      minStock: product.minStock,
+      sku: product.sku,
+      barcode: product.barcode,
+      category: product.category,
+      brand: product.brand,
+      images: product.images,
+      mainImage: product.mainImage,
+      mainImageThumbnail: product.mainImageThumbnail,
+      viewsCount: product.viewsCount,
+      salesCount: product.salesCount,
+      favoritesCount: product.favoritesCount,
+      averageRating: product.averageRating,
+      reviewsCount: product.reviewsCount,
+      isFeatured: product.isFeatured,
+      isNew: product.isNew,
+      isBestseller: product.isBestseller,
+      isOnSale: product.isOnSale,
+      isActive: product.isActive,
+      isAvailable: product.isAvailable,
+      availableFrom: product.availableFrom,
+      availableUntil: product.availableUntil,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      subcategoryId: product.subcategoryId,
+    );
+  }
+
+  // ============================================
+  // HELPERS DE PARSING SÉCURISÉS
+  // ============================================
+
+  static int _parseInt(dynamic value, {int defaultValue = 0}) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
+
+  static int? _parseNullableInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
   static double _parseDouble(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value.toDouble();
@@ -186,7 +235,6 @@ class ProductModel extends Product {
     return 0;
   }
 
-  /// Parser un double nullable
   static double? _parseNullableDouble(dynamic value) {
     if (value == null) return null;
     if (value is int) return value.toDouble();
@@ -195,20 +243,40 @@ class ProductModel extends Product {
     return null;
   }
 
-  /// Parser les images
-static List<ProductImage> _parseImages(dynamic imagesJson) {
-  if (imagesJson == null || imagesJson is! List) {
-    return [];
+  static String _parseString(dynamic value, {String defaultValue = ''}) {
+    if (value == null) return defaultValue;
+    final string = value.toString().trim();
+    return string.isEmpty ? defaultValue : string;
   }
 
-  final images = <ProductImage>[];
-  
-  for (final imageJson in imagesJson) {
-    if (imageJson is Map<String, dynamic>) {
-      images.add(ProductImageModel.fromJson(imageJson) as ProductImage);
-    }
+  static String? _parseNullableString(dynamic value) {
+    if (value == null) return null;
+    final string = value.toString().trim();
+    return string.isEmpty ? null : string;
   }
-  
-  return images;
-}
+
+  static bool _parseBool(dynamic value, {bool defaultValue = false}) {
+    if (value == null) return defaultValue;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value.toLowerCase() == 'true' || value == '1';
+    return defaultValue;
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  /// Parser les images
+  static List<ProductImage> _parseImages(dynamic imagesJson) {
+    if (imagesJson is! List) return [];
+
+    return imagesJson
+        .whereType<Map<String, dynamic>>()
+        .map((imageJson) => ProductImageModel.fromJson(imageJson))
+        .toList();
+  }
 }

@@ -1,5 +1,9 @@
-// Provider des marques
-// Gère l'état des marques dans l'application
+// ============================================
+// PROVIDER DES MARQUES
+// ============================================
+// Gère l'état des marques avec filtres,
+// tri et recherche intelligente.
+// ============================================
 
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/brand.dart';
@@ -32,9 +36,11 @@ class BrandProvider extends ChangeNotifier {
 
   List<Brand> _brands = [];
   Brand? _selectedBrand;
+  String _searchQuery = '';
+  String? _countryFilter;
 
   // ============================================
-  // GETTERS
+  // GETTERS DE BASE
   // ============================================
 
   BrandStatus get status => _status;
@@ -42,9 +48,13 @@ class BrandProvider extends ChangeNotifier {
   bool get isLoading => _status == BrandStatus.loading;
   bool get hasError => _status == BrandStatus.error;
   bool get hasBrands => _brands.isNotEmpty;
+  bool get isEmpty => _brands.isEmpty;
 
   List<Brand> get brands => _brands;
   Brand? get selectedBrand => _selectedBrand;
+
+  /// Nombre total de marques
+  int get brandsCount => _brands.length;
 
   /// Marques en vedette
   List<Brand> get featuredBrands {
@@ -73,6 +83,45 @@ class BrandProvider extends ChangeNotifier {
     final sorted = [..._brands];
     sorted.sort((a, b) => b.productsCount.compareTo(a.productsCount));
     return sorted;
+  }
+
+  /// Marques triées par nom (A-Z)
+  List<Brand> get brandsByName {
+    final sorted = [..._brands];
+    sorted.sort((a, b) => a.name.compareTo(b.name));
+    return sorted;
+  }
+
+  /// Marques filtrées (recherche + pays)
+  List<Brand> get filteredBrands {
+    var result = [..._brands];
+
+    // Filtre par recherche
+    if (_searchQuery.isNotEmpty) {
+      result = result.where((brand) {
+        return brand.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            brand.slug.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            (brand.country?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+      }).toList();
+    }
+
+    // Filtre par pays
+    if (_countryFilter != null) {
+      result = result.where((brand) => brand.country == _countryFilter).toList();
+    }
+
+    return result;
+  }
+
+  /// Pays disponibles (déduits des marques)
+  List<String> get availableCountries {
+    final countries = _brands
+        .where((brand) => brand.country != null && brand.country!.isNotEmpty)
+        .map((brand) => brand.country!)
+        .toSet()
+        .toList();
+    countries.sort();
+    return countries;
   }
 
   // ============================================
@@ -110,6 +159,12 @@ class BrandProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sélectionner par ID
+  void selectBrandById(int id) {
+    _selectedBrand = getBrandById(id);
+    notifyListeners();
+  }
+
   /// Désélectionner la marque
   void clearSelection() {
     _selectedBrand = null;
@@ -117,20 +172,31 @@ class BrandProvider extends ChangeNotifier {
   }
 
   // ============================================
-  // RECHERCHE
+  // RECHERCHE & FILTRES
   // ============================================
 
-  /// Rechercher une marque par nom
-  List<Brand> searchBrands(String query) {
-    if (query.trim().isEmpty) {
-      return _brands;
-    }
+  /// Définir la requête de recherche
+  void setSearchQuery(String query) {
+    _searchQuery = query.trim();
+    notifyListeners();
+  }
 
-    return _brands.where((brand) {
-      return brand.name.toLowerCase().contains(query.toLowerCase()) ||
-          brand.slug.toLowerCase().contains(query.toLowerCase()) ||
-          (brand.country?.toLowerCase().contains(query.toLowerCase()) ?? false);
-    }).toList();
+  /// Effacer la recherche
+  void clearSearch() {
+    _searchQuery = '';
+    notifyListeners();
+  }
+
+  /// Définir le filtre par pays
+  void setCountryFilter(String? country) {
+    _countryFilter = country;
+    notifyListeners();
+  }
+
+  /// Effacer le filtre par pays
+  void clearCountryFilter() {
+    _countryFilter = null;
+    notifyListeners();
   }
 
   /// Rechercher une marque par ID
@@ -143,20 +209,24 @@ class BrandProvider extends ChangeNotifier {
     return null;
   }
 
-  /// Filtrer par pays
+  /// Filtrer par pays (méthode directe)
   List<Brand> filterByCountry(String country) {
     return _brands.where((brand) => brand.country == country).toList();
   }
 
-  /// Récupérer les pays disponibles
-  List<String> get availableCountries {
-    final countries = _brands
-        .where((brand) => brand.country != null)
-        .map((brand) => brand.country!)
-        .toSet()
-        .toList();
-    countries.sort();
-    return countries;
+  /// Récupérer les marques par pays
+  List<Brand> getBrandsByCountry(String country) {
+    return filterByCountry(country);
+  }
+
+  // ============================================
+  // EFFACEMENT
+  // ============================================
+
+  /// Effacer l'erreur
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 
   // ============================================
@@ -173,5 +243,11 @@ class BrandProvider extends ChangeNotifier {
 
   void _setError(String message) {
     _errorMessage = message.replaceFirst('Exception: ', '');
+  }
+
+  @override
+  String toString() {
+    return 'BrandProvider(status: $_status, brands: ${_brands.length}, '
+        'search: "$_searchQuery", country: $_countryFilter)';
   }
 }

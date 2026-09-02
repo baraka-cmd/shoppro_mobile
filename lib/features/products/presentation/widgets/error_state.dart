@@ -1,5 +1,9 @@
-// Widget d'état d'erreur
-// Affiche un message d'erreur avec bouton de réessai
+// ============================================
+// WIDGET D'ÉTAT D'ERREUR - VERSION PREMIUM
+// ============================================
+// Affiche un message d'erreur avec bouton de réessai.
+// 3 styles : full, compact, inline. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -38,7 +42,10 @@ class ErrorState extends StatelessWidget {
     }
   }
 
-  // Style plein : Icône + titre + message + bouton
+  // ============================================
+  // STYLE PLEIN
+  // ============================================
+
   Widget _buildFullStyle() {
     return Center(
       child: Padding(
@@ -46,7 +53,6 @@ class ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icône
             Container(
               width: 80,
               height: 80,
@@ -64,7 +70,6 @@ class ErrorState extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Titre
             Text(
               title,
               textAlign: TextAlign.center,
@@ -106,6 +111,7 @@ class ErrorState extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 0,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -130,7 +136,10 @@ class ErrorState extends StatelessWidget {
     );
   }
 
-  // Style compact : Icône + message + bouton sur une ligne
+  // ============================================
+  // STYLE COMPACT
+  // ============================================
+
   Widget _buildCompactStyle() {
     return Container(
       padding: const EdgeInsets.all(15),
@@ -181,7 +190,10 @@ class ErrorState extends StatelessWidget {
     );
   }
 
-  // Style inline : Juste un message avec un bouton
+  // ============================================
+  // STYLE INLINE
+  // ============================================
+
   Widget _buildInlineStyle() {
     return Center(
       child: Column(
@@ -221,7 +233,10 @@ class ErrorState extends StatelessWidget {
   }
 }
 
-// Style de l'état d'erreur
+// ============================================
+// ENUM
+// ============================================
+
 enum ErrorStateStyle {
   full,      // Icône + titre + message + bouton
   compact,   // Icône + message + bouton sur une ligne

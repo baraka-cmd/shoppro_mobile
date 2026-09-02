@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 // IMPORTS ROUTES
 // ============================================
 import 'app_routes.dart';
+import 'role_route_guard.dart';
 
 // ============================================
 // IMPORTS AUTH
@@ -118,12 +119,6 @@ import '../features/admin/presentation/pages/admin_banner_form_screen.dart';
 import '../features/admin/presentation/pages/admin_settings_screen.dart';
 
 // ============================================
-// IMPORTS SERVICES
-// ============================================
-import '../core/services/token_service.dart';
-import '../core/services/navigation_service.dart';
-
-// ============================================
 // CLASSE PRINCIPALE
 // ============================================
 
@@ -159,119 +154,107 @@ class RouteGenerator {
         return _buildRoute(settings: settings, page: const ForgotPasswordScreen());
 
       // ============================================
-      // 🏠 ROUTES CLIENT (protégées)
+      // 🏠 ROUTE HOME
       // ============================================
       case AppRoutes.home:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const HomeScreen(),
-        );
+        return _buildRoute(settings: settings, page: const HomeScreen());
 
+      // ============================================
+      // 🧭 ROUTE EXPLORER
+      // ============================================
       case AppRoutes.explore:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const CategoryListScreen(),
-        );
+        return _buildRoute(settings: settings, page: const CategoryListScreen());
 
+      // ============================================
+      // 🛒 ROUTE PANIER
+      // ============================================
       case AppRoutes.cart:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const CartScreen(),
-        );
+        return _buildRoute(settings: settings, page: const CartScreen());
 
+      // ============================================
+      // 📦 ROUTE CHECKOUT
+      // ============================================
       case AppRoutes.checkout:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const CheckoutScreen(),
-        );
+        return _buildRoute(settings: settings, page: const CheckoutScreen());
 
+      // ============================================
+      // 📋 ROUTE COMMANDES
+      // ============================================
       case AppRoutes.orders:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const OrdersScreen(),
-        );
+        return _buildRoute(settings: settings, page: const OrdersScreen());
 
+      // ============================================
+      // 📋 ROUTE DÉTAIL COMMANDE
+      // ============================================
       case AppRoutes.orderDetail:
         final args = settings.arguments as Map<String, dynamic>?;
-        return _buildProtectedRoute(
+        return _buildRoute(
           settings: settings,
           page: OrderDetailScreen(orderId: args?['order_id'] as int? ?? 0),
         );
 
       // ============================================
-      // ❤️ ROUTES FAVORIS (protégées)
+      // ❤️ ROUTE FAVORIS
       // ============================================
       case AppRoutes.favorites:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const FavoritesScreen(),
-        );
+        return _buildRoute(settings: settings, page: const FavoritesScreen());
 
       // ============================================
-      // 👤 ROUTES PROFIL (protégées)
+      // 👤 ROUTE PROFIL
       // ============================================
       case AppRoutes.profile:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const ProfileScreen(),
-        );
-
-      case AppRoutes.editProfile:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const EditProfileScreen(),
-        );
-
-      case AppRoutes.changePassword:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const ChangePasswordScreen(),
-        );
+        return _buildRoute(settings: settings, page: const ProfileScreen());
 
       // ============================================
-      // 📍 ROUTES ADRESSES (protégées)
+      // 👤 ROUTE ÉDITION PROFIL
+      // ============================================
+      case AppRoutes.editProfile:
+        return _buildRoute(settings: settings, page: const EditProfileScreen());
+
+      // ============================================
+      // 🔒 ROUTE CHANGEMENT MOT DE PASSE
+      // ============================================
+      case AppRoutes.changePassword:
+        return _buildRoute(settings: settings, page: const ChangePasswordScreen());
+
+      // ============================================
+      // 📍 ROUTE ADRESSES
       // ============================================
       case AppRoutes.addresses:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AddressListScreen(),
-        );
-
-      case AppRoutes.addressForm:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AddressFormScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AddressListScreen());
 
       // ============================================
-      // 💳 ROUTE PAIEMENT (protégée)
+      // 📍 ROUTE FORMULAIRE ADRESSE
+      // ============================================
+      case AppRoutes.addressForm:
+        return _buildRoute(settings: settings, page: const AddressFormScreen());
+
+      // ============================================
+      // 💳 ROUTE PAIEMENT
       // ============================================
       case AppRoutes.payment:
-        return _buildProtectedRoute(
+        return _buildRoute(
           settings: settings,
           page: PaymentScreen(order: arguments?['order']),
         );
 
       // ============================================
-      // 🔔 ROUTE NOTIFICATIONS (protégée)
+      // 🔔 ROUTE NOTIFICATIONS
       // ============================================
       case AppRoutes.notifications:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const NotificationsScreen(),
-        );
+        return _buildRoute(settings: settings, page: const NotificationsScreen());
 
       // ============================================
-      // 📦 ROUTE STOCK (protégée)
+      // 📦 ROUTE STOCK
       // ============================================
       case AppRoutes.stockDetail:
-        return _buildProtectedRoute(
+        return _buildRoute(
           settings: settings,
           page: StockDetailScreen(stockId: arguments?['stock_id'] as int? ?? 0),
         );
 
       // ============================================
-      // 📦 ROUTES PRODUITS & CATÉGORIES (publiques)
+      // 📦 ROUTE DÉTAIL PRODUIT
       // ============================================
       case AppRoutes.productDetail:
         final productId = arguments?['product_id'] ?? arguments?['id'] ?? 0;
@@ -280,6 +263,9 @@ class RouteGenerator {
           page: ProductDetailScreen(productId: productId as int),
         );
 
+      // ============================================
+      // 📦 ROUTE LISTE PRODUITS
+      // ============================================
       case AppRoutes.productList:
         final args = settings.arguments as Map<String, dynamic>?;
         return _buildRoute(
@@ -292,6 +278,9 @@ class RouteGenerator {
           ),
         );
 
+      // ============================================
+      // 📦 ROUTE GRILLE PRODUITS
+      // ============================================
       case AppRoutes.productGrid:
         final args = settings.arguments as Map<String, dynamic>?;
         return _buildRoute(
@@ -304,6 +293,9 @@ class RouteGenerator {
           ),
         );
 
+      // ============================================
+      // 🏷️ ROUTE DÉTAIL CATÉGORIE
+      // ============================================
       case AppRoutes.categoryDetail:
         final args = settings.arguments as Map<String, dynamic>?;
         return _buildRoute(
@@ -314,185 +306,194 @@ class RouteGenerator {
           ),
         );
 
+      // ============================================
+      // 🏷️ ROUTE LISTE CATÉGORIES
+      // ============================================
       case AppRoutes.categoryList:
-        return _buildRoute(
-          settings: settings,
-          page: const CategoryListScreen(),
-        );
+        return _buildRoute(settings: settings, page: const CategoryListScreen());
 
       // ============================================
-      // 🔍 ROUTE RECHERCHE (publique)
+      // 🔍 ROUTE RECHERCHE
       // ============================================
       case AppRoutes.search:
-        return _buildRoute(
-          settings: settings,
-          page: const SearchScreen(),
-        );
+        return _buildRoute(settings: settings, page: const SearchScreen());
 
       // ============================================
-      // 👑 ROUTES ADMIN (protégées - admin uniquement)
+      // 👑 ROUTE ADMIN - DASHBOARD
       // ============================================
       case AppRoutes.adminDashboard:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminDashboardScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminDashboardScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - STATISTIQUES
+      // ============================================
       case AppRoutes.adminStats:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminStatsScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminStatsScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - RAPPORT VENTES
+      // ============================================
       case AppRoutes.adminSalesReport:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminSalesReportScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminSalesReportScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - NOTIFICATIONS
+      // ============================================
       case AppRoutes.adminNotifications:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminNotificationsScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminNotificationsScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - PRODUITS
+      // ============================================
       case AppRoutes.adminProducts:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminProductsScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminProductsScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - FORMULAIRE PRODUIT
+      // ============================================
       case AppRoutes.adminProductForm:
-        return _buildProtectedRoute(
+        return _buildRoute(
           settings: settings,
           page: AdminProductFormScreen(productId: arguments?['product_id'] as int?),
         );
 
+      // ============================================
+      // 👑 ROUTE ADMIN - CATÉGORIES
+      // ============================================
       case AppRoutes.adminCategories:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminCategoriesScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminCategoriesScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - FORMULAIRE CATÉGORIE
+      // ============================================
       case AppRoutes.adminCategoryForm:
-        return _buildProtectedRoute(
+        return _buildRoute(
           settings: settings,
           page: AdminCategoryFormScreen(categoryId: arguments?['category_id'] as int?),
         );
 
+      // ============================================
+      // 👑 ROUTE ADMIN - MARQUES
+      // ============================================
       case AppRoutes.adminBrands:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminBrandsScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminBrandsScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - FORMULAIRE MARQUE
+      // ============================================
       case AppRoutes.adminBrandForm:
-        return _buildProtectedRoute(
+        return _buildRoute(
           settings: settings,
           page: AdminBrandFormScreen(brandId: arguments?['brand_id'] as int?),
         );
 
+      // ============================================
+      // 👑 ROUTE ADMIN - COMMANDES
+      // ============================================
       case AppRoutes.adminOrders:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminOrdersScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminOrdersScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - DÉTAIL COMMANDE
+      // ============================================
       case AppRoutes.adminOrderDetail:
-        return _buildProtectedRoute(
+        return _buildRoute(
           settings: settings,
           page: AdminOrderDetailScreen(orderId: arguments?['order_id'] as int? ?? 0),
         );
 
+      // ============================================
+      // 👑 ROUTE ADMIN - UTILISATEURS
+      // ============================================
       case AppRoutes.adminUsers:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminUsersScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminUsersScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - DÉTAIL UTILISATEUR
+      // ============================================
       case AppRoutes.adminUserDetail:
-        return _buildProtectedRoute(
+        return _buildRoute(
           settings: settings,
           page: AdminUserDetailScreen(userId: arguments?['user_id'] as int? ?? 0),
         );
 
+      // ============================================
+      // 👑 ROUTE ADMIN - STOCKS
+      // ============================================
       case AppRoutes.adminStocks:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminStocksScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminStocksScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - PROMOTIONS
+      // ============================================
       case AppRoutes.adminPromotions:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminPromotionsScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminPromotionsScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - FORMULAIRE PROMOTION
+      // ============================================
       case AppRoutes.adminPromotionForm:
-        return _buildProtectedRoute(
+        return _buildRoute(
           settings: settings,
           page: AdminPromotionFormScreen(promotionId: arguments?['promotion_id'] as int?),
         );
 
+      // ============================================
+      // 👑 ROUTE ADMIN - AVIS
+      // ============================================
       case AppRoutes.adminReviews:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminReviewsScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminReviewsScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - BANNIÈRES
+      // ============================================
       case AppRoutes.adminBanners:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminBannersScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminBannersScreen());
 
+      // ============================================
+      // 👑 ROUTE ADMIN - FORMULAIRE BANNIÈRE
+      // ============================================
       case AppRoutes.adminBannerForm:
-        return _buildProtectedRoute(
+        return _buildRoute(
           settings: settings,
           page: AdminBannerFormScreen(bannerId: arguments?['banner_id'] as int?),
         );
 
+      // ============================================
+      // 👑 ROUTE ADMIN - PARAMÈTRES
+      // ============================================
       case AppRoutes.adminSettings:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const AdminSettingsScreen(),
-        );
+        return _buildRoute(settings: settings, page: const AdminSettingsScreen());
 
       // ============================================
-      // 🏪 ROUTES VENDEUR
+      // 🏪 ROUTE VENDEUR - DASHBOARD
       // ============================================
       case AppRoutes.sellerDashboard:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const SplashScreen(), // À remplacer par SellerDashboardScreen
-        );
+        return _buildRoute(settings: settings, page: const SplashScreen());
 
+      // ============================================
+      // 🏪 ROUTE VENDEUR - PRODUITS
+      // ============================================
       case AppRoutes.sellerProducts:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const SplashScreen(), // À remplacer par SellerProductsScreen
-        );
+        return _buildRoute(settings: settings, page: const SplashScreen());
 
+      // ============================================
+      // 🏪 ROUTE VENDEUR - COMMANDES
+      // ============================================
       case AppRoutes.sellerOrders:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const SplashScreen(), // À remplacer par SellerOrdersScreen
-        );
+        return _buildRoute(settings: settings, page: const SplashScreen());
 
+      // ============================================
+      // 🏪 ROUTE VENDEUR - STATISTIQUES
+      // ============================================
       case AppRoutes.sellerStats:
-        return _buildProtectedRoute(
-          settings: settings,
-          page: const SplashScreen(), // À remplacer par SellerStatsScreen
-        );
+        return _buildRoute(settings: settings, page: const SplashScreen());
 
       // ============================================
       // ROUTE PAR DÉFAUT
       // ============================================
       default:
-        return _buildRoute(
-          settings: settings,
-          page: const SplashScreen(),
-        );
+        return _buildRoute(settings: settings, page: const SplashScreen());
     }
   }
 
@@ -527,65 +528,5 @@ class RouteGenerator {
       transitionDuration: const Duration(milliseconds: 250),
       reverseTransitionDuration: const Duration(milliseconds: 200),
     );
-  }
-
-  // ============================================
-  // CONSTRUCTION DE ROUTE PROTÉGÉE
-  // ============================================
-
-  static Route<dynamic> _buildProtectedRoute({
-    required RouteSettings settings,
-    required Widget page,
-  }) {
-    return PageRouteBuilder(
-      settings: settings,
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return FutureBuilder<bool>(
-          future: _checkAuthentication(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-
-            if (snapshot.data == true) {
-              return page;
-            }
-
-            // Non authentifié → rediriger vers login
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed(
-                  AppRoutes.login,
-                  arguments: {'redirect_to': settings.name},
-                );
-              }
-            });
-
-            return const Scaffold(body: SizedBox.shrink());
-          },
-        );
-      },
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(opacity: animation, child: child);
-      },
-      transitionDuration: const Duration(milliseconds: 250),
-    );
-  }
-
-  // ============================================
-  // VÉRIFICATION DE L'AUTHENTIFICATION
-  // ============================================
-
-  static Future<bool> _checkAuthentication() async {
-    final tokenService = TokenService();
-    final token = await tokenService.getAccessToken();
-    if (token == null || token.isEmpty) {
-      return false;
-    }
-    return await tokenService.isTokenValid();
   }
 }

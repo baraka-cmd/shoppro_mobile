@@ -1,7 +1,11 @@
-// Provider des catégories
-// Gère l'état des catégories dans l'application
+// ============================================
+// PROVIDER DES CATÉGORIES
+// ============================================
+// Gère l'état des catégories avec recherche,
+// filtres et sélection intelligente.
+// ============================================
 
-import 'package:flutter/foundation.dart' hide Category;
+import 'package:flutter/material.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../../data/repositories/product_repository_impl.dart';
@@ -32,9 +36,10 @@ class CategoryProvider extends ChangeNotifier {
 
   List<Category> _categories = [];
   Category? _selectedCategory;
+  String _searchQuery = '';
 
   // ============================================
-  // GETTERS
+  // GETTERS DE BASE
   // ============================================
 
   CategoryStatus get status => _status;
@@ -42,13 +47,22 @@ class CategoryProvider extends ChangeNotifier {
   bool get isLoading => _status == CategoryStatus.loading;
   bool get hasError => _status == CategoryStatus.error;
   bool get hasCategories => _categories.isNotEmpty;
+  bool get isEmpty => _categories.isEmpty;
 
   List<Category> get categories => _categories;
   Category? get selectedCategory => _selectedCategory;
 
+  /// Nombre total de catégories
+  int get categoriesCount => _categories.length;
+
   /// Catégories racines (sans parent)
   List<Category> get rootCategories {
     return _categories.where((category) => category.isRoot).toList();
+  }
+
+  /// Catégories enfants (avec parent)
+  List<Category> get childCategories {
+    return _categories.where((category) => !category.isRoot).toList();
   }
 
   /// Catégories en vedette
@@ -59,6 +73,38 @@ class CategoryProvider extends ChangeNotifier {
   /// Catégories actives
   List<Category> get activeCategories {
     return _categories.where((category) => category.isActive).toList();
+  }
+
+  /// Catégories avec produits
+  List<Category> get categoriesWithProducts {
+    return _categories.where((category) => category.effectiveProductsCount > 0).toList();
+  }
+
+  /// Catégories triées par position
+  List<Category> get categoriesByPosition {
+    final sorted = [..._categories];
+    sorted.sort((a, b) => a.position.compareTo(b.position));
+    return sorted;
+  }
+
+  /// Catégories triées par nombre de produits
+  List<Category> get categoriesByProductsCount {
+    final sorted = [..._categories];
+    sorted.sort((a, b) => b.effectiveProductsCount.compareTo(a.effectiveProductsCount));
+    return sorted;
+  }
+
+  /// Catégories filtrées (recherche)
+  List<Category> get filteredCategories {
+    if (_searchQuery.isEmpty) {
+      return _categories;
+    }
+
+    return _categories.where((category) {
+      return category.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          category.slug.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          (category.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+    }).toList();
   }
 
   // ============================================
@@ -96,6 +142,12 @@ class CategoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sélectionner par ID
+  void selectCategoryById(int id) {
+    _selectedCategory = getCategoryById(id);
+    notifyListeners();
+  }
+
   /// Désélectionner la catégorie
   void clearSelection() {
     _selectedCategory = null;
@@ -103,19 +155,19 @@ class CategoryProvider extends ChangeNotifier {
   }
 
   // ============================================
-  // RECHERCHE
+  // RECHERCHE & FILTRES
   // ============================================
 
-  /// Rechercher une catégorie par nom
-  List<Category> searchCategories(String query) {
-    if (query.trim().isEmpty) {
-      return _categories;
-    }
+  /// Définir la requête de recherche
+  void setSearchQuery(String query) {
+    _searchQuery = query.trim();
+    notifyListeners();
+  }
 
-    return _categories.where((category) {
-      return category.name.toLowerCase().contains(query.toLowerCase()) ||
-          category.slug.toLowerCase().contains(query.toLowerCase());
-    }).toList();
+  /// Effacer la recherche
+  void clearSearch() {
+    _searchQuery = '';
+    notifyListeners();
   }
 
   /// Rechercher une catégorie par ID
@@ -126,6 +178,26 @@ class CategoryProvider extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  /// Récupérer les catégories parentes
+  List<Category> getParentCategories() {
+    return _categories.where((category) => category.isRoot).toList();
+  }
+
+  /// Récupérer les catégories enfants d'une catégorie
+  List<Category> getChildCategories(int parentId) {
+    return _categories.where((category) => category.parentId == parentId).toList();
+  }
+
+  // ============================================
+  // EFFACEMENT
+  // ============================================
+
+  /// Effacer l'erreur
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 
   // ============================================
@@ -142,5 +214,11 @@ class CategoryProvider extends ChangeNotifier {
 
   void _setError(String message) {
     _errorMessage = message.replaceFirst('Exception: ', '');
+  }
+
+  @override
+  String toString() {
+    return 'CategoryProvider(status: $_status, categories: ${_categories.length}, '
+        'search: "$_searchQuery")';
   }
 }

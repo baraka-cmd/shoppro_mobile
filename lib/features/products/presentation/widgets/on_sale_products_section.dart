@@ -1,5 +1,9 @@
-// Section produits en promotion
-// Scroll horizontal avec titre et lien "Voir tout"
+// ============================================
+// SECTION PRODUITS EN PROMOTION - PREMIUM
+// ============================================
+// Scroll horizontal avec titre, lien "Voir tout"
+// et cartes produits. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -30,7 +34,9 @@ class OnSaleProductsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Titre + Voir tout
+        // ============================================
+        // EN-TÊTE
+        // ============================================
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
@@ -56,35 +62,38 @@ class OnSaleProductsSection extends StatelessWidget {
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: onSeeAll,
-                child: const Row(
-                  children: [
-                    Text(
-                      'Voir tout',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+              if (onSeeAll != null)
+                GestureDetector(
+                  onTap: onSeeAll,
+                  child: const Row(
+                    children: [
+                      Text(
+                        'Voir tout',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      SizedBox(width: 3),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 16,
                         color: AppColors.primary,
                       ),
-                    ),
-                    SizedBox(width: 3),
-                    Icon(
-                      Icons.chevron_right,
-                      size: 16,
-                      color: AppColors.primary,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
         ),
 
         const SizedBox(height: 12),
 
-        // Liste horizontale
+        // ============================================
+        // CONTENU
+        // ============================================
         if (isLoading)
           const ShimmerProductHorizontal(itemCount: 4)
         else if (products.isEmpty)
@@ -106,6 +115,9 @@ class OnSaleProductsSection extends StatelessWidget {
                       product: product,
                       onTap: onProductTap,
                       onAddToCart: onAddToCart,
+                      onToggleFavorite: onToggleFavorite != null
+                          ? () => onToggleFavorite!(product, false)
+                          : null,
                     ),
                   ),
                 );
@@ -116,7 +128,10 @@ class OnSaleProductsSection extends StatelessWidget {
     );
   }
 
-  // État vide
+  // ============================================
+  // ÉTAT VIDE
+  // ============================================
+
   Widget _buildEmptyState() {
     return Container(
       height: 100,
@@ -129,13 +144,24 @@ class OnSaleProductsSection extends StatelessWidget {
         ),
       ),
       child: const Center(
-        child: Text(
-          'Aucune promotion disponible',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13,
-            color: AppColors.textSecondary,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.percent,
+              size: 25,
+              color: AppColors.textLight,
+            ),
+            SizedBox(height: 5),
+            Text(
+              'Aucune promotion disponible',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
         ),
       ),
     );

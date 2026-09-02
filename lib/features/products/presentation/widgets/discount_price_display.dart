@@ -1,5 +1,9 @@
-// Widget d'affichage du prix avec réduction
-// Affiche le prix actuel, l'ancien prix barré et le pourcentage de réduction
+// ============================================
+// WIDGET D'AFFICHAGE DU PRIX AVEC RÉDUCTION
+// ============================================
+// Affiche le prix actuel, l'ancien prix barré
+// et le pourcentage. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -37,13 +41,16 @@ class DiscountPriceDisplay extends StatelessWidget {
     }
   }
 
-  // Layout horizontal : Prix actuel | Ancien prix | Badge %
+  // ============================================
+  // LAYOUT HORIZONTAL
+  // ============================================
+
   Widget _buildHorizontalLayout(int percentage, double savings) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.end,
       children: [
-        // Prix actuel
         Text(
           _formatPrice(discountedPrice),
           style: const TextStyle(
@@ -53,10 +60,6 @@ class DiscountPriceDisplay extends StatelessWidget {
             color: AppColors.error,
           ),
         ),
-
-        const SizedBox(width: 8),
-
-        // Ancien prix barré
         Text(
           _formatPrice(originalPrice),
           style: const TextStyle(
@@ -65,12 +68,11 @@ class DiscountPriceDisplay extends StatelessWidget {
             fontWeight: FontWeight.w400,
             color: AppColors.textLight,
             decoration: TextDecoration.lineThrough,
+            decorationColor: AppColors.textLight,
+            decorationThickness: 1.5,
           ),
         ),
-
-        if (showPercentage) ...[
-          const SizedBox(width: 8),
-          // Badge pourcentage
+        if (showPercentage && percentage > 0)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
@@ -87,18 +89,19 @@ class DiscountPriceDisplay extends StatelessWidget {
               ),
             ),
           ),
-        ],
       ],
     );
   }
 
-  // Layout vertical : Prix actuel en haut, ancien prix + % en bas
+  // ============================================
+  // LAYOUT VERTICAL
+  // ============================================
+
   Widget _buildVerticalLayout(int percentage, double savings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Prix actuel
         Text(
           _formatPrice(discountedPrice),
           style: const TextStyle(
@@ -108,12 +111,10 @@ class DiscountPriceDisplay extends StatelessWidget {
             color: AppColors.error,
           ),
         ),
-
         const SizedBox(height: 2),
-
-        // Ancien prix + pourcentage
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        Wrap(
+          spacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(
               _formatPrice(originalPrice),
@@ -123,10 +124,11 @@ class DiscountPriceDisplay extends StatelessWidget {
                 fontWeight: FontWeight.w400,
                 color: AppColors.textLight,
                 decoration: TextDecoration.lineThrough,
+                decorationColor: AppColors.textLight,
+                decorationThickness: 1.5,
               ),
             ),
-            if (showPercentage) ...[
-              const SizedBox(width: 6),
+            if (showPercentage && percentage > 0)
               Text(
                 '-$percentage%',
                 style: const TextStyle(
@@ -136,11 +138,9 @@ class DiscountPriceDisplay extends StatelessWidget {
                   color: AppColors.error,
                 ),
               ),
-            ],
           ],
         ),
-
-        if (showSavings) ...[
+        if (showSavings && savings > 0) ...[
           const SizedBox(height: 3),
           Text(
             'Économisez ${_formatPrice(savings)}',
@@ -156,11 +156,14 @@ class DiscountPriceDisplay extends StatelessWidget {
     );
   }
 
-  // Layout compact : Prix actuel + % seulement
+  // ============================================
+  // LAYOUT COMPACT
+  // ============================================
+
   Widget _buildCompactLayout(int percentage, double savings) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Wrap(
+      spacing: 5,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
           _formatPrice(discountedPrice),
@@ -171,8 +174,7 @@ class DiscountPriceDisplay extends StatelessWidget {
             color: AppColors.error,
           ),
         ),
-        if (showPercentage) ...[
-          const SizedBox(width: 5),
+        if (showPercentage && percentage > 0)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
             decoration: BoxDecoration(
@@ -189,23 +191,27 @@ class DiscountPriceDisplay extends StatelessWidget {
               ),
             ),
           ),
-        ],
       ],
     );
   }
 
-  // Calculer le pourcentage de réduction
+  // ============================================
+  // CALCULS
+  // ============================================
+
   int _calculatePercentage() {
     if (originalPrice <= 0) return 0;
     return ((originalPrice - discountedPrice) / originalPrice * 100).round();
   }
 
-  // Calculer les économies
   double _calculateSavings() {
     return originalPrice - discountedPrice;
   }
 
-  // Formater le prix
+  // ============================================
+  // FORMATAGE
+  // ============================================
+
   String _formatPrice(double amount) {
     final formatted = amount.toStringAsFixed(0);
     final buffer = StringBuffer();
@@ -219,7 +225,10 @@ class DiscountPriceDisplay extends StatelessWidget {
   }
 }
 
-// Layout du prix avec réduction
+// ============================================
+// ENUM
+// ============================================
+
 enum DiscountPriceLayout {
   horizontal,  // Prix actuel | Ancien prix | Badge %
   vertical,    // Prix actuel en haut, ancien prix + % en bas

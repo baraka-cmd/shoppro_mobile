@@ -1,9 +1,15 @@
-// Écran de détails du produit - Version complète
-// Assemble galerie, infos, variations, quantité, specs, avis et produits similaires
+// ============================================
+// ÉCRAN DE DÉTAILS DU PRODUIT - VERSION PREMIUM
+// ============================================
+// Assemble galerie immersive, infos, variantes,
+// quantité, specs, avis, produits similaires
+// et CTA sticky avec animations professionnelles.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../routes/app_routes.dart';
 import '../../domain/entities/product.dart';
 import '../providers/product_provider.dart';
 import '../widgets/product_gallery.dart';
@@ -16,12 +22,11 @@ import '../widgets/share_button.dart';
 import '../widgets/recently_viewed_section.dart';
 import '../widgets/shimmer_product_card.dart';
 import '../widgets/product_card.dart';
-import '../widgets/add_review_sheet.dart';  // ✅ AJOUTER
+import '../widgets/add_review_sheet.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../cart/domain/entities/cart_item.dart';
 import '../../../favorites/presentation/providers/favorite_provider.dart';
 import '../../../favorites/domain/entities/favorite.dart';
-
 
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
@@ -39,6 +44,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _quantity = 1;
   bool _isFavorite = false;
   bool _isLoading = true;
+  bool _isAddingToCart = false;
   String? _errorMessage;
   Product? _product;
 
@@ -48,7 +54,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _loadProduct();
   }
 
-  // Charger le produit
+  // ============================================
+  // CHARGEMENT DU PRODUIT
+  // ============================================
+
   Future<void> _loadProduct() async {
     setState(() {
       _isLoading = true;
@@ -79,7 +88,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       });
 
       // Ajouter aux récemment consultés
-      await RecentlyViewedSection.addToRecentlyViewed(product);
+      await provider.addToRecentlyViewed(widget.productId);
 
       // Charger les produits similaires
       await provider.loadSimilarProducts(widget.productId);
@@ -90,6 +99,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       });
     }
   }
+
+  // ============================================
+  // BUILD PRINCIPAL
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +119,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  // État de chargement
+  // ============================================
+  // ÉTAT DE CHARGEMENT
+  // ============================================
+
   Widget _buildLoadingState() {
     return Column(
       children: [
@@ -141,7 +157,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  // État d'erreur
+  // ============================================
+  // ÉTAT D'ERREUR
+  // ============================================
+
   Widget _buildErrorState() {
     return Column(
       children: [
@@ -193,8 +212,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: const Text('RÉESSAYER'),
+                  child: const Text(
+                    'RÉESSAYER',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -204,7 +232,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  // Détails du produit
+  // ============================================
+  // DÉTAILS DU PRODUIT
+  // ============================================
+
   Widget _buildProductDetails() {
     final product = _product!;
     final imageUrls = _buildImageUrls(product);
@@ -213,30 +244,48 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Galerie + boutons superposés
-          Stack(
-            children: [
-              ProductGallery(
-                imageUrls: imageUrls,
-                height: 320,
-                showThumbnails: imageUrls.length > 1,
-                showDots: true,
-                showCounter: imageUrls.length > 1,
-                enableZoom: true,
-              ),
+          // ============================================
+          // BARRE SUPÉRIEURE (RETOUR + FAVORI + PARTAGER)
+          // ============================================
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Retour
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios,
+                        size: 16,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
 
-              // Boutons retour + actions
-              SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Favori + Partager
+                  Row(
                     children: [
-                      // Retour
+                      // Favori
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        child: Container(
+                        onTap: () => _toggleFavorite(product),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
@@ -249,74 +298,67 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Icons.arrow_back_ios,
-                            size: 16,
-                            color: AppColors.textPrimary,
+                          child: Icon(
+                            _isFavorite
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            size: 18,
+                            color: _isFavorite
+                                ? AppColors.error
+                                : AppColors.textSecondary,
                           ),
                         ),
                       ),
-
-                      // Favori + Partager
-                      Row(
-                        children: [
-                          // Favori
-                          GestureDetector(
-                            onTap: () => _toggleFavorite(product),
-                            child: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 5,
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                _isFavorite ? Icons.favorite : Icons.favorite_border,
-                                size: 18,
-                                color: _isFavorite ? AppColors.error : AppColors.textSecondary,
-                              ),
+                      const SizedBox(width: 8),
+                      // Partager
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 5,
                             ),
+                          ],
+                        ),
+                        child: Center(
+                          child: ShareButton(
+                            product: product,
+                            showLabel: false,
                           ),
-                          const SizedBox(width: 8),
-                          // Partager
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 5,
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: ShareButton(product: product),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
 
+          // ============================================
+          // GALERIE PREMIUM (COMMENCE APRÈS LA BARRE)
+          // ============================================
+          ProductGallery(
+            imageUrls: imageUrls,
+            height: 400,
+            showThumbnails: imageUrls.length > 1,
+            showDots: true,
+            showCounter: imageUrls.length > 1,
+            enableZoom: true,
+            enableFloatingAnimation: true,
+          ),
+
+          // ============================================
+          // CONTENU PRINCIPAL
+          // ============================================
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Informations produit
                 ProductInfoSection(product: product),
 
                 const SizedBox(height: 20),
@@ -324,21 +366,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 const SizedBox(height: 15),
 
-                // Variations
-                if (product.images.isNotEmpty || true)
-                  VariationSelector(
-                    variants: _buildVariants(product),
-                    onVariantSelected: (variant) {
-                      // Mise à jour du prix selon la variante
-                    },
-                  ),
+                VariationSelector(
+                  variants: _buildVariants(product).cast<ProductVariant>(),
+                  onVariantSelected: (variant) {},
+                ),
 
                 const SizedBox(height: 15),
                 const Divider(height: 1),
 
                 const SizedBox(height: 15),
 
-                // Quantité
                 QuantitySelector(
                   initialQuantity: _quantity,
                   maxQuantity: product.stock > 0 ? product.stock : 99,
@@ -355,9 +392,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 const SizedBox(height: 15),
 
-                // Spécifications
                 SpecificationsSection(
-                  specifications: _buildSpecifications(product),
+                  specifications: _buildSpecifications(product).cast<SpecificationItem>(),
                 ),
 
                 const SizedBox(height: 20),
@@ -365,12 +401,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 const SizedBox(height: 15),
 
-                // Avis
                 ReviewsSection(
                   averageRating: product.averageRating,
                   totalReviews: product.reviewsCount,
                   ratingDistribution: const {5: 2, 4: 3, 3: 1, 2: 0, 1: 0},
-                  reviews: _buildReviews(product),
+                  reviews: _buildReviews(product).cast<ReviewCardData>(),
                   onSeeAllReviews: () {},
                   onAddReview: () {
                     showAddReviewSheet(context);
@@ -382,7 +417,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ),
 
-          // Produits similaires
+          // ============================================
+          // PRODUITS SIMILAIRES
+          // ============================================
           Consumer<ProductProvider>(
             builder: (context, provider, child) {
               if (provider.similarProducts.isEmpty) {
@@ -392,22 +429,44 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      'PRODUITS SIMILAIRES',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 1,
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'PRODUITS SIMILAIRES',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).pushNamed(
+                              AppRoutes.productList,
+                              arguments: {'title': 'Produits similaires'},
+                            );
+                          },
+                          child: const Text(
+                            'Voir tout',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
-                    height: 220,
+                    height: 280,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -417,12 +476,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(right: 10),
                           child: SizedBox(
-                            width: 150,
+                            width: 170,
                             child: ProductCard(
                               product: similarProduct,
                               onTap: (p) {
                                 Navigator.of(context).pushReplacementNamed(
-                                  '/product/detail',
+                                  AppRoutes.productDetail,
                                   arguments: {'product_id': p.id},
                                 );
                               },
@@ -437,11 +496,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             },
           ),
 
-          // Récemment consultés
+          const SizedBox(height: 25),
+
+          // ============================================
+          // RÉCEMMENT CONSULTÉS
+          // ============================================
           RecentlyViewedSection(
             onProductTap: (product) {
               Navigator.of(context).pushReplacementNamed(
-                '/product/detail',
+                AppRoutes.productDetail,
                 arguments: {'product_id': product.id},
               );
             },
@@ -453,7 +516,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  // Bottom bar avec favori + panier
+  // ============================================
+  // BOTTOM BAR STICKY
+  // ============================================
+
   Widget _buildBottomBar() {
     final product = _product!;
 
@@ -463,8 +529,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
             offset: const Offset(0, -2),
           ),
         ],
@@ -478,7 +544,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               flex: 1,
               child: GestureDetector(
                 onTap: () => _toggleFavorite(product),
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
                   height: 50,
                   decoration: BoxDecoration(
                     color: _isFavorite
@@ -486,12 +553,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         : AppColors.background,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _isFavorite ? AppColors.error : AppColors.borderColor,
+                      color: _isFavorite
+                          ? AppColors.error
+                          : AppColors.borderColor,
                     ),
                   ),
                   child: Icon(
                     _isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: _isFavorite ? AppColors.error : AppColors.textSecondary,
+                    color: _isFavorite
+                        ? AppColors.error
+                        : AppColors.textSecondary,
                     size: 22,
                   ),
                 ),
@@ -504,7 +575,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             Expanded(
               flex: 3,
               child: ElevatedButton(
-                onPressed: product.isInStock
+                onPressed: product.isPurchasable && !_isAddingToCart
                     ? () => _addToCart(product)
                     : null,
                 style: ElevatedButton.styleFrom(
@@ -515,15 +586,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 0,
+                  disabledBackgroundColor: AppColors.borderColor,
+                  disabledForegroundColor: AppColors.textTertiary,
                 ),
-                child: Text(
-                  product.isInStock ? 'AJOUTER AU PANIER' : 'RUPTURE DE STOCK',
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: _isAddingToCart
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        product.isPurchasable
+                            ? 'AJOUTER AU PANIER'
+                            : product.isOutOfStock
+                                ? 'RUPTURE DE STOCK'
+                                : 'INDISPONIBLE',
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -532,7 +618,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  // Construire les URLs des images
+  // ============================================
+  // CONSTRUIRE LES URLS DES IMAGES
+  // ============================================
+
   List<String> _buildImageUrls(Product product) {
     final urls = <String>[];
 
@@ -542,7 +631,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
 
     for (final img in product.images) {
-      final url = (img as dynamic).thumbnailUrl ?? img.url ?? '';
+      final url = img.fullUrl;
       if (url.isNotEmpty && !urls.contains(url)) {
         urls.add(url);
       }
@@ -551,96 +640,136 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return urls;
   }
 
-  // Ajouter au panier
-Future<void> _addToCart(Product product) async {
-  final cartProvider = context.read<CartProvider>();
+  // ============================================
+  // AJOUTER AU PANIER
+  // ============================================
 
-  final cartItem = CartItem(
-    id: DateTime.now().millisecondsSinceEpoch,  // ID unique
-    productId: product.id,
-    name: product.name,
-    imageUrl: (product as dynamic).fullImageUrl ?? product.mainImage,
-    sku: product.sku,
-    unitPrice: product.currentPrice,
-    discountPrice: product.hasDiscount ? product.discountPrice : null,
-    quantity: _quantity,
-    maxQuantity: product.stock > 0 ? product.stock : 99,
-    stock: product.stock,
-  );
+  Future<void> _addToCart(Product product) async {
+    setState(() {
+      _isAddingToCart = true;
+    });
 
-  final success = await cartProvider.addItem(cartItem);
+    final cartProvider = context.read<CartProvider>();
 
-  if (!mounted) return;
-
-  if (success) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Produit ajouté au panier !'),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(20),
-      ),
+    final cartItem = CartItem(
+      id: DateTime.now().millisecondsSinceEpoch,
+      productId: product.id,
+      name: product.name,
+      imageUrl: product.fullImageUrl.isNotEmpty ? product.fullImageUrl : product.mainImage,
+      sku: product.sku,
+      unitPrice: product.currentPrice,
+      discountPrice: product.hasDiscount ? product.discountPrice : null,
+      quantity: _quantity,
+      maxQuantity: product.stock > 0 ? product.stock : 99,
+      stock: product.stock,
     );
-  } else {
+
+    final success = await cartProvider.addItem(cartItem);
+
+    if (!mounted) return;
+
+    setState(() {
+      _isAddingToCart = false;
+    });
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Produit ajouté au panier !',
+            style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+          ),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(20),
+          duration: Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            cartProvider.errorMessage ?? 'Erreur lors de l\'ajout au panier',
+            style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(20),
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+        ),
+      );
+    }
+  }
+
+  // ============================================
+  // TOGGLE FAVORI
+  // ============================================
+
+  Future<void> _toggleFavorite(Product product) async {
+    final favoriteProvider = context.read<FavoriteProvider>();
+
+    final favorite = Favorite(
+      id: DateTime.now().millisecondsSinceEpoch,
+      productId: product.id,
+      productName: product.name,
+      productImage: product.fullImageUrl.isNotEmpty
+          ? product.fullImageUrl
+          : product.mainImage,
+      productSku: product.sku,
+      productPrice: product.price,
+      productDiscountPrice: product.hasDiscount ? product.discountPrice : null,
+      isInStock: product.isInStock,
+      stock: product.stock,
+      averageRating: product.averageRating,
+      addedAt: DateTime.now(),
+    );
+
+    final result = await favoriteProvider.toggleFavorite(favorite);
+
+    if (!mounted) return;
+
+    setState(() {
+      _isFavorite = result ?? false;
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(cartProvider.errorMessage ?? 'Erreur'),
-        backgroundColor: AppColors.error,
+        content: Text(
+          _isFavorite ? 'Ajouté aux favoris !' : 'Retiré des favoris',
+          style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+        ),
+        backgroundColor: _isFavorite ? AppColors.success : AppColors.error,
         behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(20),
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
       ),
     );
   }
-}
 
-// Toggle favori
-Future<void> _toggleFavorite(Product product) async {
-  final favoriteProvider = context.read<FavoriteProvider>();
+  // ============================================
+  // CONSTRUIRE LES VARIANTES
+  // ============================================
 
-  final favorite = Favorite(
-    id: DateTime.now().millisecondsSinceEpoch,
-    productId: product.id,
-    productName: product.name,
-    productImage: (product as dynamic).fullImageUrl ?? product.mainImage,
-    productSku: product.sku,
-    productPrice: product.price,
-    productDiscountPrice: product.hasDiscount ? product.discountPrice : null,
-    isInStock: product.isInStock,
-    stock: product.stock,
-    averageRating: product.averageRating,
-    addedAt: DateTime.now(),
-  );
-
-  final result = await favoriteProvider.toggleFavorite(favorite);
-
-  if (!mounted) return;
-
-  setState(() {
-    _isFavorite = result ?? false;
-  });
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        _isFavorite ? 'Ajouté aux favoris !' : 'Retiré des favoris',
-        style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
-      ),
-      backgroundColor: _isFavorite ? AppColors.success : AppColors.error,
-      behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.all(20),
-      duration: const Duration(seconds: 2),
-    ),
-  );
-}
-  // Construire les variantes
-  List<ProductVariant> _buildVariants(Product product) {
+  List<dynamic> _buildVariants(Product product) {
     // Placeholder - à remplacer par les vraies variantes de l'API
     return const [];
   }
 
-  // Construire les spécifications
+  // ============================================
+  // CONSTRUIRE LES SPÉCIFICATIONS
+  // ============================================
+
   List<SpecificationItem> _buildSpecifications(Product product) {
-    return [
+    return <SpecificationItem>[
       SpecificationItem(label: 'SKU', value: product.sku, icon: Icons.qr_code),
       SpecificationItem(label: 'Stock', value: '${product.stock} unités', icon: Icons.inventory),
       if (product.category != null)
@@ -650,8 +779,11 @@ Future<void> _toggleFavorite(Product product) async {
     ];
   }
 
-  // Construire les avis
-  List<ReviewCardData> _buildReviews(Product product) {
+  // ============================================
+  // CONSTRUIRE LES AVIS
+  // ============================================
+
+  List<dynamic> _buildReviews(Product product) {
     // Placeholder - à remplacer par les vrais avis de l'API
     return const [];
   }

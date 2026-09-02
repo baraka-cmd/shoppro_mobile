@@ -1,19 +1,39 @@
-// Interface du repository des produits
-// Définit le contrat que le repository doit respecter
+// ============================================
+// INTERFACE DU REPOSITORY DES PRODUITS
+// ============================================
+// Définit le contrat que le repository doit respecter.
+// Inclut la gestion du cache, de l'offline et
+// des avis pour une expérience e-commerce complète.
+// ============================================
 
 import '../entities/product.dart';
 import '../entities/category.dart';
 import '../entities/brand.dart';
+import '../entities/product_image.dart';
 
 abstract class ProductRepository {
+  // ============================================
+  // PRODUITS - LISTE & PAGINATION
+  // ============================================
+
   /// Récupérer la liste paginée des produits
   Future<List<Product>> getProducts({
     int page = 1,
     int perPage = 15,
   });
 
+  /// Vérifier si plus de produits sont disponibles (pagination)
+  Future<bool> hasMoreProducts({
+    int page = 1,
+    int perPage = 15,
+  });
+
   /// Récupérer les détails d'un produit
   Future<Product> getProductDetails(int id);
+
+  // ============================================
+  // PRODUITS - SECTIONS
+  // ============================================
 
   /// Récupérer les produits en vedette
   Future<List<Product>> getFeaturedProducts({int limit = 10});
@@ -26,6 +46,10 @@ abstract class ProductRepository {
 
   /// Récupérer les produits en promotion
   Future<List<Product>> getOnSaleProducts({int limit = 10});
+
+  // ============================================
+  // PRODUITS - RECHERCHE & FILTRES
+  // ============================================
 
   /// Rechercher des produits
   Future<List<Product>> searchProducts({
@@ -49,6 +73,10 @@ abstract class ProductRepository {
     int perPage = 15,
   });
 
+  // ============================================
+  // PRODUITS - RELATIONS
+  // ============================================
+
   /// Récupérer les produits par catégorie
   Future<List<Product>> getProductsByCategory({
     required int categoryId,
@@ -66,8 +94,20 @@ abstract class ProductRepository {
   /// Récupérer les produits similaires
   Future<List<Product>> getSimilarProducts(int productId);
 
+  // ============================================
+  // CATÉGORIES
+  // ============================================
+
   /// Récupérer toutes les catégories
-  Future<List<Category>> getCategories();
+  Future<List<Category>> getCategories({
+    bool includeInactive = false,
+  });
+
+  /// Récupérer les catégories racines uniquement
+  Future<List<Category>> getRootCategories();
+
+  /// Récupérer les catégories en vedette
+  Future<List<Category>> getFeaturedCategories();
 
   /// Récupérer les détails d'une catégorie
   Future<Category> getCategoryDetails(int id);
@@ -79,8 +119,20 @@ abstract class ProductRepository {
     int perPage = 15,
   });
 
+  /// Récupérer les sous-catégories d'une catégorie
+  Future<List<Category>> getSubcategories(int categoryId);
+
+  // ============================================
+  // MARQUES
+  // ============================================
+
   /// Récupérer toutes les marques
-  Future<List<Brand>> getBrands();
+  Future<List<Brand>> getBrands({
+    bool includeInactive = false,
+  });
+
+  /// Récupérer les marques en vedette
+  Future<List<Brand>> getFeaturedBrands();
 
   /// Récupérer les détails d'une marque
   Future<Brand> getBrandDetails(int id);
@@ -92,9 +144,40 @@ abstract class ProductRepository {
     int perPage = 15,
   });
 
-  /// Vérifier si plus de produits sont disponibles (pagination)
-  Future<bool> hasMoreProducts({
+  // ============================================
+  // IMAGES & GALERIE
+  // ============================================
+
+  /// Récupérer toutes les images d'un produit
+  Future<List<ProductImage>> getProductImages(int productId);
+
+  /// Récupérer l'image principale d'un produit
+  Future<ProductImage?> getPrimaryImage(int productId);
+
+  // ============================================
+  // AVIS
+  // ============================================
+
+  /// Récupérer les avis d'un produit
+  Future<List<dynamic>> getProductReviews({
+    required int productId,
     int page = 1,
-    int perPage = 15,
+    int perPage = 10,
   });
+
+  /// Récupérer la note moyenne d'un produit
+  Future<double> getProductAverageRating(int productId);
+
+  // ============================================
+  // PRODUITS RÉCEMMENT CONSULTÉS
+  // ============================================
+
+  /// Récupérer les produits récemment consultés
+  Future<List<Product>> getRecentlyViewedProducts({int limit = 10});
+
+  /// Ajouter un produit à l'historique récent
+  Future<void> addToRecentlyViewed(int productId);
+
+  /// Effacer l'historique récent
+  Future<void> clearRecentlyViewed();
 }

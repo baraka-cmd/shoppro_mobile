@@ -1,5 +1,9 @@
-// Header de catégorie
-// Affiche l'image, le nom et la description de la catégorie
+// ============================================
+// HEADER DE CATÉGORIE - VERSION PREMIUM
+// ============================================
+// Affiche l'image, le nom, la description et
+// le compteur de produits. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -24,197 +28,214 @@ class CategoryHeader extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppColors.mediumShadow,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            // Image de fond
-            SizedBox(
-              height: 180,
-              width: double.infinity,
-              child: category.imageUrl != null && category.imageUrl!.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: category.imageUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: _getCategoryColor(category).withValues(alpha: 0.2),
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: _getCategoryColor(category),
-                        child: Icon(
-                          _getCategoryIcon(category),
-                          size: 60,
-                          color: Colors.white,
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: _getCategoryColor(category),
-                      child: Icon(
-                        _getCategoryIcon(category),
-                        size: 60,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
-
-            // Overlay dégradé
-            Container(
-              height: 180,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.7),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-
-            // Informations
-            Positioned(
-              left: 20,
-              right: 20,
-              bottom: 15,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Nom de la catégorie
-                  Text(
-                    category.name,
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-
-                  const SizedBox(height: 3),
-
-                  // Description
-                  if (category.description != null &&
-                      category.description!.isNotEmpty)
-                    Text(
-                      category.description!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white.withValues(alpha: 0.8),
-                        height: 1.4,
-                      ),
-                    ),
-
-                  const SizedBox(height: 5),
-
-                  // Nombre de produits
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.inventory_2,
-                              size: 12,
+        child: GestureDetector(
+          onTap: onImageTap,
+          child: Stack(
+            children: [
+              // ============================================
+              // IMAGE DE FOND
+              // ============================================
+              SizedBox(
+                height: 180,
+                width: double.infinity,
+                child: category.hasImage
+                    ? CachedNetworkImage(
+                        imageUrl: category.fullImageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: _getCategoryColor(category).withValues(alpha: 0.2),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
                               color: Colors.white,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '$productsCount produits',
-                              style: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        errorWidget: (context, url, error) => _buildFallback(category),
+                      )
+                    : _buildFallback(category),
               ),
-            ),
 
-            // Badge vedette
-            if (category.isFeatured)
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning,
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.warning.withValues(alpha: 0.3),
-                        blurRadius: 5,
-                      ),
+              // ============================================
+              // OVERLAY DÉGRADÉ
+              // ============================================
+              Container(
+                height: 180,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.7),
                     ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.star,
-                        size: 12,
-                        color: Colors.white,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'VEDETTE',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
                 ),
               ),
-          ],
+
+              // ============================================
+              // INFORMATIONS
+              // ============================================
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 15,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      category.name,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+
+                    const SizedBox(height: 3),
+
+                    if (category.description != null &&
+                        category.description!.isNotEmpty)
+                      Text(
+                        category.description!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withValues(alpha: 0.8),
+                          height: 1.4,
+                        ),
+                      ),
+
+                    const SizedBox(height: 5),
+
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.inventory_2_outlined,
+                                size: 12,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$productsCount produits',
+                                style: const TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // ============================================
+              // BADGE VEDETTE
+              // ============================================
+              if (category.isFeatured)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning,
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.warning.withValues(alpha: 0.3),
+                          blurRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.star,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'VEDETTE',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Icône selon la catégorie
+  // ============================================
+  // FALLBACK SANS IMAGE
+  // ============================================
+
+  Widget _buildFallback(Category category) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            _getCategoryColor(category),
+            _getCategoryColor(category).withValues(alpha: 0.7),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          _getCategoryIcon(category),
+          size: 60,
+          color: Colors.white.withValues(alpha: 0.9),
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // ICÔNE SELON LA CATÉGORIE
+  // ============================================
+
   IconData _getCategoryIcon(Category category) {
     final slug = category.slug.toLowerCase();
 
@@ -229,7 +250,10 @@ class CategoryHeader extends StatelessWidget {
     return Icons.category;
   }
 
-  // Couleur selon la catégorie
+  // ============================================
+  // COULEUR SELON LA CATÉGORIE
+  // ============================================
+
   Color _getCategoryColor(Category category) {
     final slug = category.slug.toLowerCase();
 

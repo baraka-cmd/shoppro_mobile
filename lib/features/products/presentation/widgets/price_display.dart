@@ -1,5 +1,9 @@
-// Widget d'affichage du prix
-// Affiche le prix avec formatage, devise et options de style
+// ============================================
+// WIDGET D'AFFICHAGE DU PRIX - PREMIUM
+// ============================================
+// Affiche le prix avec formatage FCFA,
+// tailles et styles configurables. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -12,6 +16,7 @@ class PriceDisplay extends StatelessWidget {
   final bool showCurrency;
   final bool showDecimal;
   final bool bold;
+  final bool strikethrough;
   final Color? customColor;
 
   const PriceDisplay({
@@ -23,6 +28,7 @@ class PriceDisplay extends StatelessWidget {
     this.showCurrency = true,
     this.showDecimal = false,
     this.bold = true,
+    this.strikethrough = false,
     this.customColor,
   });
 
@@ -39,17 +45,22 @@ class PriceDisplay extends StatelessWidget {
         fontWeight: bold ? FontWeight.bold : FontWeight.w500,
         color: textColor,
         letterSpacing: 0.3,
+        decoration: strikethrough ? TextDecoration.lineThrough : null,
+        decorationColor: textColor,
+        decorationThickness: 1.5,
       ),
     );
   }
 
-  // Formater le prix
+  // ============================================
+  // FORMATAGE
+  // ============================================
+
   String _formatPrice() {
     final formatted = showDecimal
         ? price.toStringAsFixed(2)
         : price.toStringAsFixed(0);
 
-    // Ajouter les séparateurs de milliers
     final parts = formatted.split('.');
     final integerPart = parts[0];
     final decimalPart = parts.length > 1 ? parts[1] : null;
@@ -73,7 +84,10 @@ class PriceDisplay extends StatelessWidget {
     return buffer.toString();
   }
 
-  // Taille selon le style
+  // ============================================
+  // TAILLE
+  // ============================================
+
   double _getFontSize() {
     switch (size) {
       case PriceDisplaySize.small:
@@ -87,7 +101,10 @@ class PriceDisplay extends StatelessWidget {
     }
   }
 
-  // Couleur selon le style
+  // ============================================
+  // COULEUR
+  // ============================================
+
   Color _getColor() {
     if (customColor != null) return customColor!;
 
@@ -104,7 +121,10 @@ class PriceDisplay extends StatelessWidget {
   }
 }
 
-// Taille du prix
+// ============================================
+// ENUMS
+// ============================================
+
 enum PriceDisplaySize {
   small,
   medium,
@@ -112,9 +132,8 @@ enum PriceDisplaySize {
   extraLarge,
 }
 
-// Style du prix
 enum PriceDisplayStyle {
-  normal,     // Bleu foncé
+  normal,     // Bleu royal
   discount,   // Rouge
   old,        // Gris (barré)
   success,    // Vert

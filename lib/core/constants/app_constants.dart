@@ -28,4 +28,6 @@ class AppConstants {
   
   // 📄 Pagination
   static const int itemsPerPage = 10;
+  
+  
 }
