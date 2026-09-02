@@ -1,9 +1,15 @@
-// Écran du panier d'achat
-// Assemble tous les éléments : articles, résumé, coupon et suggestions
+// ============================================
+// ÉCRAN DU PANIER D'ACHAT - VERSION PREMIUM
+// ============================================
+// Assemble tous les éléments : articles, résumé,
+// coupon, suggestions et livraison gratuite.
+// Design conforme à la vision ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../routes/app_routes.dart';
 import '../../../products/presentation/providers/product_provider.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../../notifications/domain/entities/app_notification.dart';
@@ -15,7 +21,6 @@ import '../widgets/empty_cart.dart';
 import '../widgets/free_shipping_progress.dart';
 import '../widgets/cart_suggestions.dart';
 import '../widgets/saved_for_later_section.dart';
-import '../../../../routes/app_routes.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -28,10 +33,15 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCart();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCart();
+    });
   }
 
-  // Charger le panier
+  // ============================================
+  // CHARGEMENT
+  // ============================================
+
   Future<void> _loadCart() async {
     final cartProvider = context.read<CartProvider>();
     await cartProvider.loadCart();
@@ -40,12 +50,16 @@ class _CartScreenState extends State<CartScreen> {
     await productProvider.loadPopularProducts();
   }
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -79,6 +93,7 @@ class _CartScreenState extends State<CartScreen> {
                   color: AppColors.error,
                   size: 22,
                 ),
+                tooltip: 'Vider le panier',
               );
             },
           ),
@@ -108,7 +123,10 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // Panier vide
+  // ============================================
+  // PANIER VIDE
+  // ============================================
+
   Widget _buildEmptyCart(CartProvider provider) {
     return SingleChildScrollView(
       child: Column(
@@ -143,7 +161,10 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // Contenu du panier
+  // ============================================
+  // CONTENU DU PANIER
+  // ============================================
+
   Widget _buildCartContent(CartProvider provider) {
     return RefreshIndicator(
       onRefresh: _loadCart,
@@ -155,6 +176,9 @@ class _CartScreenState extends State<CartScreen> {
           children: [
             const SizedBox(height: 10),
 
+            // ============================================
+            // LIVRAISON GRATUITE
+            // ============================================
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: FreeShippingProgress(cart: provider.cart),
@@ -162,6 +186,9 @@ class _CartScreenState extends State<CartScreen> {
 
             const SizedBox(height: 15),
 
+            // ============================================
+            // ARTICLES
+            // ============================================
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
@@ -185,7 +212,7 @@ class _CartScreenState extends State<CartScreen> {
                   item: item,
                   onIncrement: () => provider.incrementQuantity(item.id),
                   onDecrement: () => provider.decrementQuantity(item.id),
-                  onRemove: () => provider.removeItem(item.id),
+                  onRemove: () => _handleRemoveItem(provider, item.id),
                   onSaveForLater: () => provider.saveForLater(item.id),
                   onTap: () {
                     Navigator.of(context).pushNamed(
@@ -197,6 +224,9 @@ class _CartScreenState extends State<CartScreen> {
               );
             }),
 
+            // ============================================
+            // SAUVEGARDÉS POUR PLUS TARD
+            // ============================================
             if (provider.cart.savedForLaterItems.isNotEmpty) ...[
               const SizedBox(height: 20),
               SavedForLaterSection(
@@ -221,6 +251,9 @@ class _CartScreenState extends State<CartScreen> {
 
             const SizedBox(height: 20),
 
+            // ============================================
+            // RÉSUMÉ
+            // ============================================
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: CartSummary(cart: provider.cart),
@@ -228,6 +261,9 @@ class _CartScreenState extends State<CartScreen> {
 
             const SizedBox(height: 15),
 
+            // ============================================
+            // CODE PROMO
+            // ============================================
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: CouponField(
@@ -236,15 +272,21 @@ class _CartScreenState extends State<CartScreen> {
                 onApply: (code) {
                   provider.applyCoupon(code).then((success) {
                     if (success) {
-                      // ✅ Notification de promotion
                       _addPromotionNotification(provider, code);
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Code promo appliqué !'),
+                          content: Text(
+                            'Code promo appliqué !',
+                            style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+                          ),
                           backgroundColor: AppColors.success,
                           behavior: SnackBarBehavior.floating,
                           margin: EdgeInsets.all(20),
+                          duration: Duration(seconds: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
                         ),
                       );
                     } else {
@@ -252,10 +294,18 @@ class _CartScreenState extends State<CartScreen> {
                         SnackBar(
                           content: Text(
                             provider.errorMessage ?? 'Code invalide',
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13,
+                            ),
                           ),
                           backgroundColor: AppColors.error,
                           behavior: SnackBarBehavior.floating,
-                          margin: EdgeInsets.all(20),
+                          margin: const EdgeInsets.all(20),
+                          duration: const Duration(seconds: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
                         ),
                       );
                     }
@@ -269,6 +319,9 @@ class _CartScreenState extends State<CartScreen> {
 
             const SizedBox(height: 20),
 
+            // ============================================
+            // SUGGESTIONS
+            // ============================================
             Consumer<ProductProvider>(
               builder: (context, productProvider, child) {
                 return CartSuggestions(
@@ -294,7 +347,43 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // Bottom bar avec total + paiement
+  // ============================================
+  // SUPPRESSION AVEC ANNULATION
+  // ============================================
+
+  Future<void> _handleRemoveItem(CartProvider provider, int itemId) async {
+    final success = await provider.removeItem(itemId);
+
+    if (!mounted || !success) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Produit supprimé',
+          style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+        ),
+        backgroundColor: AppColors.textPrimary,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        action: SnackBarAction(
+          label: 'ANNULER',
+          textColor: AppColors.primary,
+          onPressed: () {
+            provider.undoLastAction();
+          },
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // BOTTOM BAR
+  // ============================================
+
   Widget _buildBottomBar(CartProvider provider) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -353,6 +442,7 @@ class _CartScreenState extends State<CartScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 0,
+                shadowColor: AppColors.primary.withValues(alpha: 0.3),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -376,7 +466,10 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // ✅ Ajouter une notification de promotion
+  // ============================================
+  // NOTIFICATION PROMOTION
+  // ============================================
+
   Future<void> _addPromotionNotification(CartProvider provider, String code) async {
     final notificationProvider = context.read<NotificationProvider>();
     await notificationProvider.addNotification(
@@ -390,7 +483,10 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // Dialog pour vider le panier
+  // ============================================
+  // DIALOG VIDER LE PANIER
+  // ============================================
+
   void _showClearCartDialog(CartProvider provider) {
     showDialog(
       context: context,

@@ -1,5 +1,9 @@
-// Animation d'ajout au panier
-// Affiche une animation quand un produit est ajouté
+// ============================================
+// ANIMATION D'AJOUT AU PANIER - VERSION PREMIUM
+// ============================================
+// Affiche une animation quand un produit est ajouté.
+// Design ShopPro avec effets élastiques.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -34,14 +38,14 @@ class _AddToCartAnimationState extends State<AddToCartAnimation>
       duration: const Duration(milliseconds: 400),
     );
 
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.25).animate(
       CurvedAnimation(
         parent: _controller,
         curve: Curves.elasticOut,
       ),
     );
 
-    _opacityAnimation = Tween<double>(begin: 1.0, end: 0.3).animate(
+    _opacityAnimation = Tween<double>(begin: 1.0, end: 0.4).animate(
       CurvedAnimation(
         parent: _controller,
         curve: Curves.easeInOut,
@@ -55,7 +59,10 @@ class _AddToCartAnimationState extends State<AddToCartAnimation>
     super.dispose();
   }
 
-  // Déclencher l'animation
+  // ============================================
+  // DÉCLENCHER L'ANIMATION
+  // ============================================
+
   void _triggerAnimation() {
     _controller.forward().then((_) {
       _controller.reverse();
@@ -71,13 +78,19 @@ class _AddToCartAnimationState extends State<AddToCartAnimation>
         scale: _scaleAnimation,
         child: FadeTransition(
           opacity: _opacityAnimation,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: widget.isInCart
                   ? AppColors.success.withValues(alpha: 0.1)
                   : AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: widget.isInCart
+                    ? AppColors.success.withValues(alpha: 0.3)
+                    : AppColors.primary.withValues(alpha: 0.2),
+              ),
             ),
             child: Icon(
               widget.isInCart
@@ -93,7 +106,10 @@ class _AddToCartAnimationState extends State<AddToCartAnimation>
   }
 }
 
-// Overlay d'animation flottante vers le panier
+// ============================================
+// OVERLAY D'ANIMATION FLOTTANTE VERS LE PANIER
+// ============================================
+
 class FlyingCartAnimation extends StatefulWidget {
   final bool show;
   final Offset startPosition;
@@ -138,6 +154,16 @@ class _FlyingCartAnimationState extends State<FlyingCartAnimation>
   }
 
   @override
+  void didUpdateWidget(FlyingCartAnimation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.show && !oldWidget.show) {
+      _controller.forward(from: 0).then((_) {
+        widget.onComplete?.call();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -161,24 +187,28 @@ class _FlyingCartAnimationState extends State<FlyingCartAnimation>
           left: dx,
           top: dy,
           child: Opacity(
-            opacity: 1 - (_progress.value * 0.5),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.shopping_cart,
-                size: 20,
-                color: Colors.white,
+            opacity: (1 - (_progress.value * 0.5)).clamp(0.0, 1.0),
+            child: Transform.scale(
+              scale: 1 - (_progress.value * 0.3),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.shopping_cart,
+                  size: 20,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),

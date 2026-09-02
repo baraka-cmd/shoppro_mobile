@@ -1,5 +1,9 @@
-// État vide du panier
-// Affiche un message et un bouton pour explorer les produits
+// ============================================
+// ÉTAT VIDE DU PANIER - VERSION PREMIUM
+// ============================================
+// Affiche un message élégant et un bouton
+// pour explorer les produits. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -20,28 +24,30 @@ class EmptyCart extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icône panier vide
+            // ============================================
+            // ICÔNE PANIER VIDE
+            // ============================================
             Container(
-              width: 100,
-              height: 100,
+              width: 110,
+              height: 110,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.05),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   const Icon(
-                    Icons.shopping_cart_outlined,
+                    Icons.shopping_bag_outlined,
                     size: 50,
                     color: AppColors.textLight,
                   ),
                   Positioned(
-                    top: 20,
-                    right: 20,
+                    top: 22,
+                    right: 22,
                     child: Container(
-                      width: 25,
-                      height: 25,
+                      width: 26,
+                      height: 26,
                       decoration: const BoxDecoration(
                         color: AppColors.textLight,
                         shape: BoxShape.circle,
@@ -59,7 +65,9 @@ class EmptyCart extends StatelessWidget {
 
             const SizedBox(height: 25),
 
-            // Titre
+            // ============================================
+            // TITRE
+            // ============================================
             const Text(
               'Votre panier est vide',
               style: TextStyle(
@@ -72,7 +80,9 @@ class EmptyCart extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            // Description
+            // ============================================
+            // DESCRIPTION
+            // ============================================
             const Text(
               'Découvrez nos produits et trouvez\nce qui vous plaît !',
               textAlign: TextAlign.center,
@@ -87,7 +97,9 @@ class EmptyCart extends StatelessWidget {
 
             const SizedBox(height: 25),
 
-            // Bouton Explorer
+            // ============================================
+            // BOUTON EXPLORER
+            // ============================================
             ElevatedButton(
               onPressed: onExplore,
               style: ElevatedButton.styleFrom(
@@ -101,11 +113,12 @@ class EmptyCart extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 0,
+                shadowColor: AppColors.primary.withValues(alpha: 0.3),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.explore, size: 18),
+                  Icon(Icons.explore_outlined, size: 18),
                   SizedBox(width: 8),
                   Text(
                     'EXPLORER LES PRODUITS',
@@ -121,7 +134,9 @@ class EmptyCart extends StatelessWidget {
 
             const SizedBox(height: 15),
 
-            // Suggestions rapides
+            // ============================================
+            // SUGGESTIONS RAPIDES
+            // ============================================
             Text(
               'Populaire : Électronique • Mode • Maison',
               style: TextStyle(

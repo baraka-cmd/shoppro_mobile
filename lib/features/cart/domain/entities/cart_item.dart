@@ -1,5 +1,10 @@
-// Entité CartItem (Domaine)
+// ============================================
+// ENTITÉ CART ITEM (DOMAINE) - VERSION PREMIUM
+// ============================================
 // Représente un élément dans le panier d'achat
+// avec calculs intelligents, stock et formatage.
+// Design ShopPro.
+// ============================================
 
 class CartItem {
   final int id;
@@ -34,6 +39,10 @@ class CartItem {
     this.variantSize,
   });
 
+  // ============================================
+  // PRIX
+  // ============================================
+
   /// Prix effectif (avec réduction si applicable)
   double get effectivePrice => discountPrice ?? unitPrice;
 
@@ -42,6 +51,9 @@ class CartItem {
 
   /// Prix formaté
   String get formattedPrice => _formatPrice(effectivePrice);
+
+  /// Prix unitaire original formaté
+  String get formattedUnitPrice => _formatPrice(unitPrice);
 
   /// Sous-total formaté
   String get formattedSubtotal => _formatPrice(subtotal);
@@ -55,17 +67,56 @@ class CartItem {
     return ((unitPrice - discountPrice!) / unitPrice * 100).round();
   }
 
+  /// Économies réalisées sur cet article
+  double get savings {
+    if (!hasDiscount) return 0;
+    return (unitPrice - discountPrice!) * quantity;
+  }
+
+  /// Économies formatées
+  String get formattedSavings => _formatPrice(savings);
+
+  // ============================================
+  // STOCK
+  // ============================================
+
   /// L'article est-il en stock ?
   bool get isInStock => stock > 0;
 
   /// Stock faible ?
   bool get isLowStock => stock > 0 && stock <= 5;
 
+  /// En rupture ?
+  bool get isOutOfStock => stock <= 0;
+
   /// Peut-on incrémenter ?
   bool get canIncrement => quantity < maxQuantity && quantity < stock;
 
   /// Peut-on décrémenter ?
   bool get canDecrement => quantity > 1;
+
+  /// Quantité maximale réelle (stock limitant)
+  int get effectiveMaxQuantity {
+    if (maxQuantity < stock) return maxQuantity;
+    return stock;
+  }
+
+  /// Stock restant après cet article
+  int get remainingStock {
+    return stock - quantity;
+  }
+
+  /// Message de stock
+  String get stockMessage {
+    if (isOutOfStock) return 'Rupture de stock';
+    if (isLowStock) return 'Plus que $stock en stock';
+    if (remainingStock <= 5) return 'Plus que $remainingStock en stock';
+    return '';
+  }
+
+  // ============================================
+  // NOM ET VARIANTES
+  // ============================================
 
   /// Nom complet avec variante
   String get fullName {
@@ -81,6 +132,39 @@ class CartItem {
     return name;
   }
 
+  /// Afficher les variantes
+  String get variantLabel {
+    final parts = <String>[];
+    if (variantColor != null) parts.add(variantColor!);
+    if (variantSize != null) parts.add(variantSize!);
+    return parts.join(' • ');
+  }
+
+  /// L'article a-t-il des variantes ?
+  bool get hasVariant => variantColor != null || variantSize != null;
+
+  // ============================================
+  // VALIDATION
+  // ============================================
+
+  /// L'article a-t-il des données valides ?
+  bool get isValid {
+    return id > 0 &&
+        productId > 0 &&
+        name.isNotEmpty &&
+        unitPrice >= 0 &&
+        quantity > 0;
+  }
+
+  /// L'article a-t-il un prix incohérent ?
+  bool get hasPriceError {
+    return discountPrice != null && discountPrice! > unitPrice;
+  }
+
+  // ============================================
+  // FORMATAGE
+  // ============================================
+
   /// Formater un prix
   String _formatPrice(double amount) {
     final formatted = amount.toStringAsFixed(0);
@@ -93,6 +177,10 @@ class CartItem {
     }
     return '$buffer FCFA';
   }
+
+  // ============================================
+  // MÉTHODES
+  // ============================================
 
   /// Copier avec modifications
   CartItem copyWith({
@@ -167,5 +255,16 @@ class CartItem {
       variantColor: json['variant_color'] as String?,
       variantSize: json['variant_size'] as String?,
     );
+  }
+
+  // ============================================
+  // TOSTRING
+  // ============================================
+
+  @override
+  String toString() {
+    return 'CartItem(id: $id, product: $name, quantity: $quantity, '
+        'price: $formattedPrice, subtotal: $formattedSubtotal, '
+        'savedForLater: $isSavedForLater)';
   }
 }

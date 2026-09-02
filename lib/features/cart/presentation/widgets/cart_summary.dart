@@ -1,5 +1,10 @@
-// Récapitulatif du panier
-// Affiche sous-total, livraison, remises, taxes et total
+// ============================================
+// RÉCAPITULATIF DU PANIER - VERSION PREMIUM
+// ============================================
+// Affiche sous-total, livraison, remises, taxes
+// et total avec hiérarchie visuelle claire.
+// Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -23,11 +28,14 @@ class CartSummary extends StatelessWidget {
         border: Border.all(
           color: AppColors.borderColor.withValues(alpha: 0.5),
         ),
+        boxShadow: AppColors.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Titre
+          // ============================================
+          // TITRE
+          // ============================================
           const Text(
             'RÉCAPITULATIF',
             style: TextStyle(
@@ -41,7 +49,9 @@ class CartSummary extends StatelessWidget {
 
           const SizedBox(height: 15),
 
-          // Sous-total
+          // ============================================
+          // SOUS-TOTAL
+          // ============================================
           _buildSummaryRow(
             label: 'Sous-total',
             value: cart.formattedSubtotal,
@@ -49,27 +59,33 @@ class CartSummary extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Remise produits
+          // ============================================
+          // REMISE PRODUITS
+          // ============================================
           if (cart.itemsDiscount > 0) ...[
             _buildSummaryRow(
               label: 'Remise produits',
-              value: '- ${cart.itemsDiscount.toStringAsFixed(0)} FCFA',
+              value: '- ${_formatAmount(cart.itemsDiscount)}',
               valueColor: AppColors.success,
             ),
             const SizedBox(height: 8),
           ],
 
-          // Remise coupon
+          // ============================================
+          // REMISE COUPON
+          // ============================================
           if (cart.couponDiscount > 0) ...[
             _buildSummaryRow(
               label: 'Code promo (${cart.couponCode})',
-              value: '- ${cart.couponDiscount.toStringAsFixed(0)} FCFA',
+              value: '- ${_formatAmount(cart.couponDiscount)}',
               valueColor: AppColors.success,
             ),
             const SizedBox(height: 8),
           ],
 
-          // Livraison
+          // ============================================
+          // LIVRAISON
+          // ============================================
           _buildSummaryRow(
             label: 'Livraison',
             value: cart.formattedShippingFee,
@@ -78,7 +94,9 @@ class CartSummary extends StatelessWidget {
                 : AppColors.textPrimary,
           ),
 
-          // Taxes
+          // ============================================
+          // TAXES
+          // ============================================
           if (cart.taxes > 0) ...[
             const SizedBox(height: 8),
             _buildSummaryRow(
@@ -88,11 +106,13 @@ class CartSummary extends StatelessWidget {
           ],
 
           const SizedBox(height: 12),
-          const Divider(height: 1),
+          const Divider(height: 1, color: AppColors.borderColor),
 
           const SizedBox(height: 12),
 
-          // Total
+          // ============================================
+          // TOTAL
+          // ============================================
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -109,7 +129,7 @@ class CartSummary extends StatelessWidget {
                 cart.formattedTotal,
                 style: const TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
                 ),
@@ -121,7 +141,10 @@ class CartSummary extends StatelessWidget {
     );
   }
 
-  // Ligne de résumé
+  // ============================================
+  // LIGNE DE RÉSUMÉ
+  // ============================================
+
   Widget _buildSummaryRow({
     required String label,
     required String value,
@@ -139,16 +162,37 @@ class CartSummary extends StatelessWidget {
             color: AppColors.textSecondary,
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: valueColor ?? AppColors.textPrimary,
+        Flexible(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: valueColor ?? AppColors.textPrimary,
+            ),
           ),
         ),
       ],
     );
+  }
+
+  // ============================================
+  // FORMATAGE
+  // ============================================
+
+  String _formatAmount(double amount) {
+    final formatted = amount.toStringAsFixed(0);
+    final buffer = StringBuffer();
+    for (int i = 0; i < formatted.length; i++) {
+      buffer.write(formatted[i]);
+      if ((formatted.length - 1 - i) % 3 == 0 && i != formatted.length - 1) {
+        buffer.write(' ');
+      }
+    }
+    return '$buffer FCFA';
   }
 }

@@ -1,5 +1,9 @@
-// Modèle CartItem (Data)
-// Gère la sérialisation/désérialisation JSON de l'élément du panier
+// ============================================
+// MODÈLE CART ITEM (DATA) - VERSION PREMIUM
+// ============================================
+// Gère la sérialisation/désérialisation JSON
+// avec parsing robuste et valeurs par défaut.
+// ============================================
 
 import '../../domain/entities/cart_item.dart';
 
@@ -24,20 +28,20 @@ class CartItemModel extends CartItem {
   /// Créer depuis JSON
   factory CartItemModel.fromJson(Map<String, dynamic> json) {
     return CartItemModel(
-      id: json['id'] as int? ?? 0,
-      productId: json['product_id'] as int? ?? 0,
-      name: json['name'] as String? ?? '',
-      imageUrl: json['image_url'] as String?,
-      sku: json['sku'] as String? ?? '',
+      id: _parseInt(json['id']),
+      productId: _parseInt(json['product_id']),
+      name: _parseString(json['name']),
+      imageUrl: _parseNullableString(json['image_url']),
+      sku: _parseString(json['sku']),
       unitPrice: _parseDouble(json['unit_price']),
       discountPrice: _parseNullableDouble(json['discount_price']),
-      quantity: json['quantity'] as int? ?? 1,
-      maxQuantity: json['max_quantity'] as int? ?? 99,
-      stock: json['stock'] as int? ?? 0,
-      isSavedForLater: json['is_saved_for_later'] as bool? ?? false,
-      variantName: json['variant_name'] as String?,
-      variantColor: json['variant_color'] as String?,
-      variantSize: json['variant_size'] as String?,
+      quantity: _parseInt(json['quantity'], defaultValue: 1),
+      maxQuantity: _parseInt(json['max_quantity'], defaultValue: 99),
+      stock: _parseInt(json['stock']),
+      isSavedForLater: _parseBool(json['is_saved_for_later']),
+      variantName: _parseNullableString(json['variant_name']),
+      variantColor: _parseNullableString(json['variant_color']),
+      variantSize: _parseNullableString(json['variant_size']),
     );
   }
 
@@ -62,7 +66,38 @@ class CartItemModel extends CartItem {
     };
   }
 
-  /// Parser un double
+  /// Copier depuis l'entité
+  static CartItemModel fromEntity(CartItem item) {
+    return CartItemModel(
+      id: item.id,
+      productId: item.productId,
+      name: item.name,
+      imageUrl: item.imageUrl,
+      sku: item.sku,
+      unitPrice: item.unitPrice,
+      discountPrice: item.discountPrice,
+      quantity: item.quantity,
+      maxQuantity: item.maxQuantity,
+      stock: item.stock,
+      isSavedForLater: item.isSavedForLater,
+      variantName: item.variantName,
+      variantColor: item.variantColor,
+      variantSize: item.variantSize,
+    );
+  }
+
+  // ============================================
+  // HELPERS DE PARSING
+  // ============================================
+
+  static int _parseInt(dynamic value, {int defaultValue = 0}) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
+
   static double _parseDouble(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value.toDouble();
@@ -71,12 +106,30 @@ class CartItemModel extends CartItem {
     return 0;
   }
 
-  /// Parser un double nullable
   static double? _parseNullableDouble(dynamic value) {
     if (value == null) return null;
     if (value is int) return value.toDouble();
     if (value is double) return value;
     if (value is String) return double.tryParse(value);
     return null;
+  }
+
+  static String _parseString(dynamic value) {
+    if (value == null) return '';
+    return value.toString().trim();
+  }
+
+  static String? _parseNullableString(dynamic value) {
+    if (value == null) return null;
+    final string = value.toString().trim();
+    return string.isEmpty ? null : string;
+  }
+
+  static bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value.toLowerCase() == 'true' || value == '1';
+    return false;
   }
 }

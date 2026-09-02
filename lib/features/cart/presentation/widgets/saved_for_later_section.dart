@@ -1,5 +1,9 @@
-// Section des articles sauvegardés pour plus tard
-// Affiche les articles mis de côté avec option de réactivation
+// ============================================
+// SECTION DES ARTICLES SAUVEGARDÉS - PREMIUM
+// ============================================
+// Affiche les articles mis de côté avec option
+// de réactivation et suppression. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -29,7 +33,9 @@ class SavedForLaterSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Titre + Effacer tout
+        // ============================================
+        // EN-TÊTE
+        // ============================================
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
@@ -38,7 +44,7 @@ class SavedForLaterSection extends StatelessWidget {
               const Row(
                 children: [
                   Icon(
-                    Icons.bookmark,
+                    Icons.bookmark_outline,
                     size: 16,
                     color: AppColors.textSecondary,
                   ),
@@ -47,46 +53,83 @@ class SavedForLaterSection extends StatelessWidget {
                     'SAUVEGARDÉS POUR PLUS TARD',
                     style: TextStyle(
                       fontFamily: 'Poppins',
-                      fontSize: 14,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: AppColors.textSecondary,
                       letterSpacing: 1,
                     ),
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: onClearAll,
-                child: const Text(
-                  'Tout effacer',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+              if (onClearAll != null)
+                GestureDetector(
+                  onTap: onClearAll,
+                  child: const Text(
+                    'Tout effacer',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
-        // Liste des articles sauvegardés
+        // ============================================
+        // LISTE DES ARTICLES SAUVEGARDÉS
+        // ============================================
         ...savedItems.map((item) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
             child: CartItemWidget(
               item: item,
-              onIncrement: null, // Pas d'incrément pour sauvegardés
-              onDecrement: null, // Pas de décrément
+              onIncrement: null,
+              onDecrement: null,
               onRemove: onRemove,
-              onMoveToCart: () => onMoveToCart?.call(),
+              onMoveToCart: onMoveToCart,
               onTap: null,
             ),
           );
         }),
+
+        // ============================================
+        // BOUTON TOUT DÉPLACER
+        // ============================================
+        if (savedItems.length > 1 && onMoveToCart != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onMoveToCart,
+                icon: const Icon(
+                  Icons.shopping_cart_outlined,
+                  size: 16,
+                ),
+                label: Text(
+                  'TOUT DÉPLACER VERS LE PANIER (${savedItems.length})',
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

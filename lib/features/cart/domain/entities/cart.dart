@@ -1,5 +1,10 @@
-// Entité Cart (Domaine)
-// Représente le panier d'achat complet
+// ============================================
+// ENTITÉ CART (DOMAINE) - VERSION PREMIUM
+// ============================================
+// Représente le panier d'achat complet avec
+// calculs intelligents, livraison gratuite
+// et formatage FCFA. Design ShopPro.
+// ============================================
 
 import 'cart_item.dart';
 
@@ -20,6 +25,10 @@ class Cart {
     this.currency = 'FCFA',
   });
 
+  // ============================================
+  // ARTICLES
+  // ============================================
+
   /// Articles actifs (pas sauvegardés pour plus tard)
   List<CartItem> get activeItems {
     return items.where((item) => !item.isSavedForLater).toList();
@@ -30,7 +39,14 @@ class Cart {
     return items.where((item) => item.isSavedForLater).toList();
   }
 
-  /// Nombre total d'articles (quantités)
+  /// Le panier a-t-il des articles sauvegardés ?
+  bool get hasSavedForLaterItems => savedForLaterItems.isNotEmpty;
+
+  // ============================================
+  // COMPTEURS
+  // ============================================
+
+  /// Nombre total d'articles (somme des quantités)
   int get totalQuantity {
     return activeItems.fold(0, (sum, item) => sum + item.quantity);
   }
@@ -39,6 +55,19 @@ class Cart {
   int get totalItems {
     return activeItems.length;
   }
+
+  /// Le panier est-il vide ?
+  bool get isEmpty => activeItems.isEmpty;
+
+  /// Le panier a-t-il un code promo appliqué ?
+  bool get hasCoupon => couponCode != null && couponCode!.isNotEmpty;
+
+  /// Le panier a-t-il une réduction ?
+  bool get hasDiscount => totalDiscount > 0;
+
+  // ============================================
+  // CALCULS FINANCIERS
+  // ============================================
 
   /// Sous-total (avant réduction et livraison)
   double get subtotal {
@@ -67,7 +96,7 @@ class Cart {
 
   /// Frais de livraison (gratuit si seuil atteint)
   double get effectiveShippingFee {
-    if (subtotal >= 50000) return 0;
+    if (subtotal >= freeShippingThreshold) return 0;
     return shippingFee;
   }
 
@@ -76,10 +105,57 @@ class Cart {
     return subtotal - couponDiscount + taxes + effectiveShippingFee;
   }
 
+  /// Total à payer (minimum 0)
+  double get safeTotal {
+    return total < 0 ? 0 : total;
+  }
+
+  // ============================================
+  // LIVRAISON GRATUITE
+  // ============================================
+
+  /// Seuil de livraison gratuite
+  static const double freeShippingThreshold = 50000;
+
+  /// La livraison gratuite est-elle activée ?
+  bool get hasFreeShipping => subtotal >= freeShippingThreshold;
+
+  /// Progression vers la livraison gratuite (0.0 à 1.0)
+  double get freeShippingProgress {
+    if (hasFreeShipping) return 1.0;
+    return (subtotal / freeShippingThreshold).clamp(0.0, 1.0);
+  }
+
+  /// Pourcentage de progression (0 à 100)
+  int get freeShippingPercentage {
+    return (freeShippingProgress * 100).round();
+  }
+
+  /// Montant restant pour la livraison gratuite
+  double get remainingForFreeShipping {
+    if (hasFreeShipping) return 0;
+    return freeShippingThreshold - subtotal;
+  }
+
+  /// Montant restant formaté
+  String get formattedRemainingForFreeShipping {
+    return _formatPrice(remainingForFreeShipping);
+  }
+
+  // ============================================
+  // FORMATAGE
+  // ============================================
+
   /// Sous-total formaté
   String get formattedSubtotal => _formatPrice(subtotal);
 
-  /// Remise formatée
+  /// Remise produits formatée
+  String get formattedItemsDiscount => _formatPrice(itemsDiscount);
+
+  /// Remise coupon formatée
+  String get formattedCouponDiscount => _formatPrice(couponDiscount);
+
+  /// Remise totale formatée
   String get formattedDiscount => _formatPrice(totalDiscount);
 
   /// Taxes formatées
@@ -94,29 +170,6 @@ class Cart {
   /// Total formaté
   String get formattedTotal => _formatPrice(total);
 
-  /// Le panier est-il vide ?
-  bool get isEmpty => activeItems.isEmpty;
-
-  /// Seuil de livraison gratuite
-  static const double freeShippingThreshold = 50000;
-
-  /// Progression vers la livraison gratuite
-  double get freeShippingProgress {
-    if (subtotal >= freeShippingThreshold) return 1.0;
-    return (subtotal / freeShippingThreshold).clamp(0.0, 1.0);
-  }
-
-  /// Montant restant pour la livraison gratuite
-  double get remainingForFreeShipping {
-    if (subtotal >= freeShippingThreshold) return 0;
-    return freeShippingThreshold - subtotal;
-  }
-
-  /// Montant restant formaté
-  String get formattedRemainingForFreeShipping {
-    return _formatPrice(remainingForFreeShipping);
-  }
-
   /// Formater un prix
   String _formatPrice(double amount) {
     final formatted = amount.toStringAsFixed(0);
@@ -129,6 +182,25 @@ class Cart {
     }
     return '$buffer $currency';
   }
+
+  // ============================================
+  // VALIDATION
+  // ============================================
+
+  /// Le panier a-t-il des données valides ?
+  bool get isValid {
+    if (items.isEmpty) return true;
+    return items.every((item) => item.isValid);
+  }
+
+  /// Le panier a-t-il un prix incohérent ?
+  bool get hasPriceError {
+    return total < 0;
+  }
+
+  // ============================================
+  // MÉTHODES
+  // ============================================
 
   /// Copier avec modifications
   Cart copyWith({
@@ -174,5 +246,16 @@ class Cart {
       taxRate: (json['tax_rate'] as num?)?.toDouble() ?? 0,
       currency: json['currency'] as String? ?? 'FCFA',
     );
+  }
+
+  // ============================================
+  // TOSTRING
+  // ============================================
+
+  @override
+  String toString() {
+    return 'Cart(items: ${totalItems}, quantity: $totalQuantity, '
+        'subtotal: $formattedSubtotal, total: $formattedTotal, '
+        'coupon: $couponCode, freeShipping: $hasFreeShipping)';
   }
 }

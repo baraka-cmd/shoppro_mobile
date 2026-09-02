@@ -1,5 +1,9 @@
-// Champ de code promo
+// ============================================
+// CHAMP DE CODE PROMO - VERSION PREMIUM
+// ============================================
 // Permet d'appliquer ou de retirer un coupon
+// avec validation et messages. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -33,7 +37,10 @@ class _CouponFieldState extends State<CouponField> {
     super.dispose();
   }
 
-  // Appliquer le coupon
+  // ============================================
+  // APPLIQUER LE COUPON
+  // ============================================
+
   void _applyCoupon() {
     final code = _controller.text.trim();
 
@@ -45,12 +52,20 @@ class _CouponFieldState extends State<CouponField> {
       return;
     }
 
+    setState(() {
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
     widget.onApply?.call(code.toUpperCase());
   }
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
-    // Si un coupon est déjà appliqué
     if (widget.currentCoupon != null && widget.currentCoupon!.isNotEmpty) {
       return _buildAppliedCoupon();
     }
@@ -63,15 +78,18 @@ class _CouponFieldState extends State<CouponField> {
         border: Border.all(
           color: AppColors.borderColor.withValues(alpha: 0.5),
         ),
+        boxShadow: AppColors.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Titre
+          // ============================================
+          // TITRE
+          // ============================================
           const Row(
             children: [
               Icon(
-                Icons.local_offer,
+                Icons.local_offer_outlined,
                 size: 16,
                 color: AppColors.warning,
               ),
@@ -91,13 +109,16 @@ class _CouponFieldState extends State<CouponField> {
 
           const SizedBox(height: 10),
 
-          // Champ + Bouton
+          // ============================================
+          // CHAMP + BOUTON
+          // ============================================
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _controller,
                   textCapitalization: TextCapitalization.characters,
+                  enabled: !widget.isLoading,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 13,
@@ -112,7 +133,7 @@ class _CouponFieldState extends State<CouponField> {
                       color: AppColors.textLight,
                     ),
                     filled: true,
-                    fillColor: AppColors.background,
+                    fillColor: AppColors.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide.none,
@@ -138,6 +159,8 @@ class _CouponFieldState extends State<CouponField> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   elevation: 0,
+                  disabledBackgroundColor: AppColors.borderColor,
+                  disabledForegroundColor: AppColors.textTertiary,
                 ),
                 child: widget.isLoading
                     ? const SizedBox(
@@ -160,28 +183,62 @@ class _CouponFieldState extends State<CouponField> {
             ],
           ),
 
-          // Messages
+          // ============================================
+          // MESSAGES
+          // ============================================
           if (_errorMessage != null) ...[
             const SizedBox(height: 8),
-            Text(
-              _errorMessage!,
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: AppColors.error,
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: 1.0,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 14,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
           if (_successMessage != null) ...[
             const SizedBox(height: 8),
-            Text(
-              _successMessage!,
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: AppColors.success,
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: 1.0,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    size: 14,
+                    color: AppColors.success,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      _successMessage!,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.success,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -190,7 +247,10 @@ class _CouponFieldState extends State<CouponField> {
     );
   }
 
-  // Coupon appliqué
+  // ============================================
+  // COUPON APPLIQUÉ
+  // ============================================
+
   Widget _buildAppliedCoupon() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -200,6 +260,7 @@ class _CouponFieldState extends State<CouponField> {
         border: Border.all(
           color: AppColors.success.withValues(alpha: 0.3),
         ),
+        boxShadow: AppColors.softShadow,
       ),
       child: Row(
         children: [
@@ -249,6 +310,7 @@ class _CouponFieldState extends State<CouponField> {
               size: 18,
               color: AppColors.error,
             ),
+            tooltip: 'Retirer le code promo',
           ),
         ],
       ),

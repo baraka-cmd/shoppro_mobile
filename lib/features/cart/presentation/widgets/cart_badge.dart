@@ -1,5 +1,9 @@
-// Badge du panier
+// ============================================
+// BADGE DU PANIER - VERSION PREMIUM
+// ============================================
 // Affiche le nombre d'articles avec animation
+// élastique et ombre. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -30,7 +34,7 @@ class _CartBadgeState extends State<CartBadge>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 350),
     );
 
     _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
@@ -48,8 +52,13 @@ class _CartBadgeState extends State<CartBadge>
   @override
   void didUpdateWidget(CartBadge oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.count != oldWidget.count && widget.count > 0) {
-      _controller.forward(from: 0);
+    // Animer quand le compte change
+    if (widget.count != oldWidget.count) {
+      if (widget.count > 0) {
+        _controller.forward(from: 0);
+      } else {
+        _controller.reset();
+      }
     }
   }
 
@@ -85,8 +94,9 @@ class _CartBadgeState extends State<CartBadge>
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.error.withValues(alpha: 0.3),
-                        blurRadius: 5,
+                        color: AppColors.error.withValues(alpha: 0.35),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
