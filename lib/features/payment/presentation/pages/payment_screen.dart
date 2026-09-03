@@ -1,12 +1,15 @@
-// Écran de paiement
-// Permet de choisir le mode et de confirmer le paiement
+// ============================================
+// ÉCRAN DE PAIEMENT - VERSION PREMIUM
+// ============================================
+// Permet de choisir le mode et de confirmer
+// le paiement en toute sécurité. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../routes/app_routes.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
-import '../../../orders/presentation/providers/order_provider.dart';
-import '../../../orders/domain/entities/order.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../../notifications/domain/entities/app_notification.dart';
 import '../providers/payment_provider.dart';
@@ -15,7 +18,7 @@ import '../widgets/payment_summary.dart';
 import '../widgets/payment_confirmation_dialog.dart';
 
 class PaymentScreen extends StatefulWidget {
-  final Order order;
+  final dynamic order;
 
   const PaymentScreen({
     super.key,
@@ -35,32 +38,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'method': 'cash_on_delivery',
       'label': 'À la livraison',
       'description': 'Payez en espèces à la réception',
-      'icon': Icons.payments,
+      'icon': Icons.payments_outlined,
       'color': AppColors.success,
       'available': true,
     },
     {
-      'method': 'mobile_money',
-      'label': 'Mobile Money',
-      'description': 'MTN MoMo, Orange Money',
+      'method': 'airtel_money',
+      'label': 'Airtel Money',
+      'description': 'Payez via Airtel Money',
       'icon': Icons.phone_android,
-      'color': AppColors.warning,
-      'available': false,
+      'color': const Color(0xFFFF0000),
+      'available': true,
+    },
+    {
+      'method': 'orange_money',
+      'label': 'Orange Money',
+      'description': 'Payez via Orange Money',
+      'icon': Icons.phone_android,
+      'color': const Color(0xFFFF7900),
+      'available': true,
     },
     {
       'method': 'card',
       'label': 'Carte bancaire',
-      'description': 'Visa, Mastercard',
-      'icon': Icons.credit_card,
+      'description': 'Visa, Mastercard (bientôt)',
+      'icon': Icons.credit_card_outlined,
       'color': AppColors.primary,
-      'available': false,
-    },
-    {
-      'method': 'bank_transfer',
-      'label': 'Virement bancaire',
-      'description': 'Virement classique',
-      'icon': Icons.account_balance,
-      'color': AppColors.info,
       'available': false,
     },
   ];
@@ -72,9 +75,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -99,6 +102,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ============================================
+            // TITRE
+            // ============================================
             const Text(
               'CHOISISSEZ VOTRE MODE DE PAIEMENT',
               style: TextStyle(
@@ -112,6 +118,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
             const SizedBox(height: 12),
 
+            // ============================================
+            // MÉTHODES DE PAIEMENT
+            // ============================================
             ..._paymentMethods.map((method) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -123,17 +132,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   color: method['color'],
                   isSelected: _selectedMethod == method['method'],
                   isAvailable: method['available'],
-                  onTap: () {
-                    setState(() {
-                      _selectedMethod = method['method'];
-                    });
-                  },
+                  onTap: method['available']
+                      ? () {
+                          setState(() {
+                            _selectedMethod = method['method'];
+                          });
+                        }
+                      : null,
                 ),
               );
             }),
 
             const SizedBox(height: 15),
 
+            // ============================================
+            // RÉSUMÉ
+            // ============================================
             PaymentSummary(
               amount: widget.order.total,
               fee: 0,
@@ -143,6 +157,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
 
             const SizedBox(height: 15),
+
+            // ============================================
+            // SÉCURITÉ
+            // ============================================
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -155,7 +173,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: const Row(
                 children: [
                   Icon(
-                    Icons.lock,
+                    Icons.lock_outline,
                     size: 16,
                     color: AppColors.info,
                   ),
@@ -185,8 +203,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
               offset: const Offset(0, -2),
             ),
           ],
@@ -194,7 +212,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         child: SafeArea(
           top: false,
           child: ElevatedButton(
-            onPressed: _isProcessing ? null : _processPayment,
+            onPressed: _isProcessing ? null : () => _showConfirmationDialog(),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -203,6 +221,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               elevation: 0,
+              shadowColor: AppColors.primary.withValues(alpha: 0.3),
+              disabledBackgroundColor: AppColors.borderColor,
             ),
             child: _isProcessing
                 ? const SizedBox(
@@ -227,7 +247,106 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  // Traiter le paiement
+  // ============================================
+  // DIALOG DE CONFIRMATION
+  // ============================================
+
+  void _showConfirmationDialog() {
+    final selectedMethod = _paymentMethods.firstWhere(
+      (m) => m['method'] == _selectedMethod,
+    );
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Confirmer le paiement ?',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Commande : ${widget.order.orderNumber}',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Montant : ${widget.order.formattedTotal}',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Méthode : ${selectedMethod['label']}',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text(
+                'Modifier',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _processPayment();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'CONFIRMER',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ============================================
+  // TRAITER LE PAIEMENT
+  // ============================================
+
   Future<void> _processPayment() async {
     setState(() {
       _isProcessing = true;
@@ -248,6 +367,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         setState(() {
           _isProcessing = false;
         });
+        _showError('Erreur lors de la création du paiement');
         return;
       }
 
@@ -263,29 +383,27 @@ class _PaymentScreenState extends State<PaymentScreen> {
       });
 
       if (result != null) {
-        // ✅ Créer la notification de paiement réussi
         final notificationProvider = context.read<NotificationProvider>();
         await notificationProvider.addNotification(
           AppNotification(
             id: DateTime.now().millisecondsSinceEpoch,
             title: 'Paiement réussi !',
-            body: 'Votre paiement de ${result.formattedTotal} a été traité avec succès.',
+            body: 'Votre paiement de ${result.formattedTotalAmount} a été traité avec succès.',
             type: 'order',
             createdAt: DateTime.now(),
           ),
         );
 
-        // Afficher le dialog de confirmation
         await showPaymentConfirmation(
           context: context,
           payment: result,
-          isSuccess: result.isSuccessful,
+          isSuccess: result.isSuccess,
           onDone: () {
             final cartProvider = context.read<CartProvider>();
             cartProvider.clearCart();
 
             Navigator.of(context).pushNamedAndRemoveUntil(
-              '/orders',
+              AppRoutes.orders,
               (route) => false,
             );
           },
@@ -295,20 +413,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
       setState(() {
         _isProcessing = false;
       });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Erreur: $e',
-              style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(20),
-          ),
-        );
-      }
+      _showError('Erreur: $e');
     }
+  }
+
+  // ============================================
+  // AFFICHER UNE ERREUR
+  // ============================================
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+        ),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+    );
   }
 }

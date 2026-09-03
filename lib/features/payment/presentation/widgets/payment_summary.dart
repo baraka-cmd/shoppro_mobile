@@ -1,9 +1,12 @@
-// Résumé du paiement
+// ============================================
+// RÉSUMÉ DU PAIEMENT - VERSION PREMIUM
+// ============================================
 // Affiche le montant, les frais et le total
+// avec hiérarchie visuelle claire. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../domain/entities/payment.dart';
 
 class PaymentSummary extends StatelessWidget {
   final double amount;
@@ -31,11 +34,14 @@ class PaymentSummary extends StatelessWidget {
         border: Border.all(
           color: AppColors.borderColor.withValues(alpha: 0.5),
         ),
+        boxShadow: AppColors.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Titre
+          // ============================================
+          // TITRE
+          // ============================================
           const Text(
             'RÉSUMÉ DU PAIEMENT',
             style: TextStyle(
@@ -49,89 +55,46 @@ class PaymentSummary extends StatelessWidget {
 
           const SizedBox(height: 15),
 
-          // Méthode
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Méthode',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              Text(
-                methodLabel,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
+          // ============================================
+          // MÉTHODE
+          // ============================================
+          _buildRow(
+            label: 'Méthode',
+            value: methodLabel,
+            valueColor: AppColors.textPrimary,
           ),
 
           const SizedBox(height: 8),
 
-          // Montant
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Montant',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              Text(
-                _formatPrice(amount),
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
+          // ============================================
+          // MONTANT
+          // ============================================
+          _buildRow(
+            label: 'Montant',
+            value: _formatPrice(amount),
+            valueColor: AppColors.textPrimary,
           ),
 
-          // Frais
+          // ============================================
+          // FRAIS
+          // ============================================
           if (fee > 0) ...[
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Frais',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
-                  _formatPrice(fee),
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.warning,
-                  ),
-                ),
-              ],
+            _buildRow(
+              label: 'Frais',
+              value: _formatPrice(fee),
+              valueColor: AppColors.warning,
             ),
           ],
 
           const SizedBox(height: 12),
-          const Divider(height: 1),
+          const Divider(height: 1, color: AppColors.borderColor),
 
           const SizedBox(height: 12),
 
-          // Total
+          // ============================================
+          // TOTAL
+          // ============================================
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -144,13 +107,17 @@ class PaymentSummary extends StatelessWidget {
                   color: AppColors.textPrimary,
                 ),
               ),
-              Text(
-                _formatPrice(total),
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+              Flexible(
+                child: Text(
+                  _formatPrice(total),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
@@ -160,7 +127,48 @@ class PaymentSummary extends StatelessWidget {
     );
   }
 
-  // Formater le prix
+  // ============================================
+  // LIGNE DE RÉSUMÉ
+  // ============================================
+
+  Widget _buildRow({
+    required String label,
+    required String value,
+    required Color valueColor,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        Flexible(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: valueColor,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================
+  // FORMATAGE
+  // ============================================
+
   String _formatPrice(double value) {
     final formatted = value.toStringAsFixed(0);
     final buffer = StringBuffer();

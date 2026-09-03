@@ -1,5 +1,9 @@
-// Provider des paiements
-// Gère l'état des paiements et les actions
+// ============================================
+// PROVIDER DES PAIEMENTS - VERSION PREMIUM
+// ============================================
+// Gère l'état des paiements avec actions complètes,
+// vérification et annulation.
+// ============================================
 
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/payment.dart';
@@ -22,12 +26,20 @@ class PaymentProvider extends ChangeNotifier {
   PaymentProvider({PaymentRepository? paymentRepository})
       : _paymentRepository = paymentRepository ?? PaymentRepositoryImpl();
 
+  // ============================================
+  // ÉTAT
+  // ============================================
+
   PaymentStatus _status = PaymentStatus.initial;
   List<Payment> _payments = [];
   Payment? _currentPayment;
   String? _errorMessage;
+  int _processingPaymentId = -1;
 
-  // Getters
+  // ============================================
+  // GETTERS DE BASE
+  // ============================================
+
   PaymentStatus get status => _status;
   List<Payment> get payments => _payments;
   Payment? get currentPayment => _currentPayment;
@@ -35,9 +47,36 @@ class PaymentProvider extends ChangeNotifier {
   bool get isLoading => _status == PaymentStatus.loading;
   bool get isProcessing => _status == PaymentStatus.processing;
   bool get isSuccess => _status == PaymentStatus.success;
+  bool get isFailed => _status == PaymentStatus.failed;
   bool get hasError => _status == PaymentStatus.error;
   bool get isEmpty => _payments.isEmpty;
   int get paymentsCount => _payments.length;
+
+  /// ID du paiement en cours de traitement
+  int get processingPaymentId => _processingPaymentId;
+
+  // ============================================
+  // GETTERS DÉRIVÉS
+  // ============================================
+
+  /// Paiements en attente
+  List<Payment> get pendingPayments {
+    return _payments.where((p) => p.isPending || p.isProcessing).toList();
+  }
+
+  /// Paiements réussis
+  List<Payment> get successfulPayments {
+    return _payments.where((p) => p.isSuccess).toList();
+  }
+
+  /// Paiements échoués
+  List<Payment> get failedPayments {
+    return _payments.where((p) => p.isFailed).toList();
+  }
+
+  // ============================================
+  // CHARGEMENT
+  // ============================================
 
   /// Charger les paiements
   Future<void> loadPayments() async {
@@ -55,6 +94,15 @@ class PaymentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Rafraîchir les paiements
+  Future<void> refreshPayments() async {
+    await loadPayments();
+  }
+
+  // ============================================
+  // CRÉATION
+  // ============================================
+
   /// Créer un paiement
   Future<Payment?> createPayment({
     required int orderId,
@@ -67,6 +115,7 @@ class PaymentProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      await _paymentRepository.savePaymentsSnapshot();
       final payment = await _paymentRepository.createPayment(
         orderId: orderId,
         orderNumber: orderNumber,
@@ -88,41 +137,39 @@ class PaymentProvider extends ChangeNotifier {
     }
   }
 
+  // ============================================
+  // TRAITEMENT
+  // ============================================
+
   /// Simuler un paiement
   Future<Payment?> simulatePayment(int paymentId, {bool success = true}) async {
-    print('=== PROVIDER SIMULATE PAYMENT START ===');
-    print('paymentId: $paymentId');
-    
+    _processingPaymentId = paymentId;
     _setStatus(PaymentStatus.processing);
     _clearError();
+    notifyListeners();
 
     try {
-      // Simuler un délai de traitement
       await Future.delayed(const Duration(seconds: 2));
-      print('Délai 2 secondes terminé');
 
       final payment = await _paymentRepository.simulatePayment(
         paymentId,
         success: success,
       );
-      print('Payment reçu du repository: ${payment.status}');
 
       _currentPayment = payment;
       _payments = await _paymentRepository.getPayments();
-      print('Liste mise à jour: ${_payments.length} paiements');
+      _processingPaymentId = -1;
 
-      if (payment.isSuccessful) {
+      if (payment.isSuccess) {
         _setStatus(PaymentStatus.success);
       } else {
         _setStatus(PaymentStatus.failed);
       }
 
       notifyListeners();
-      print('=== PROVIDER SIMULATE PAYMENT END - RETURNING ${payment.status} ===');
-      
       return payment;
     } catch (e) {
-      print('ERREUR DANS PROVIDER: $e');
+      _processingPaymentId = -1;
       _setError(e.toString());
       _setStatus(PaymentStatus.error);
       notifyListeners();
@@ -130,8 +177,28 @@ class PaymentProvider extends ChangeNotifier {
     }
   }
 
+  /// Vérifier le statut d'un paiement
+  Future<Payment?> verifyPayment(int paymentId) async {
+    _processingPaymentId = paymentId;
+    notifyListeners();
+
+    try {
+      final payment = await _paymentRepository.verifyPayment(paymentId);
+      _currentPayment = payment;
+      _processingPaymentId = -1;
+      notifyListeners();
+      return payment;
+    } catch (e) {
+      _processingPaymentId = -1;
+      _setError(e.toString());
+      notifyListeners();
+      return null;
+    }
+  }
+
   /// Confirmer un paiement
   Future<Payment?> confirmPayment(int paymentId, String transactionId) async {
+    _processingPaymentId = paymentId;
     _setStatus(PaymentStatus.processing);
 
     try {
@@ -142,10 +209,12 @@ class PaymentProvider extends ChangeNotifier {
 
       _currentPayment = payment;
       _payments = await _paymentRepository.getPayments();
+      _processingPaymentId = -1;
       _setStatus(PaymentStatus.success);
       notifyListeners();
       return payment;
     } catch (e) {
+      _processingPaymentId = -1;
       _setError(e.toString());
       _setStatus(PaymentStatus.error);
       notifyListeners();
@@ -155,7 +224,7 @@ class PaymentProvider extends ChangeNotifier {
 
   /// Échouer un paiement
   Future<Payment?> failPayment(int paymentId, String errorMessage) async {
-    _setStatus(PaymentStatus.processing);
+    _processingPaymentId = paymentId;
 
     try {
       final payment = await _paymentRepository.failPayment(
@@ -165,35 +234,63 @@ class PaymentProvider extends ChangeNotifier {
 
       _currentPayment = payment;
       _payments = await _paymentRepository.getPayments();
+      _processingPaymentId = -1;
       _setStatus(PaymentStatus.failed);
       notifyListeners();
       return payment;
     } catch (e) {
+      _processingPaymentId = -1;
       _setError(e.toString());
-      _setStatus(PaymentStatus.error);
       notifyListeners();
       return null;
     }
   }
 
+  /// Annuler un paiement
+  Future<Payment?> cancelPayment(int paymentId) async {
+    _processingPaymentId = paymentId;
+
+    try {
+      final payment = await _paymentRepository.cancelPayment(paymentId);
+      _currentPayment = payment;
+      _payments = await _paymentRepository.getPayments();
+      _processingPaymentId = -1;
+      notifyListeners();
+      return payment;
+    } catch (e) {
+      _processingPaymentId = -1;
+      _setError(e.toString());
+      notifyListeners();
+      return null;
+    }
+  }
+
+  // ============================================
+  // REMBOURSEMENT
+  // ============================================
+
   /// Rembourser un paiement
   Future<Payment?> refundPayment(int paymentId) async {
-    _setStatus(PaymentStatus.processing);
+    _processingPaymentId = paymentId;
 
     try {
       final payment = await _paymentRepository.refundPayment(paymentId);
       _currentPayment = payment;
       _payments = await _paymentRepository.getPayments();
-      _setStatus(PaymentStatus.loaded);
+      _processingPaymentId = -1;
       notifyListeners();
       return payment;
     } catch (e) {
+      _processingPaymentId = -1;
       _setError(e.toString());
-      _setStatus(PaymentStatus.error);
       notifyListeners();
       return null;
     }
   }
+
+  // ============================================
+  // REÇU
+  // ============================================
 
   /// Générer un reçu
   Future<String?> generateReceipt(int paymentId) async {
@@ -206,6 +303,10 @@ class PaymentProvider extends ChangeNotifier {
     }
   }
 
+  // ============================================
+  // RECHERCHE
+  // ============================================
+
   /// Récupérer un paiement par ID
   Payment? getPaymentById(int paymentId) {
     for (final payment in _payments) {
@@ -216,13 +317,40 @@ class PaymentProvider extends ChangeNotifier {
     return null;
   }
 
+  // ============================================
+  // ANNULATION (Undo)
+  // ============================================
+
+  /// Annuler la dernière action
+  Future<bool> undoLastAction() async {
+    try {
+      final restored = await _paymentRepository.restorePaymentsSnapshot();
+      if (restored != null) {
+        _payments = restored;
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    }
+  }
+
+  // ============================================
+  // EFFACEMENT
+  // ============================================
+
   /// Effacer l'erreur
   void clearError() {
     _errorMessage = null;
     notifyListeners();
   }
 
-  // Méthodes privées
+  // ============================================
+  // MÉTHODES PRIVÉES
+  // ============================================
+
   void _setStatus(PaymentStatus newStatus) {
     _status = newStatus;
   }
@@ -233,5 +361,16 @@ class PaymentProvider extends ChangeNotifier {
 
   void _setError(String message) {
     _errorMessage = message.replaceFirst('Exception: ', '');
+  }
+
+  // ============================================
+  // TOSTRING
+  // ============================================
+
+  @override
+  String toString() {
+    return 'PaymentProvider(status: $_status, payments: ${_payments.length}, '
+        'current: ${_currentPayment?.paymentNumber ?? 'none'}, '
+        'processing: $_processingPaymentId)';
   }
 }

@@ -1,5 +1,9 @@
-// Carte de méthode de paiement
-// Affiche le mode de paiement avec sélection
+// ============================================
+// CARTE DE MÉTHODE DE PAIEMENT - VERSION PREMIUM
+// ============================================
+// Affiche le mode de paiement avec sélection,
+// disponibilité et animations. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -32,36 +36,52 @@ class PaymentMethodCard extends StatelessWidget {
       onTap: isAvailable ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: isSelected
               ? color.withValues(alpha: 0.05)
-              : Colors.white,
+              : isAvailable
+                  ? Colors.white
+                  : AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? color : AppColors.borderColor.withValues(alpha: 0.5),
+            color: isSelected
+                ? color
+                : isAvailable
+                    ? AppColors.borderColor.withValues(alpha: 0.5)
+                    : AppColors.borderColor.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withValues(alpha: 0.1),
+                    color: color.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
                 ]
-              : null,
+              : isAvailable
+                  ? AppColors.softShadow
+                  : null,
         ),
         child: Row(
           children: [
-            // Radio personnalisé
-            Container(
+            // ============================================
+            // RADIO PERSONNALISÉ
+            // ============================================
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
               width: 22,
               height: 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? color : AppColors.textLight,
+                  color: isSelected
+                      ? color
+                      : isAvailable
+                          ? AppColors.textLight
+                          : AppColors.textLight.withValues(alpha: 0.5),
                   width: 2,
                 ),
               ),
@@ -78,37 +98,49 @@ class PaymentMethodCard extends StatelessWidget {
 
             const SizedBox(width: 12),
 
-            // Icône
+            // ============================================
+            // ICÔNE
+            // ============================================
             Container(
               width: 45,
               height: 45,
               decoration: BoxDecoration(
                 color: isSelected
                     ? color.withValues(alpha: 0.1)
-                    : AppColors.background,
+                    : isAvailable
+                        ? AppColors.surface
+                        : AppColors.surface.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
                 size: 22,
-                color: isSelected ? color : AppColors.textSecondary,
+                color: isSelected
+                    ? color
+                    : isAvailable
+                        ? AppColors.textSecondary
+                        : AppColors.textLight,
               ),
             ),
 
             const SizedBox(width: 12),
 
-            // Informations
+            // ============================================
+            // INFORMATIONS
+            // ============================================
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: isAvailable
+                          ? AppColors.textPrimary
+                          : AppColors.textLight,
                     ),
                   ),
                   if (description != null) ...[
@@ -117,10 +149,12 @@ class PaymentMethodCard extends StatelessWidget {
                       description!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: isAvailable
+                            ? AppColors.textSecondary
+                            : AppColors.textLight,
                       ),
                     ),
                   ],
@@ -128,7 +162,9 @@ class PaymentMethodCard extends StatelessWidget {
               ),
             ),
 
-            // Badge disponibilité
+            // ============================================
+            // BADGE DISPONIBILITÉ
+            // ============================================
             if (!isAvailable)
               Container(
                 padding: const EdgeInsets.symmetric(
