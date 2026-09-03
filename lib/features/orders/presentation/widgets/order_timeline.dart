@@ -1,5 +1,9 @@
-// Timeline de suivi de commande
+// ============================================
+// TIMELINE DE SUIVI DE COMMANDE - VERSION PREMIUM
+// ============================================
 // Affiche les étapes de progression verticalement
+// avec animations et statut actuel. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -22,7 +26,9 @@ class OrderTimeline extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Titre
+        // ============================================
+        // TITRE
+        // ============================================
         const Text(
           'SUIVI DE COMMANDE',
           style: TextStyle(
@@ -36,7 +42,9 @@ class OrderTimeline extends StatelessWidget {
 
         const SizedBox(height: 15),
 
-        // Timeline
+        // ============================================
+        // TIMELINE
+        // ============================================
         ...events.asMap().entries.map((entry) {
           final index = entry.key;
           final event = entry.value;
@@ -48,42 +56,58 @@ class OrderTimeline extends StatelessWidget {
     );
   }
 
-  // Construire un item de timeline
+  // ============================================
+  // ITEM DE TIMELINE
+  // ============================================
+
   Widget _buildTimelineItem(OrderTimelineEvent event, bool isLast) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Colonne avec point + ligne
+        // ============================================
+        // COLONNE POINT + LIGNE
+        // ============================================
         SizedBox(
           width: 40,
           child: Column(
             children: [
-              // Point
-              Container(
-                width: 24,
-                height: 24,
+              // Point avec animation
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: event.isCurrent ? 28 : 24,
+                height: event.isCurrent ? 28 : 24,
                 decoration: BoxDecoration(
                   color: event.isCompleted
                       ? _getEventColor(event.status)
-                      : AppColors.background,
+                      : AppColors.surface,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: event.isCompleted
                         ? _getEventColor(event.status)
                         : AppColors.borderColor,
-                    width: 2,
+                    width: event.isCurrent ? 3 : 2,
                   ),
+                  boxShadow: event.isCurrent
+                      ? [
+                          BoxShadow(
+                            color: _getEventColor(event.status).withValues(alpha: 0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Icon(
                   _getEventIcon(event.status),
-                  size: 12,
+                  size: event.isCurrent ? 14 : 12,
                   color: event.isCompleted ? Colors.white : AppColors.textLight,
                 ),
               ),
 
               // Ligne verticale
               if (!isLast)
-                Container(
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
                   width: 2,
                   height: 50,
                   color: event.isCompleted
@@ -96,7 +120,9 @@ class OrderTimeline extends StatelessWidget {
 
         const SizedBox(width: 12),
 
-        // Contenu
+        // ============================================
+        // CONTENU
+        // ============================================
         Expanded(
           child: Padding(
             padding: const EdgeInsets.only(bottom: 20),
@@ -107,42 +133,53 @@ class OrderTimeline extends StatelessWidget {
                   event.label,
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: event.isCompleted
+                    fontSize: event.isCurrent ? 14 : 13,
+                    fontWeight: event.isCompleted || event.isCurrent
                         ? FontWeight.bold
                         : FontWeight.w500,
-                    color: event.isCompleted
+                    color: event.isCompleted || event.isCurrent
                         ? AppColors.textPrimary
                         : AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _formatDate(event.date),
+                  event.formattedDate,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 11,
                     color: AppColors.textLight,
                   ),
                 ),
-                if (event.location != null) ...[
+                if (event.hasLocation) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    event.location!,
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 10,
-                      color: AppColors.textSecondary,
-                    ),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 10,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        event.location!,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 10,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-                if (event.note != null) ...[
+                if (event.hasNote) ...[
                   const SizedBox(height: 2),
                   Text(
                     event.note!,
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 10,
+                      fontStyle: FontStyle.italic,
                       color: AppColors.error,
                     ),
                   ),
@@ -155,7 +192,10 @@ class OrderTimeline extends StatelessWidget {
     );
   }
 
-  // Couleur selon le statut
+  // ============================================
+  // COULEUR SELON LE STATUT
+  // ============================================
+
   Color _getEventColor(String status) {
     switch (status) {
       case 'pending':
@@ -175,7 +215,10 @@ class OrderTimeline extends StatelessWidget {
     }
   }
 
-  // Icône selon le statut
+  // ============================================
+  // ICÔNE SELON LE STATUT
+  // ============================================
+
   IconData _getEventIcon(String status) {
     switch (status) {
       case 'pending':
@@ -185,27 +228,13 @@ class OrderTimeline extends StatelessWidget {
       case 'processing':
         return Icons.settings;
       case 'shipped':
-        return Icons.local_shipping;
+        return Icons.local_shipping_outlined;
       case 'delivered':
         return Icons.check_circle;
       case 'cancelled':
         return Icons.cancel;
       default:
-        return Icons.info;
+        return Icons.info_outline;
     }
-  }
-
-  // Formater la date
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays > 0) {
-      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} à ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    }
-    if (difference.inHours > 0) {
-      return 'Il y a ${difference.inHours} heure(s)';
-    }
-    return 'À l\'instant';
   }
 }

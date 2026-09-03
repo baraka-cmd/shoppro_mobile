@@ -1,21 +1,24 @@
-// Écran de paiement (checkout)
-// Processus complet : adresse → livraison → paiement → confirmation
+// ============================================
+// ÉCRAN DE PAIEMENT (CHECKOUT) - VERSION PREMIUM
+// ============================================
+// Processus complet : adresse → livraison → paiement → confirmation.
+// Design conforme à la vision ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../routes/app_routes.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
-import '../../../cart/domain/entities/cart_item.dart';
 import '../../../orders/presentation/providers/order_provider.dart';
 import '../../../orders/domain/entities/order_item.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../../notifications/domain/entities/app_notification.dart';
+import '../../../addresses/presentation/providers/address_provider.dart';
 import '../widgets/address_selector.dart';
 import '../widgets/shipping_selector.dart';
 import '../widgets/payment_selector.dart';
 import '../../../cart/presentation/widgets/cart_summary.dart';
-import '../../../../routes/app_routes.dart';
-import '../../../addresses/presentation/providers/address_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -92,10 +95,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
-    _loadAddresses();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAddresses();
+    });
   }
 
-  // Charger les adresses depuis le provider
+  // ============================================
+  // CHARGEMENT DES ADRESSES
+  // ============================================
+
   Future<void> _loadAddresses() async {
     final addressProvider = context.read<AddressProvider>();
     await addressProvider.loadAddresses();
@@ -117,7 +125,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
         }).toList();
 
-        // Sélectionner l'adresse par défaut
         if (_selectedAddress == null && _addresses.isNotEmpty) {
           _selectedAddress = _addresses.firstWhere(
             (a) => a.isDefault,
@@ -128,14 +135,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
     final cartProvider = context.watch<CartProvider>();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -160,6 +171,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ============================================
+            // ADRESSE
+            // ============================================
             AddressSelector(
               addresses: _addresses,
               selectedAddress: _selectedAddress,
@@ -184,6 +198,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
             const SizedBox(height: 15),
 
+            // ============================================
+            // LIVRAISON
+            // ============================================
             ShippingSelector(
               methods: _shippingMethods,
               selectedMethod: _selectedShipping,
@@ -199,6 +216,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
             const SizedBox(height: 15),
 
+            // ============================================
+            // PAIEMENT
+            // ============================================
             PaymentSelector(
               methods: _paymentMethods,
               selectedMethod: _selectedPayment,
@@ -214,9 +234,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
             const SizedBox(height: 15),
 
+            // ============================================
+            // RÉSUMÉ
+            // ============================================
             CartSummary(cart: cartProvider.cart),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 100),
           ],
         ),
       ),
@@ -226,8 +249,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
               offset: const Offset(0, -2),
             ),
           ],
@@ -263,7 +286,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
               ElevatedButton(
-                onPressed: _isProcessing ? null : () => _confirmOrder(cartProvider),
+                onPressed: _isProcessing
+                    ? null
+                    : () => _showConfirmationDialog(cartProvider),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -275,6 +300,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 0,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
+                  disabledBackgroundColor: AppColors.borderColor,
                 ),
                 child: _isProcessing
                     ? const SizedBox(
@@ -301,7 +328,102 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  // Confirmer la commande
+  // ============================================
+  // DIALOG DE CONFIRMATION
+  // ============================================
+
+  void _showConfirmationDialog(CartProvider cartProvider) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Confirmer la commande ?',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${cartProvider.totalItems} article${cartProvider.totalItems > 1 ? 's' : ''}',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Total : ${cartProvider.cart.formattedTotal}',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Livraison : ${_selectedShipping?.name ?? 'Non sélectionnée'}',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text(
+                'Modifier',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _confirmOrder(cartProvider);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'CONFIRMER',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ============================================
+  // CONFIRMATION DE LA COMMANDE
+  // ============================================
+
   Future<void> _confirmOrder(CartProvider cartProvider) async {
     if (_selectedAddress == null) {
       _showError('Veuillez sélectionner une adresse de livraison');
@@ -361,7 +483,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       });
 
       if (order != null) {
-        // ✅ Créer la notification de commande
         final notificationProvider = context.read<NotificationProvider>();
         await notificationProvider.addNotification(
           AppNotification(
@@ -373,11 +494,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         );
 
+        // Vider le panier
+        await cartProvider.clearCart();
+
         // Naviguer vers le paiement
-        Navigator.of(context).pushNamed(
-          AppRoutes.payment,
-          arguments: {'order': order},
-        );
+        if (mounted) {
+          Navigator.of(context).pushNamed(
+            AppRoutes.payment,
+            arguments: {'order': order},
+          );
+        }
       } else {
         _showError(orderProvider.errorMessage ?? 'Erreur lors de la commande');
       }
@@ -389,7 +515,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  // Afficher une erreur
+  // ============================================
+  // AFFICHER UNE ERREUR
+  // ============================================
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -400,6 +529,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
       ),
     );
   }

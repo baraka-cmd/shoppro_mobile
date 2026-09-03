@@ -1,5 +1,9 @@
-// Sélecteur d'adresse de livraison
+// ============================================
+// SÉLECTEUR D'ADRESSE DE LIVRAISON - PREMIUM
+// ============================================
 // Permet de choisir ou ajouter une adresse
+// avec animations et états. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -30,6 +34,18 @@ class _AddressSelectorState extends State<AddressSelector> {
     super.initState();
     _selected = widget.selectedAddress;
   }
+
+  @override
+  void didUpdateWidget(AddressSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedAddress != oldWidget.selectedAddress) {
+      _selected = widget.selectedAddress;
+    }
+  }
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +80,8 @@ class _AddressSelectorState extends State<AddressSelector> {
         // Bouton ajouter
         GestureDetector(
           onTap: widget.onAddAddress,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
@@ -79,7 +96,7 @@ class _AddressSelectorState extends State<AddressSelector> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.add_location_alt,
+                  Icons.add_location_alt_outlined,
                   size: 16,
                   color: AppColors.primary,
                 ),
@@ -101,30 +118,35 @@ class _AddressSelectorState extends State<AddressSelector> {
     );
   }
 
-  // Pas d'adresse
+  // ============================================
+  // PAS D'ADRESSE
+  // ============================================
+
   Widget _buildNoAddress() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderColor),
       ),
       child: const Row(
         children: [
           Icon(
-            Icons.location_off,
+            Icons.location_off_outlined,
             size: 20,
             color: AppColors.textLight,
           ),
           SizedBox(width: 10),
-          Text(
-            'Aucune adresse enregistrée',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13,
-              color: AppColors.textSecondary,
+          Flexible(
+            child: Text(
+              'Aucune adresse enregistrée',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
         ],
@@ -132,7 +154,10 @@ class _AddressSelectorState extends State<AddressSelector> {
     );
   }
 
-  // Carte d'adresse
+  // ============================================
+  // CARTE D'ADRESSE
+  // ============================================
+
   Widget _buildAddressCard(AddressData address, bool isSelected) {
     return GestureDetector(
       onTap: () {
@@ -141,22 +166,35 @@ class _AddressSelectorState extends State<AddressSelector> {
         });
         widget.onAddressSelected?.call(address);
       },
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.05) : Colors.white,
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.05)
+              : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.borderColor,
             width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 6,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
             // Radio
-            Container(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
               width: 20,
               height: 20,
               decoration: BoxDecoration(
@@ -181,7 +219,9 @@ class _AddressSelectorState extends State<AddressSelector> {
 
             // Icône
             Icon(
-              address.type == 'work' ? Icons.work : Icons.home,
+              address.type == 'work'
+                  ? Icons.work_outline
+                  : Icons.home_outlined,
               size: 18,
               color: isSelected ? AppColors.primary : AppColors.textSecondary,
             ),
@@ -251,7 +291,10 @@ class _AddressSelectorState extends State<AddressSelector> {
   }
 }
 
-// Données d'adresse
+// ============================================
+// DONNÉES D'ADRESSE
+// ============================================
+
 class AddressData {
   final int id;
   final String fullName;
@@ -272,7 +315,7 @@ class AddressData {
     this.addressLine2,
     required this.city,
     this.state,
-    this.country = 'Cameroun',
+    this.country = 'RDC',
     this.type = 'home',
     this.isDefault = false,
   });

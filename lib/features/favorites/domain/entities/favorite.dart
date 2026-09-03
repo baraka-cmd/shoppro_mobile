@@ -1,5 +1,10 @@
-// Entité Favorite (Domaine)
+// ============================================
+// ENTITÉ FAVORITE (DOMAINE) - VERSION PREMIUM
+// ============================================
 // Représente un produit dans la liste de souhaits
+// avec alertes prix, collections et économies.
+// Design ShopPro.
+// ============================================
 
 class Favorite {
   final int id;
@@ -12,6 +17,7 @@ class Favorite {
   final bool isInStock;
   final int stock;
   final double averageRating;
+  final int reviewsCount;
   final DateTime addedAt;
   final bool priceAlert;
   final double? priceAlertThreshold;
@@ -29,12 +35,17 @@ class Favorite {
     this.isInStock = true,
     this.stock = 0,
     this.averageRating = 0,
+    this.reviewsCount = 0,
     required this.addedAt,
     this.priceAlert = false,
     this.priceAlertThreshold,
     this.collectionName,
     this.note,
   });
+
+  // ============================================
+  // PRIX
+  // ============================================
 
   /// Prix effectif (avec réduction)
   double get effectivePrice => productDiscountPrice ?? productPrice;
@@ -55,6 +66,79 @@ class Favorite {
     return ((productPrice - productDiscountPrice!) / productPrice * 100).round();
   }
 
+  /// Économies réalisées
+  double get savings {
+    if (!hasDiscount) return 0;
+    return productPrice - productDiscountPrice!;
+  }
+
+  /// Économies formatées
+  String get formattedSavings => _formatPrice(savings);
+
+  // ============================================
+  // STOCK
+  // ============================================
+
+  /// Stock faible ?
+  bool get isLowStock => isInStock && stock > 0 && stock <= 5;
+
+  /// En rupture ?
+  bool get isOutOfStock => !isInStock || stock <= 0;
+
+  /// Message de stock
+  String get stockMessage {
+    if (isOutOfStock) return 'Rupture de stock';
+    if (isLowStock) return 'Plus que $stock en stock';
+    return 'En stock';
+  }
+
+  // ============================================
+  // ALERTES PRIX
+  // ============================================
+
+  /// L'alerte prix est-elle activée ?
+  bool get hasPriceAlert => priceAlert;
+
+  /// Le seuil d'alerte est-il défini ?
+  bool get hasPriceAlertThreshold =>
+      priceAlertThreshold != null && priceAlertThreshold! > 0;
+
+  /// Le prix a-t-il baissé sous le seuil d'alerte ?
+  bool get isPriceBelowAlertThreshold {
+    if (!hasPriceAlert || !hasPriceAlertThreshold) return false;
+    return effectivePrice <= priceAlertThreshold!;
+  }
+
+  /// Le prix a-t-il baissé par rapport au prix original ?
+  bool get hasPriceDropped => hasDiscount;
+
+  // ============================================
+  // BADGES
+  // ============================================
+
+  /// Badges actifs du favori
+  List<String> get activeBadges {
+    final badges = <String>[];
+    if (hasPriceDropped) badges.add('🔥 BAISSE DE PRIX');
+    if (hasPriceAlert) badges.add('🔔 ALERTE PRIX');
+    if (isOutOfStock) badges.add('⚠️ ÉPUISÉ');
+    if (isLowStock) badges.add('⚡ STOCK FAIBLE');
+    return badges;
+  }
+
+  /// Badge principal
+  String? get primaryBadge {
+    if (hasPriceDropped) return '🔥 BAISSE DE PRIX';
+    if (hasPriceAlert) return '🔔 ALERTE PRIX';
+    if (isOutOfStock) return '⚠️ ÉPUISÉ';
+    if (isLowStock) return '⚡ STOCK FAIBLE';
+    return null;
+  }
+
+  // ============================================
+  // DATE
+  // ============================================
+
   /// Date d'ajout formatée
   String get formattedDate {
     final now = DateTime.now();
@@ -72,8 +156,27 @@ class Favorite {
     if (difference.inHours > 0) {
       return '${difference.inHours} heure(s)';
     }
+    if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} min';
+    }
     return 'À l\'instant';
   }
+
+  // ============================================
+  // VALIDATION
+  // ============================================
+
+  /// Le favori a-t-il des données valides ?
+  bool get isValid {
+    return id > 0 &&
+        productId > 0 &&
+        productName.isNotEmpty &&
+        productPrice >= 0;
+  }
+
+  // ============================================
+  // FORMATAGE
+  // ============================================
 
   /// Formater un prix
   String _formatPrice(double amount) {
@@ -88,6 +191,10 @@ class Favorite {
     return '$buffer FCFA';
   }
 
+  // ============================================
+  // MÉTHODES
+  // ============================================
+
   /// Copier avec modifications
   Favorite copyWith({
     int? id,
@@ -100,6 +207,7 @@ class Favorite {
     bool? isInStock,
     int? stock,
     double? averageRating,
+    int? reviewsCount,
     DateTime? addedAt,
     bool? priceAlert,
     double? priceAlertThreshold,
@@ -117,6 +225,7 @@ class Favorite {
       isInStock: isInStock ?? this.isInStock,
       stock: stock ?? this.stock,
       averageRating: averageRating ?? this.averageRating,
+      reviewsCount: reviewsCount ?? this.reviewsCount,
       addedAt: addedAt ?? this.addedAt,
       priceAlert: priceAlert ?? this.priceAlert,
       priceAlertThreshold: priceAlertThreshold ?? this.priceAlertThreshold,
@@ -138,6 +247,7 @@ class Favorite {
       'is_in_stock': isInStock,
       'stock': stock,
       'average_rating': averageRating,
+      'reviews_count': reviewsCount,
       'added_at': addedAt.toIso8601String(),
       'price_alert': priceAlert,
       'price_alert_threshold': priceAlertThreshold,
@@ -159,11 +269,23 @@ class Favorite {
       isInStock: json['is_in_stock'] as bool? ?? true,
       stock: json['stock'] as int? ?? 0,
       averageRating: (json['average_rating'] as num?)?.toDouble() ?? 0,
+      reviewsCount: json['reviews_count'] as int? ?? 0,
       addedAt: DateTime.tryParse(json['added_at'] as String? ?? '') ?? DateTime.now(),
       priceAlert: json['price_alert'] as bool? ?? false,
       priceAlertThreshold: (json['price_alert_threshold'] as num?)?.toDouble(),
       collectionName: json['collection_name'] as String?,
       note: json['note'] as String?,
     );
+  }
+
+  // ============================================
+  // TOSTRING
+  // ============================================
+
+  @override
+  String toString() {
+    return 'Favorite(id: $id, product: $productName, '
+        'price: $formattedPrice, alert: $priceAlert, '
+        'inStock: $isInStock, badges: $activeBadges)';
   }
 }

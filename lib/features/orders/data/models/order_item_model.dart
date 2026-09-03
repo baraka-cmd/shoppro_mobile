@@ -1,5 +1,9 @@
-// Modèle OrderItem (Data)
-// Gère la sérialisation/désérialisation JSON de l'élément de commande
+// ============================================
+// MODÈLE ORDER ITEM (DATA) - VERSION PREMIUM
+// ============================================
+// Gère la sérialisation/désérialisation JSON
+// avec parsing robuste et valeurs par défaut.
+// ============================================
 
 import '../../domain/entities/order_item.dart';
 
@@ -27,22 +31,22 @@ class OrderItemModel extends OrderItem {
   /// Créer depuis JSON
   factory OrderItemModel.fromJson(Map<String, dynamic> json) {
     return OrderItemModel(
-      id: json['id'] as int? ?? 0,
-      productId: json['product_id'] as int? ?? 0,
-      productName: json['product_name'] as String? ?? '',
-      productImage: json['product_image'] as String?,
-      productSku: json['product_sku'] as String? ?? '',
+      id: _parseInt(json['id']),
+      productId: _parseInt(json['product_id']),
+      productName: _parseString(json['product_name']),
+      productImage: _parseNullableString(json['product_image']),
+      productSku: _parseString(json['product_sku']),
       unitPrice: _parseDouble(json['unit_price']),
       discountPrice: _parseNullableDouble(json['discount_price']),
-      quantity: json['quantity'] as int? ?? 1,
-      variantName: json['variant_name'] as String?,
-      variantColor: json['variant_color'] as String?,
-      variantSize: json['variant_size'] as String?,
-      itemStatus: json['item_status'] as String? ?? 'pending',
-      isReturned: json['is_returned'] as bool? ?? false,
-      returnDate: DateTime.tryParse(json['return_date'] as String? ?? ''),
-      returnReason: json['return_reason'] as String?,
-      isRefunded: json['is_refunded'] as bool? ?? false,
+      quantity: _parseInt(json['quantity'], defaultValue: 1),
+      variantName: _parseNullableString(json['variant_name']),
+      variantColor: _parseNullableString(json['variant_color']),
+      variantSize: _parseNullableString(json['variant_size']),
+      itemStatus: _parseString(json['item_status'], defaultValue: 'pending'),
+      isReturned: _parseBool(json['is_returned']),
+      returnDate: _parseDate(json['return_date']),
+      returnReason: _parseNullableString(json['return_reason']),
+      isRefunded: _parseBool(json['is_refunded']),
       refundAmount: _parseNullableDouble(json['refund_amount']),
     );
   }
@@ -71,7 +75,41 @@ class OrderItemModel extends OrderItem {
     };
   }
 
-  /// Parser un double
+  /// Copier depuis l'entité
+  static OrderItemModel fromEntity(OrderItem item) {
+    return OrderItemModel(
+      id: item.id,
+      productId: item.productId,
+      productName: item.productName,
+      productImage: item.productImage,
+      productSku: item.productSku,
+      unitPrice: item.unitPrice,
+      discountPrice: item.discountPrice,
+      quantity: item.quantity,
+      variantName: item.variantName,
+      variantColor: item.variantColor,
+      variantSize: item.variantSize,
+      itemStatus: item.itemStatus,
+      isReturned: item.isReturned,
+      returnDate: item.returnDate,
+      returnReason: item.returnReason,
+      isRefunded: item.isRefunded,
+      refundAmount: item.refundAmount,
+    );
+  }
+
+  // ============================================
+  // HELPERS DE PARSING
+  // ============================================
+
+  static int _parseInt(dynamic value, {int defaultValue = 0}) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
+
   static double _parseDouble(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value.toDouble();
@@ -80,12 +118,38 @@ class OrderItemModel extends OrderItem {
     return 0;
   }
 
-  /// Parser un double nullable
   static double? _parseNullableDouble(dynamic value) {
     if (value == null) return null;
     if (value is int) return value.toDouble();
     if (value is double) return value;
     if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static String _parseString(dynamic value, {String defaultValue = ''}) {
+    if (value == null) return defaultValue;
+    final string = value.toString().trim();
+    return string.isEmpty ? defaultValue : string;
+  }
+
+  static String? _parseNullableString(dynamic value) {
+    if (value == null) return null;
+    final string = value.toString().trim();
+    return string.isEmpty ? null : string;
+  }
+
+  static bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value.toLowerCase() == 'true' || value == '1';
+    return false;
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
     return null;
   }
 }

@@ -1,5 +1,9 @@
-// Entité OrderItem (Domaine)
-// Représente un élément dans une commande
+// ============================================
+// ENTITÉ ORDER ITEM (DOMAINE) - VERSION PREMIUM
+// ============================================
+// Représente un élément dans une commande avec
+// variantes, retours et formatage. Design ShopPro.
+// ============================================
 
 class OrderItem {
   final int id;
@@ -40,6 +44,10 @@ class OrderItem {
     this.refundAmount,
   });
 
+  // ============================================
+  // PRIX
+  // ============================================
+
   /// Prix effectif (avec réduction)
   double get effectivePrice => discountPrice ?? unitPrice;
 
@@ -48,6 +56,9 @@ class OrderItem {
 
   /// Prix formaté
   String get formattedPrice => _formatPrice(effectivePrice);
+
+  /// Prix unitaire original formaté
+  String get formattedUnitPrice => _formatPrice(unitPrice);
 
   /// Sous-total formaté
   String get formattedSubtotal => _formatPrice(subtotal);
@@ -60,6 +71,19 @@ class OrderItem {
     if (!hasDiscount) return null;
     return ((unitPrice - discountPrice!) / unitPrice * 100).round();
   }
+
+  /// Économies réalisées
+  double get savings {
+    if (!hasDiscount) return 0;
+    return (unitPrice - discountPrice!) * quantity;
+  }
+
+  /// Économies formatées
+  String get formattedSavings => _formatPrice(savings);
+
+  // ============================================
+  // NOM ET VARIANTES
+  // ============================================
 
   /// Nom complet avec variante
   String get fullName {
@@ -75,7 +99,22 @@ class OrderItem {
     return productName;
   }
 
-  /// Statut de l'article formaté
+  /// Label des variantes
+  String get variantLabel {
+    final parts = <String>[];
+    if (variantColor != null) parts.add(variantColor!);
+    if (variantSize != null) parts.add(variantSize!);
+    return parts.join(' • ');
+  }
+
+  /// L'article a-t-il des variantes ?
+  bool get hasVariant => variantColor != null || variantSize != null;
+
+  // ============================================
+  // STATUT
+  // ============================================
+
+  /// Statut formaté
   String get statusLabel {
     switch (itemStatus) {
       case 'pending':
@@ -93,23 +132,49 @@ class OrderItem {
     }
   }
 
-  /// Couleur du statut
-  int get statusColor {
+  /// Couleur du statut (hex)
+  int get statusColorHex {
     switch (itemStatus) {
       case 'pending':
-        return 0xFFF39C12;
+        return 0xFFF4B942; // Gold
       case 'shipped':
-        return 0xFF3498DB;
+        return 0xFF3B82F6; // Bleu
       case 'delivered':
-        return 0xFF27AE60;
+        return 0xFF087F5B; // Emerald
       case 'cancelled':
-        return 0xFFE74C3C;
+        return 0xFFFF6B6B; // Coral
       case 'returned':
-        return 0xFF7F8C8D;
+        return 0xFF68756F; // Gris
       default:
-        return 0xFF7F8C8D;
+        return 0xFF68756F;
     }
   }
+
+  /// L'article est-il livré ?
+  bool get isDelivered => itemStatus == 'delivered';
+
+  /// L'article est-il annulé ?
+  bool get isCancelled => itemStatus == 'cancelled';
+
+  /// L'article peut-il être retourné ?
+  bool get canReturn => itemStatus == 'delivered' && !isReturned && !isRefunded;
+
+  // ============================================
+  // VALIDATION
+  // ============================================
+
+  /// L'article a-t-il des données valides ?
+  bool get isValid {
+    return id > 0 &&
+        productId > 0 &&
+        productName.isNotEmpty &&
+        unitPrice >= 0 &&
+        quantity > 0;
+  }
+
+  // ============================================
+  // FORMATAGE
+  // ============================================
 
   /// Formater un prix
   String _formatPrice(double amount) {
@@ -123,6 +188,10 @@ class OrderItem {
     }
     return '$buffer FCFA';
   }
+
+  // ============================================
+  // MÉTHODES
+  // ============================================
 
   /// Copier avec modifications
   OrderItem copyWith({
@@ -209,5 +278,16 @@ class OrderItem {
       isRefunded: json['is_refunded'] as bool? ?? false,
       refundAmount: (json['refund_amount'] as num?)?.toDouble(),
     );
+  }
+
+  // ============================================
+  // TOSTRING
+  // ============================================
+
+  @override
+  String toString() {
+    return 'OrderItem(id: $id, product: $productName, '
+        'quantity: $quantity, subtotal: $formattedSubtotal, '
+        'status: $statusLabel)';
   }
 }

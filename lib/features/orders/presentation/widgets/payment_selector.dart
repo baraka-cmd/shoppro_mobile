@@ -1,5 +1,9 @@
-// Sélecteur de mode de paiement
-// Permet de choisir entre différentes méthodes de paiement
+// ============================================
+// SÉLECTEUR DE MODE DE PAIEMENT - VERSION PREMIUM
+// ============================================
+// Permet de choisir entre différentes méthodes
+// de paiement avec animations. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -30,6 +34,18 @@ class _PaymentSelectorState extends State<PaymentSelector> {
   }
 
   @override
+  void didUpdateWidget(PaymentSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedMethod != oldWidget.selectedMethod) {
+      _selected = widget.selectedMethod;
+    }
+  }
+
+  // ============================================
+  // BUILD
+  // ============================================
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +73,10 @@ class _PaymentSelectorState extends State<PaymentSelector> {
     );
   }
 
-  // Carte de méthode de paiement
+  // ============================================
+  // CARTE DE MÉTHODE DE PAIEMENT
+  // ============================================
+
   Widget _buildPaymentCard(PaymentMethodData method, bool isSelected) {
     return GestureDetector(
       onTap: () {
@@ -66,37 +85,50 @@ class _PaymentSelectorState extends State<PaymentSelector> {
         });
         widget.onMethodSelected?.call(method);
       },
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.05) : Colors.white,
+          color: isSelected
+              ? method.color.withValues(alpha: 0.05)
+              : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.borderColor,
+            color: isSelected ? method.color : AppColors.borderColor,
             width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: method.color.withValues(alpha: 0.2),
+                    blurRadius: 6,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
             // Radio
-            Container(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
               width: 20,
               height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.textLight,
+                  color: isSelected ? method.color : AppColors.textLight,
                   width: 2,
                 ),
               ),
               child: isSelected
                   ? Container(
                       margin: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.primary,
+                        color: method.color,
                       ),
                     )
                   : null,
@@ -111,7 +143,7 @@ class _PaymentSelectorState extends State<PaymentSelector> {
               decoration: BoxDecoration(
                 color: isSelected
                     ? method.color.withValues(alpha: 0.1)
-                    : AppColors.background,
+                    : AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -153,6 +185,14 @@ class _PaymentSelectorState extends State<PaymentSelector> {
                 ],
               ),
             ),
+
+            // Check si sélectionné
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                size: 18,
+                color: method.color,
+              ),
           ],
         ),
       ),
@@ -160,7 +200,10 @@ class _PaymentSelectorState extends State<PaymentSelector> {
   }
 }
 
-// Données de méthode de paiement
+// ============================================
+// DONNÉES DE MÉTHODE DE PAIEMENT
+// ============================================
+
 class PaymentMethodData {
   final int id;
   final String name;

@@ -1,5 +1,9 @@
-// État vide des favoris
-// Affiche un message et un bouton pour explorer les produits
+// ============================================
+// ÉTAT VIDE DES FAVORIS - VERSION PREMIUM
+// ============================================
+// Affiche un message élégant et un bouton
+// pour explorer les produits. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -20,12 +24,14 @@ class EmptyFavorites extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icône cœur vide
+            // ============================================
+            // ICÔNE CŒUR VIDE
+            // ============================================
             Container(
-              width: 100,
-              height: 100,
+              width: 110,
+              height: 110,
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.05),
+                color: AppColors.error.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Stack(
@@ -37,11 +43,11 @@ class EmptyFavorites extends StatelessWidget {
                     color: AppColors.textLight,
                   ),
                   Positioned(
-                    top: 22,
-                    right: 20,
+                    top: 24,
+                    right: 22,
                     child: Container(
-                      width: 20,
-                      height: 20,
+                      width: 22,
+                      height: 22,
                       decoration: const BoxDecoration(
                         color: AppColors.textLight,
                         shape: BoxShape.circle,
@@ -59,7 +65,9 @@ class EmptyFavorites extends StatelessWidget {
 
             const SizedBox(height: 25),
 
-            // Titre
+            // ============================================
+            // TITRE
+            // ============================================
             const Text(
               'Aucun favori',
               style: TextStyle(
@@ -72,7 +80,9 @@ class EmptyFavorites extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            // Description
+            // ============================================
+            // DESCRIPTION
+            // ============================================
             const Text(
               'Ajoutez vos produits préférés\npour les retrouver facilement !',
               textAlign: TextAlign.center,
@@ -87,7 +97,9 @@ class EmptyFavorites extends StatelessWidget {
 
             const SizedBox(height: 25),
 
-            // Bouton Explorer
+            // ============================================
+            // BOUTON DÉCOUVRIR
+            // ============================================
             ElevatedButton(
               onPressed: onExplore,
               style: ElevatedButton.styleFrom(
@@ -101,11 +113,12 @@ class EmptyFavorites extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 0,
+                shadowColor: AppColors.primary.withValues(alpha: 0.3),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.explore, size: 18),
+                  Icon(Icons.explore_outlined, size: 18),
                   SizedBox(width: 8),
                   Text(
                     'DÉCOUVRIR',
@@ -121,7 +134,9 @@ class EmptyFavorites extends StatelessWidget {
 
             const SizedBox(height: 15),
 
-            // Astuce
+            // ============================================
+            // ASTUCE
+            // ============================================
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 15,
@@ -135,18 +150,20 @@ class EmptyFavorites extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.lightbulb,
+                    Icons.lightbulb_outline,
                     size: 14,
                     color: AppColors.warning,
                   ),
                   SizedBox(width: 6),
-                  Text(
-                    'Astuce : Touchez le cœur ♥ sur un produit',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textSecondary,
+                  Flexible(
+                    child: Text(
+                      'Astuce : Touchez le cœur ♥ sur un produit',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
                 ],

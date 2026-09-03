@@ -1,5 +1,9 @@
-// Badge de statut de commande
-// Affiche le statut avec couleur et icône adaptées
+// ============================================
+// BADGE DE STATUT DE COMMANDE - VERSION PREMIUM
+// ============================================
+// Affiche le statut avec couleur, icône et
+// point indicateur. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -16,7 +20,8 @@ class OrderStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 12,
         vertical: compact ? 4 : 6,
@@ -39,6 +44,12 @@ class OrderStatusBadge extends StatelessWidget {
             decoration: BoxDecoration(
               color: _getColor(),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: _getColor().withValues(alpha: 0.3),
+                  blurRadius: 3,
+                ),
+              ],
             ),
           ),
           SizedBox(width: compact ? 4 : 6),
@@ -65,7 +76,10 @@ class OrderStatusBadge extends StatelessWidget {
     );
   }
 
-  // Label du statut
+  // ============================================
+  // LABEL DU STATUT
+  // ============================================
+
   String _getLabel() {
     switch (status) {
       case 'pending':
@@ -89,7 +103,10 @@ class OrderStatusBadge extends StatelessWidget {
     }
   }
 
-  // Couleur du statut
+  // ============================================
+  // COULEUR DU STATUT
+  // ============================================
+
   Color _getColor() {
     switch (status) {
       case 'pending':
@@ -113,7 +130,10 @@ class OrderStatusBadge extends StatelessWidget {
     }
   }
 
-  // Icône du statut
+  // ============================================
+  // ICÔNE DU STATUT
+  // ============================================
+
   IconData _getIcon() {
     switch (status) {
       case 'pending':
@@ -123,7 +143,7 @@ class OrderStatusBadge extends StatelessWidget {
       case 'processing':
         return Icons.settings;
       case 'shipped':
-        return Icons.local_shipping;
+        return Icons.local_shipping_outlined;
       case 'delivered':
         return Icons.check_circle;
       case 'cancelled':
@@ -133,7 +153,7 @@ class OrderStatusBadge extends StatelessWidget {
       case 'returned':
         return Icons.undo;
       default:
-        return Icons.info;
+        return Icons.info_outline;
     }
   }
 }

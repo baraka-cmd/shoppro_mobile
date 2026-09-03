@@ -1,5 +1,9 @@
-// Sélecteur de mode de livraison
+// ============================================
+// SÉLECTEUR DE MODE DE LIVRAISON - PREMIUM
+// ============================================
 // Permet de choisir entre différentes méthodes
+// avec animations et états. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -30,6 +34,18 @@ class _ShippingSelectorState extends State<ShippingSelector> {
   }
 
   @override
+  void didUpdateWidget(ShippingSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedMethod != oldWidget.selectedMethod) {
+      _selected = widget.selectedMethod;
+    }
+  }
+
+  // ============================================
+  // BUILD
+  // ============================================
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +73,10 @@ class _ShippingSelectorState extends State<ShippingSelector> {
     );
   }
 
-  // Carte de méthode de livraison
+  // ============================================
+  // CARTE DE MÉTHODE DE LIVRAISON
+  // ============================================
+
   Widget _buildShippingCard(ShippingMethodData method, bool isSelected) {
     return GestureDetector(
       onTap: () {
@@ -66,22 +85,35 @@ class _ShippingSelectorState extends State<ShippingSelector> {
         });
         widget.onMethodSelected?.call(method);
       },
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.05) : Colors.white,
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.05)
+              : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.borderColor,
             width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 6,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
             // Radio
-            Container(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
               width: 20,
               height: 20,
               decoration: BoxDecoration(
@@ -111,7 +143,7 @@ class _ShippingSelectorState extends State<ShippingSelector> {
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primary.withValues(alpha: 0.1)
-                    : AppColors.background,
+                    : AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -167,7 +199,10 @@ class _ShippingSelectorState extends State<ShippingSelector> {
   }
 }
 
-// Données de méthode de livraison
+// ============================================
+// DONNÉES DE MÉTHODE DE LIVRAISON
+// ============================================
+
 class ShippingMethodData {
   final int id;
   final String name;
