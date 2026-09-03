@@ -1,5 +1,9 @@
-// Widget de carte statistique du profil
-// Affiche les statistiques de l'utilisateur dans des cartes élégantes
+// ============================================
+// WIDGET DE CARTE STATISTIQUE DU PROFIL - PREMIUM
+// ============================================
+// Affiche les statistiques dans des cartes
+// élégantes avec animations. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -31,7 +35,9 @@ class ProfileStatsCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -40,18 +46,14 @@ class ProfileStatsCard extends StatelessWidget {
               color: AppColors.borderColor.withValues(alpha: 0.5),
               width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            boxShadow: AppColors.softShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icône
+              // ============================================
+              // ICÔNE
+              // ============================================
               Container(
                 width: 40,
                 height: 40,
@@ -65,12 +67,16 @@ class ProfileStatsCard extends StatelessWidget {
                   color: iconColor,
                 ),
               ),
-              
+
               const SizedBox(height: 12),
-              
-              // Valeur
+
+              // ============================================
+              // VALEUR
+              // ============================================
               Text(
                 value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 22,
@@ -78,12 +84,16 @@ class ProfileStatsCard extends StatelessWidget {
                   color: valueColor,
                 ),
               ),
-              
+
               const SizedBox(height: 2),
-              
-              // Label
+
+              // ============================================
+              // LABEL
+              // ============================================
               Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 12,

@@ -1,5 +1,9 @@
-// Écran de changement de mot de passe
-// Formulaire complet avec validation, force et conseils de sécurité
+// ============================================
+// ÉCRAN DE CHANGEMENT DE MOT DE PASSE - PREMIUM
+// ============================================
+// Formulaire complet avec validation, force et
+// conseils de sécurité. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -35,16 +39,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     super.dispose();
   }
 
-  // Gérer le changement de mot de passe
+  // ============================================
+  // CHANGEMENT DE MOT DE PASSE
+  // ============================================
+
   Future<void> _handleChangePassword() async {
     FocusScope.of(context).unfocus();
 
-    // Valider le formulaire
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // Vérifier que le nouveau mot de passe est différent
     if (_currentPasswordController.text == _newPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -58,6 +63,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           margin: EdgeInsets.all(20),
+          duration: Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
         ),
       );
       return;
@@ -93,17 +102,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
   }
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
-    // Si succès, afficher l'écran de confirmation
     if (_isSuccess) {
       return _buildSuccessScreen();
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -130,7 +142,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icône
+              // ============================================
+              // ICÔNE
+              // ============================================
               Center(
                 child: Container(
                   width: 90,
@@ -138,6 +152,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        blurRadius: 10,
+                      ),
+                    ],
                   ),
                   child: const Icon(
                     Icons.lock_reset,
@@ -146,10 +166,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 25),
-              
-              // Titre
+
+              // ============================================
+              // TITRE
+              // ============================================
               const Center(
                 child: Text(
                   'Changer le mot de passe',
@@ -161,10 +183,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 8),
-              
-              // Sous-titre
+
               const Center(
                 child: Text(
                   'Protégez votre compte avec un mot de passe fort',
@@ -177,10 +198,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 35),
-              
-              // Message d'erreur
+
+              // ============================================
+              // MESSAGE D'ERREUR
+              // ============================================
               if (_errorMessage != null) ...[
                 Container(
                   width: double.infinity,
@@ -229,8 +252,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 ),
                 const SizedBox(height: 20),
               ],
-              
-              // Ancien mot de passe
+
+              // ============================================
+              // ANCIEN MOT DE PASSE
+              // ============================================
               PasswordTextField(
                 controller: _currentPasswordController,
                 label: 'Ancien mot de passe',
@@ -238,8 +263,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 validator: Validators.validatePassword,
                 textInputAction: TextInputAction.next,
               ),
-              
-              // Nouveau mot de passe
+
+              // ============================================
+              // NOUVEAU MOT DE PASSE
+              // ============================================
               PasswordTextField(
                 controller: _newPasswordController,
                 label: 'Nouveau mot de passe',
@@ -247,22 +274,22 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 validator: Validators.validatePassword,
                 textInputAction: TextInputAction.next,
                 onChanged: (value) {
-                  setState(() {}); // ✅ Pour mettre à jour l'indicateur séparé
+                  setState(() {});
                 },
               ),
-              // ✅ Indicateur séparé
+
+              // ============================================
+              // INDICATEUR DE FORCE
+              // ============================================
               PasswordStrengthIndicator(
                 password: _newPasswordController.text,
               ),
-              
-              // Indicateur de force
-              PasswordStrengthIndicator(
-                password: _newPasswordController.text,
-              ),
-              
+
               const SizedBox(height: 20),
-              
-              // Confirmation
+
+              // ============================================
+              // CONFIRMATION
+              // ============================================
               PasswordTextField(
                 controller: _confirmPasswordController,
                 label: 'Confirmer le nouveau mot de passe',
@@ -274,10 +301,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 textInputAction: TextInputAction.done,
                 onSubmitted: (value) => _handleChangePassword(),
               ),
-              
+
               const SizedBox(height: 30),
-              
-              // Bouton principal
+
+              // ============================================
+              // BOUTON PRINCIPAL
+              // ============================================
               ElevatedButton(
                 onPressed: _isLoading ? null : _handleChangePassword,
                 style: ElevatedButton.styleFrom(
@@ -288,6 +317,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   elevation: 0,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
                   disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
                 ),
                 child: _isLoading
@@ -309,10 +339,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ),
                       ),
               ),
-              
+
               const SizedBox(height: 30),
-              
-              // Conseils de sécurité
+
+              // ============================================
+              // CONSEILS DE SÉCURITÉ
+              // ============================================
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
@@ -330,7 +362,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     const Row(
                       children: [
                         Icon(
-                          Icons.lightbulb,
+                          Icons.lightbulb_outline,
                           size: 18,
                           color: AppColors.info,
                         ),
@@ -355,7 +387,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 20),
             ],
           ),
@@ -364,7 +396,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 
-  // Construire un conseil de sécurité
+  // ============================================
+  // CONSEIL DE SÉCURITÉ
+  // ============================================
+
   Widget _buildSecurityTip(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -390,34 +425,53 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 
-  // Écran de succès
+  // ============================================
+  // ÉCRAN DE SUCCÈS
+  // ============================================
+
   Widget _buildSuccessScreen() {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.cream,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icône succès
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_circle,
-                  size: 60,
-                  color: AppColors.success,
+              // Icône succès animée
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.5, end: 1.0),
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.elasticOut,
+                builder: (context, scale, child) {
+                  return Transform.scale(
+                    scale: scale,
+                    child: child,
+                  );
+                },
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.success.withValues(alpha: 0.3),
+                        blurRadius: 15,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    size: 60,
+                    color: AppColors.success,
+                  ),
                 ),
               ),
-              
+
               const SizedBox(height: 25),
-              
-              // Titre
+
               const Text(
                 'Mot de passe changé !',
                 style: TextStyle(
@@ -427,10 +481,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   color: AppColors.textPrimary,
                 ),
               ),
-              
+
               const SizedBox(height: 10),
-              
-              // Description
+
               const Text(
                 'Votre mot de passe a été modifié avec succès.\nVous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
                 textAlign: TextAlign.center,
@@ -442,10 +495,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   height: 1.6,
                 ),
               ),
-              
+
               const SizedBox(height: 30),
-              
-              // Bouton retour
+
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).popUntil((route) => route.isFirst);
@@ -458,6 +510,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   elevation: 0,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
                 ),
                 child: const Text(
                   'RETOUR AU PROFIL',

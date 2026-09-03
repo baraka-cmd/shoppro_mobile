@@ -1,5 +1,9 @@
-// Widget de sélection de photo de profil
+// ============================================
+// WIDGET DE SÉLECTION DE PHOTO DE PROFIL - PREMIUM
+// ============================================
 // Permet de choisir depuis la galerie ou la caméra
+// avec animations et confirmation. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -32,10 +36,13 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
 
     return Column(
       children: [
-        // Avatar
+        // ============================================
+        // AVATAR
+        // ============================================
         GestureDetector(
           onTap: _showImageOptions,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
             width: 100,
             height: 100,
             decoration: BoxDecoration(
@@ -62,6 +69,10 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                         : Image.network(
                             displayImage,
                             fit: BoxFit.cover,
+                            loadingBuilder: (context, child, progress) {
+                              if (progress == null) return child;
+                              return _buildInitialsAvatar();
+                            },
                             errorBuilder: (context, error, stackTrace) {
                               return _buildInitialsAvatar();
                             },
@@ -70,17 +81,19 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 : _buildInitialsAvatar(),
           ),
         ),
-        
+
         const SizedBox(height: 12),
-        
-        // Boutons d'action
+
+        // ============================================
+        // BOUTONS D'ACTION
+        // ============================================
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Changer photo
             GestureDetector(
               onTap: _showImageOptions,
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 15,
                   vertical: 8,
@@ -88,12 +101,15 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.photo_camera,
+                      Icons.photo_camera_outlined,
                       size: 16,
                       color: AppColors.primary,
                     ),
@@ -111,12 +127,11 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 ),
               ),
             ),
-            
-            // Supprimer (si une photo existe)
+
             if (displayImage != null && displayImage.isNotEmpty) ...[
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: _removeImage,
+                onTap: _confirmRemoveImage,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 15,
@@ -125,12 +140,15 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                   decoration: BoxDecoration(
                     color: AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.delete,
+                        Icons.delete_outline,
                         size: 16,
                         color: AppColors.error,
                       ),
@@ -155,7 +173,10 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
     );
   }
 
-  // Avatar avec initiales
+  // ============================================
+  // AVATAR AVEC INITIALES
+  // ============================================
+
   Widget _buildInitialsAvatar() {
     return Container(
       decoration: const BoxDecoration(
@@ -176,7 +197,6 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
     );
   }
 
-  // Récupérer les initiales
   String _getInitials(String fullName) {
     final parts = fullName.trim().split(' ');
     if (parts.length >= 2) {
@@ -188,7 +208,10 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
     return '?';
   }
 
-  // Afficher les options d'image
+  // ============================================
+  // OPTIONS D'IMAGE
+  // ============================================
+
   void _showImageOptions() {
     showModalBottomSheet(
       context: context,
@@ -204,7 +227,6 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 15),
-              // Indicateur de glissement
               Container(
                 width: 40,
                 height: 4,
@@ -224,8 +246,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 ),
               ),
               const SizedBox(height: 20),
-              
-              // Option Galerie
+
               ListTile(
                 leading: Container(
                   width: 40,
@@ -235,7 +256,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
-                    Icons.photo_library,
+                    Icons.photo_library_outlined,
                     color: AppColors.primary,
                     size: 20,
                   ),
@@ -254,8 +275,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                   _pickFromGallery();
                 },
               ),
-              
-              // Option Caméra
+
               ListTile(
                 leading: Container(
                   width: 40,
@@ -265,7 +285,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
-                    Icons.photo_camera,
+                    Icons.photo_camera_outlined,
                     color: AppColors.success,
                     size: 20,
                   ),
@@ -284,7 +304,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                   _pickFromCamera();
                 },
               ),
-              
+
               const SizedBox(height: 20),
             ],
           ),
@@ -293,7 +313,10 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
     );
   }
 
-  // Sélectionner depuis la galerie
+  // ============================================
+  // SÉLECTION D'IMAGE
+  // ============================================
+
   Future<void> _pickFromGallery() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -302,8 +325,8 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
         maxHeight: 800,
         imageQuality: 80,
       );
-      
-      if (image != null) {
+
+      if (image != null && mounted) {
         setState(() {
           _selectedImagePath = image.path;
         });
@@ -314,7 +337,6 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
     }
   }
 
-  // Prendre une photo
   Future<void> _pickFromCamera() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -323,8 +345,8 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
         maxHeight: 800,
         imageQuality: 80,
       );
-      
-      if (image != null) {
+
+      if (image != null && mounted) {
         setState(() {
           _selectedImagePath = image.path;
         });
@@ -335,7 +357,70 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
     }
   }
 
-  // Supprimer l'image
+  // ============================================
+  // SUPPRESSION AVEC CONFIRMATION
+  // ============================================
+
+  void _confirmRemoveImage() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Supprimer la photo ?',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: const Text(
+            'Votre photo de profil sera supprimée.',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text(
+                'Annuler',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _removeImage();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text(
+                'Supprimer',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _removeImage() {
     setState(() {
       _selectedImagePath = null;

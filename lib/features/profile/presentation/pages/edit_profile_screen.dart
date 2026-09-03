@@ -1,12 +1,19 @@
-// Écran de modification du profil
-// Formulaire complet avec photo, validation et sauvegarde
+// ============================================
+// ÉCRAN DE MODIFICATION DU PROFIL - VERSION PREMIUM
+// ============================================
+// Formulaire complet avec photo, validation
+// et sauvegarde. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/validators.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../widgets/edit_profile_form.dart';
 import '../widgets/profile_image_picker.dart';
+import 'dart:io';
+import '../../../../core/services/upload_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -28,7 +35,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _addressController;
 
   // État
-  bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
   String? _selectedImagePath;
@@ -39,37 +45,45 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     _initControllers();
-    _loadUserData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUserData();
+    });
   }
 
-  // Initialiser les contrôleurs
+  // ============================================
+  // INITIALISATION
+  // ============================================
+
   void _initControllers() {
     _firstNameController = TextEditingController();
     _lastNameController = TextEditingController();
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
-    _countryController = TextEditingController();
+    _countryController = TextEditingController(text: 'RDC');
     _cityController = TextEditingController();
     _addressController = TextEditingController();
   }
 
-  // Charger les données de l'utilisateur
   void _loadUserData() {
-    final authProvider = context.read<AuthProvider>();
-    final user = authProvider.user;
+  final authProvider = context.read<AuthProvider>();
+  final user = authProvider.user;
 
-    if (user != null) {
+
+
+  if (user != null && mounted) {
+    setState(() {
       _firstNameController.text = user.firstName ?? '';
       _lastNameController.text = user.lastName ?? '';
       _emailController.text = user.email;
       _phoneController.text = user.phone ?? '';
-      _countryController.text = user.country ?? '';
+      _countryController.text = user.country ?? 'RDC';
       _cityController.text = user.city ?? '';
-      _selectedLanguage = 'Français';
-      _selectedCurrency = 'FCFA';
-    }
+      _addressController.text = user.address ?? '';  // ✅ AJOUTÉ
+      _selectedLanguage = user.language ?? 'Français';
+      _selectedCurrency = user.currency ?? 'FCFA';
+    });
   }
-
+}
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -82,30 +96,64 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  // Sauvegarder les modifications
-  Future<void> _handleSave() async {
-    FocusScope.of(context).unfocus();
+  // ============================================
+  // SAUVEGARDE
+  // ============================================
 
-    // Valider le formulaire
-    if (!_formKey.currentState!.validate()) {
-      return;
+  Future<void> _handleSave() async {
+  FocusScope.of(context).unfocus();
+
+  if (!_formKey.currentState!.validate()) {
+    return;
+  }
+
+  setState(() {
+    _isSaving = true;
+    _errorMessage = null;
+  });
+
+  try {
+    // ============================================
+    // 1. UPLOADER LA PHOTO SI SÉLECTIONNÉE
+    // ============================================
+    String? uploadedAvatarUrl;
+
+    if (_selectedImagePath != null) {
+      debugPrint('📸 UPLOAD DE LA PHOTO: $_selectedImagePath');
+
+      final uploadService = UploadService();
+      uploadedAvatarUrl = await uploadService.uploadImage(
+        imageFile: File(_selectedImagePath!),
+        endpoint: '/auth/upload-avatar',
+      );
+
+      debugPrint('📸 AVATAR UPLOADÉ: $uploadedAvatarUrl');
+
+      if (uploadedAvatarUrl == null) {
+        setState(() {
+          _isSaving = false;
+          _errorMessage = 'Échec de l\'upload de la photo';
+        });
+        return;
+      }
     }
 
-    setState(() {
-      _isSaving = true;
-      _errorMessage = null;
-    });
-
+    // ============================================
+    // 2. METTRE À JOUR LE PROFIL
+    // ============================================
     final authProvider = context.read<AuthProvider>();
 
-    // Construire les données à envoyer
     final data = {
       'name': '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}',
       'phone': _phoneController.text.trim(),
       'country': _countryController.text.trim(),
       'city': _cityController.text.trim(),
       'address': _addressController.text.trim(),
+      'language': _selectedLanguage,
+      'currency': _selectedCurrency,
     };
+
+    debugPrint('📤 DONNÉES ENVOYÉES: $data');
 
     final success = await authProvider.updateProfile(data);
 
@@ -116,32 +164,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     if (success) {
-      // Afficher le message de succès
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Profil mis à jour avec succès !',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          content: Text('Profil mis à jour avec succès !'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
           margin: EdgeInsets.all(20),
           duration: Duration(seconds: 2),
         ),
       );
-
-      // Retour au profil
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } else {
       setState(() {
         _errorMessage = authProvider.errorMessage;
       });
     }
+  } catch (e) {
+    debugPrint('❌ ERREUR SAUVEGARDE: $e');
+    setState(() {
+      _isSaving = false;
+      _errorMessage = 'Erreur: $e';
+    });
   }
+}
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
@@ -149,9 +198,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final user = authProvider.user;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -171,7 +220,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
         actions: [
-          // Bouton Enregistrer dans l'AppBar
           TextButton(
             onPressed: _isSaving ? null : _handleSave,
             child: _isSaving
@@ -202,7 +250,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Photo de profil
+              // ============================================
+              // PHOTO DE PROFIL
+              // ============================================
               Center(
                 child: ProfileImagePicker(
                   avatarUrl: user?.avatar,
@@ -214,10 +264,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   },
                 ),
               ),
-              
+
               const SizedBox(height: 30),
-              
-              // Message d'erreur
+
+              // ============================================
+              // MESSAGE D'ERREUR
+              // ============================================
               if (_errorMessage != null) ...[
                 Container(
                   width: double.infinity,
@@ -266,8 +318,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 const SizedBox(height: 20),
               ],
-              
-              // Formulaire
+
+              // ============================================
+              // FORMULAIRE
+              // ============================================
               EditProfileForm(
                 firstNameController: _firstNameController,
                 lastNameController: _lastNameController,
@@ -289,10 +343,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   });
                 },
               ),
-              
+
               const SizedBox(height: 30),
-              
-              // Bouton Enregistrer (bas de page)
+
+              // ============================================
+              // BOUTON ENREGISTRER
+              // ============================================
               ElevatedButton(
                 onPressed: _isSaving ? null : _handleSave,
                 style: ElevatedButton.styleFrom(
@@ -303,6 +359,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   elevation: 0,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
                   disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
                 ),
                 child: _isSaving
@@ -324,7 +381,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
               ),
-              
+
               const SizedBox(height: 20),
             ],
           ),

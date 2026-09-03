@@ -1,5 +1,9 @@
-// Widget d'élément de menu du profil
-// Design moderne avec icône, titre, sous-titre, badge et flèche
+// ============================================
+// WIDGET D'ÉLÉMENT DE MENU DU PROFIL - PREMIUM
+// ============================================
+// Design moderne avec icône, titre, sous-titre,
+// badge et flèche. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -35,26 +39,25 @@ class ProfileMenuItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: AppColors.borderColor.withValues(alpha: 0.5),
+              color: isDestructive
+                  ? AppColors.error.withValues(alpha: 0.3)
+                  : AppColors.borderColor.withValues(alpha: 0.5),
               width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            boxShadow: AppColors.softShadow,
           ),
           child: Row(
             children: [
-              // Icône
+              // ============================================
+              // ICÔNE
+              // ============================================
               Container(
                 width: 42,
                 height: 42,
@@ -68,10 +71,12 @@ class ProfileMenuItem extends StatelessWidget {
                   color: iconColor,
                 ),
               ),
-              
+
               const SizedBox(width: 14),
-              
-              // Titre et sous-titre
+
+              // ============================================
+              // TITRE ET SOUS-TITRE
+              // ============================================
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,6 +96,8 @@ class ProfileMenuItem extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 12,
@@ -102,8 +109,10 @@ class ProfileMenuItem extends StatelessWidget {
                   ],
                 ),
               ),
-              
-              // Badge (optionnel)
+
+              // ============================================
+              // BADGE
+              // ============================================
               if (badge != null && badge!.isNotEmpty) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -111,23 +120,27 @@ class ProfileMenuItem extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: isDestructive
+                        ? AppColors.error.withValues(alpha: 0.1)
+                        : AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     badge!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: isDestructive ? AppColors.error : AppColors.primary,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
               ],
-              
-              // Flèche
+
+              // ============================================
+              // FLÈCHE
+              // ============================================
               if (showArrow)
                 Icon(
                   Icons.chevron_right,

@@ -55,12 +55,12 @@ class AuthRepositoryImpl implements AuthRepository {
         phone: phone,
       );
 
-      // ✅ Sauvegarder le token si présent
+      // Sauvegarder le token si présent
       if (response['token'] != null) {
         await saveToken(response['token'].toString());
       }
 
-      // ✅ Extraire l'utilisateur de la réponse
+      // Extraire l'utilisateur de la réponse
       return _handleAuthResponse(response);
     } catch (e) {
       rethrow;
@@ -165,21 +165,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> saveUser(User user) async {
-    final userModel = UserModel(
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      phone: user.phone,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      country: user.country,
-      city: user.city,
-      roles: user.roles,
-      totalOrders: user.totalOrders,
-      totalSpent: user.totalSpent,
-      emailVerified: user.emailVerified,
-    );
+    final userModel = UserModel.fromEntity(user);
     await _secureStorage.write(
       key: _userKey,
       value: json.encode(userModel.toJson()),
@@ -253,11 +239,15 @@ class AuthRepositoryImpl implements AuthRepository {
     // Refresh token
     if (data is Map<String, dynamic> && data['refresh_token'] != null) {
       refreshToken = data['refresh_token'].toString();
+    } else if (response['refresh_token'] != null) {
+      refreshToken = response['refresh_token'].toString();
     }
 
     // Expiration
     if (data is Map<String, dynamic> && data['expires_at'] != null) {
       expiresAt = DateTime.tryParse(data['expires_at'].toString());
+    } else if (response['expires_at'] != null) {
+      expiresAt = DateTime.tryParse(response['expires_at'].toString());
     }
 
     // Sauvegarder le token
@@ -266,6 +256,19 @@ class AuthRepositoryImpl implements AuthRepository {
       debugPrint('✅ Token sauvegardé: ${token.substring(0, 15)}...');
     } else {
       debugPrint('⚠️ Aucun token trouvé dans la réponse');
+    }
+
+    // Sauvegarder le refresh token si disponible
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await _secureStorage.write(key: 'refresh_token', value: refreshToken);
+    }
+
+    // Sauvegarder l'expiration si disponible
+    if (expiresAt != null) {
+      await _secureStorage.write(
+        key: 'token_expiry',
+        value: expiresAt.toIso8601String(),
+      );
     }
 
     // ============================================
@@ -297,7 +300,7 @@ class AuthRepositoryImpl implements AuthRepository {
       response['message']?.toString() ?? 'Erreur d\'authentification',
     );
   }
-  
+
   /// Extrait les données utilisateur d'une réponse
   Map<String, dynamic> _extractData(Map<String, dynamic> response) {
     final data = response['data'];

@@ -1,5 +1,9 @@
-// Widget d'upload d'avatar complet
-// Avec sélection, progression, validation et affichage en temps réel
+// ============================================
+// WIDGET D'UPLOAD D'AVATAR - VERSION PREMIUM
+// ============================================
+// Avec sélection, progression, validation et
+// affichage en temps réel. Design ShopPro.
+// ============================================
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -38,14 +42,16 @@ class _AvatarUploaderState extends State<AvatarUploader> {
 
     return Column(
       children: [
-        // Avatar avec overlay de progression
+        // ============================================
+        // AVATAR AVEC OVERLAY
+        // ============================================
         Stack(
           alignment: Alignment.center,
           children: [
-            // Avatar
             GestureDetector(
               onTap: _isUploading ? null : _showImageOptions,
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
                 width: 110,
                 height: 110,
                 decoration: BoxDecoration(
@@ -87,7 +93,9 @@ class _AvatarUploaderState extends State<AvatarUploader> {
               ),
             ),
 
-            // Overlay de progression
+            // ============================================
+            // OVERLAY DE PROGRESSION
+            // ============================================
             if (_isUploading)
               Container(
                 width: 110,
@@ -122,7 +130,9 @@ class _AvatarUploaderState extends State<AvatarUploader> {
                 ),
               ),
 
-            // Bouton caméra (badge)
+            // ============================================
+            // BOUTON CAMÉRA
+            // ============================================
             Positioned(
               bottom: 0,
               right: 0,
@@ -138,9 +148,15 @@ class _AvatarUploaderState extends State<AvatarUploader> {
                       color: Colors.white,
                       width: 2,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        blurRadius: 5,
+                      ),
+                    ],
                   ),
                   child: const Icon(
-                    Icons.photo_camera,
+                    Icons.photo_camera_outlined,
                     size: 16,
                     color: Colors.white,
                   ),
@@ -149,10 +165,12 @@ class _AvatarUploaderState extends State<AvatarUploader> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 15),
-        
-        // Message d'erreur
+
+        // ============================================
+        // MESSAGE D'ERREUR
+        // ============================================
         if (_errorMessage != null) ...[
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -162,6 +180,7 @@ class _AvatarUploaderState extends State<AvatarUploader> {
             ),
             child: Text(
               _errorMessage!,
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 11,
@@ -172,28 +191,27 @@ class _AvatarUploaderState extends State<AvatarUploader> {
           ),
           const SizedBox(height: 10),
         ],
-        
-        // Boutons d'action
+
+        // ============================================
+        // BOUTONS D'ACTION
+        // ============================================
         if (!_isUploading)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Changer photo
               _buildActionButton(
-                icon: Icons.photo_library,
+                icon: Icons.photo_library_outlined,
                 label: 'Changer',
                 color: AppColors.primary,
                 onTap: _showImageOptions,
               ),
-              
-              // Supprimer (si photo existe)
               if (displayImage != null && displayImage.isNotEmpty) ...[
                 const SizedBox(width: 10),
                 _buildActionButton(
-                  icon: Icons.delete,
+                  icon: Icons.delete_outline,
                   label: 'Supprimer',
                   color: AppColors.error,
-                  onTap: _removeImage,
+                  onTap: _confirmRemoveImage,
                 ),
               ],
             ],
@@ -202,7 +220,10 @@ class _AvatarUploaderState extends State<AvatarUploader> {
     );
   }
 
-  // Bouton d'action
+  // ============================================
+  // BOUTON D'ACTION
+  // ============================================
+
   Widget _buildActionButton({
     required IconData icon,
     required String label,
@@ -211,11 +232,13 @@ class _AvatarUploaderState extends State<AvatarUploader> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -237,7 +260,10 @@ class _AvatarUploaderState extends State<AvatarUploader> {
     );
   }
 
-  // Avatar avec initiales
+  // ============================================
+  // AVATAR AVEC INITIALES
+  // ============================================
+
   Widget _buildInitialsAvatar() {
     return Container(
       decoration: const BoxDecoration(
@@ -258,7 +284,6 @@ class _AvatarUploaderState extends State<AvatarUploader> {
     );
   }
 
-  // Récupérer les initiales
   String _getInitials(String fullName) {
     final parts = fullName.trim().split(' ');
     if (parts.length >= 2) {
@@ -270,7 +295,10 @@ class _AvatarUploaderState extends State<AvatarUploader> {
     return '?';
   }
 
-  // Afficher les options
+  // ============================================
+  // OPTIONS D'IMAGE
+  // ============================================
+
   void _showImageOptions() {
     showModalBottomSheet(
       context: context,
@@ -305,8 +333,7 @@ class _AvatarUploaderState extends State<AvatarUploader> {
                 ),
               ),
               const SizedBox(height: 20),
-              
-              // Galerie
+
               ListTile(
                 leading: Container(
                   width: 42,
@@ -316,7 +343,7 @@ class _AvatarUploaderState extends State<AvatarUploader> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
-                    Icons.photo_library,
+                    Icons.photo_library_outlined,
                     color: AppColors.primary,
                     size: 20,
                   ),
@@ -343,8 +370,7 @@ class _AvatarUploaderState extends State<AvatarUploader> {
                   _pickFromGallery();
                 },
               ),
-              
-              // Caméra
+
               ListTile(
                 leading: Container(
                   width: 42,
@@ -354,7 +380,7 @@ class _AvatarUploaderState extends State<AvatarUploader> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
-                    Icons.photo_camera,
+                    Icons.photo_camera_outlined,
                     color: AppColors.success,
                     size: 20,
                   ),
@@ -381,7 +407,7 @@ class _AvatarUploaderState extends State<AvatarUploader> {
                   _pickFromCamera();
                 },
               ),
-              
+
               const SizedBox(height: 20),
             ],
           ),
@@ -390,7 +416,10 @@ class _AvatarUploaderState extends State<AvatarUploader> {
     );
   }
 
-  // Sélectionner depuis la galerie
+  // ============================================
+  // SÉLECTION D'IMAGE
+  // ============================================
+
   Future<void> _pickFromGallery() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -410,7 +439,6 @@ class _AvatarUploaderState extends State<AvatarUploader> {
     }
   }
 
-  // Prendre une photo
   Future<void> _pickFromCamera() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -430,9 +458,11 @@ class _AvatarUploaderState extends State<AvatarUploader> {
     }
   }
 
-  // Traiter l'image sélectionnée
+  // ============================================
+  // TRAITEMENT DE L'IMAGE
+  // ============================================
+
   Future<void> _processImage(File imageFile) async {
-    // Valider l'image
     final validationError = await _uploadService.validateImage(imageFile);
 
     if (validationError != null) {
@@ -442,17 +472,18 @@ class _AvatarUploaderState extends State<AvatarUploader> {
       return;
     }
 
-    // Afficher l'image sélectionnée
     setState(() {
       _selectedImagePath = imageFile.path;
       _errorMessage = null;
     });
 
-    // Uploader
     await _uploadImage(imageFile);
   }
 
-  // Uploader l'image
+  // ============================================
+  // UPLOAD
+  // ============================================
+
   Future<void> _uploadImage(File imageFile) async {
     setState(() {
       _isUploading = true;
@@ -464,46 +495,119 @@ class _AvatarUploaderState extends State<AvatarUploader> {
         imageFile: imageFile,
         endpoint: '/auth/upload-avatar',
         onProgress: (progress) {
-          setState(() {
-            _uploadProgress = progress;
-          });
+          if (mounted) {
+            setState(() {
+              _uploadProgress = progress;
+            });
+          }
         },
       );
 
-      setState(() {
-        _isUploading = false;
-        _uploadProgress = 1;
-      });
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+          _uploadProgress = 1;
+        });
+      }
 
       if (uploadedUrl != null) {
-        // Mise à jour réussie
         widget.onAvatarUpdated?.call(uploadedUrl);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Photo de profil mise à jour !',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 13,
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Photo de profil mise à jour !',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                ),
+              ),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.all(20),
+              duration: Duration(seconds: 2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
             ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.all(20),
-            duration: Duration(seconds: 2),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
-      setState(() {
-        _isUploading = false;
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      });
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
     }
   }
 
-  // Supprimer l'image
+  // ============================================
+  // SUPPRESSION AVEC CONFIRMATION
+  // ============================================
+
+  void _confirmRemoveImage() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Supprimer la photo ?',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: const Text(
+            'Votre photo de profil sera supprimée.',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text(
+                'Annuler',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _removeImage();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text(
+                'Supprimer',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _removeImage() {
     setState(() {
       _selectedImagePath = null;

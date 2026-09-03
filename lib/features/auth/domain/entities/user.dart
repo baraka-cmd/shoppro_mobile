@@ -1,5 +1,5 @@
 // ============================================
-// ENTITÉ USER (DOMAINE)
+// ENTITÉ USER (DOMAINE) - VERSION PREMIUM
 // ============================================
 // Représente un utilisateur dans la couche domaine.
 // Ne dépend d'aucun framework ou bibliothèque externe.
@@ -15,6 +15,7 @@ class User {
   final String email;
   final String? avatar;
   final String? phone;
+  final String? address;
 
   // ============================================
   // STATUT DU COMPTE
@@ -33,6 +34,8 @@ class User {
   final String? lastName;
   final String? country;
   final String? city;
+  final String? language;
+  final String? currency;
 
   // ============================================
   // RÔLES ET PERMISSIONS
@@ -58,6 +61,7 @@ class User {
     required this.email,
     this.avatar,
     this.phone,
+    this.address,
     this.roles = const [],
     this.isActive = true,
     this.isBanned = false,
@@ -67,6 +71,8 @@ class User {
     this.lastName,
     this.country,
     this.city,
+    this.language,
+    this.currency,
     this.totalOrders = 0,
     this.totalSpent = 0,
     this.emailVerified = false,
@@ -118,7 +124,7 @@ class User {
   /// Vrai si le compte peut accéder à l'application
   bool get canAccess => isActive && !isBanned && !isSuspended;
 
-  /// Vrai si l'email a été vérifié (soit emailVerified, soit isVerified)
+  /// Vrai si l'email a été vérifié
   bool get hasVerifiedEmail => emailVerified || isVerified;
 
   // ============================================
@@ -152,10 +158,13 @@ class User {
     String? email,
     String? avatar,
     String? phone,
+    String? address,
     String? firstName,
     String? lastName,
     String? country,
     String? city,
+    String? language,
+    String? currency,
     List<String>? roles,
     int? totalOrders,
     double? totalSpent,
@@ -171,10 +180,13 @@ class User {
       email: email ?? this.email,
       avatar: avatar ?? this.avatar,
       phone: phone ?? this.phone,
+      address: address ?? this.address,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       country: country ?? this.country,
       city: city ?? this.city,
+      language: language ?? this.language,
+      currency: currency ?? this.currency,
       roles: roles ?? this.roles,
       totalOrders: totalOrders ?? this.totalOrders,
       totalSpent: totalSpent ?? this.totalSpent,
@@ -190,7 +202,6 @@ class User {
   // CONVERSION JSON
   // ============================================
 
-  /// Convertir en JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -198,10 +209,13 @@ class User {
       'email': email,
       'avatar': avatar,
       'phone': phone,
+      'address': address,
       'first_name': firstName,
       'last_name': lastName,
       'country': country,
       'city': city,
+      'language': language,
+      'currency': currency,
       'roles': roles,
       'total_orders': totalOrders,
       'total_spent': totalSpent,
@@ -220,6 +234,6 @@ class User {
   @override
   String toString() {
     return 'User(id: $id, name: $fullName, email: $email, '
-        'role: $roleName, active: $isActive)';
+        'role: $roleName, active: $isActive, address: ${address ?? 'non définie'})';
   }
 }

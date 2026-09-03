@@ -1,5 +1,9 @@
-// Formulaire de modification du profil
-// Contient tous les champs avec validation complète
+// ============================================
+// FORMULAIRE DE MODIFICATION DU PROFIL - PREMIUM
+// ============================================
+// Contient tous les champs avec validation
+// complète. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -39,8 +43,8 @@ class EditProfileForm extends StatefulWidget {
 }
 
 class _EditProfileFormState extends State<EditProfileForm> {
-  final List<String> _languages = ['Français', 'English', 'العربية'];
-  final List<String> _currencies = ['FCFA', 'USD', 'EUR'];
+  final List<String> _languages = ['Français', 'English', 'Swahili'];
+  final List<String> _currencies = ['FCFA', 'USD', 'CDF'];
 
   @override
   Widget build(BuildContext context) {
@@ -60,31 +64,31 @@ class _EditProfileFormState extends State<EditProfileForm> {
             letterSpacing: 1.5,
           ),
         ),
-        
+
         const SizedBox(height: 15),
-        
+
         // Prénom
         AuthTextField(
           controller: widget.firstNameController,
           label: 'Prénom',
-          hint: 'Ex : Jean',
+          hint: 'Ex : Félix',
           icon: Icons.person_outline,
           keyboardType: TextInputType.name,
           textInputAction: TextInputAction.next,
           validator: Validators.validateName,
         ),
-        
+
         // Nom
         AuthTextField(
           controller: widget.lastNameController,
           label: 'Nom',
-          hint: 'Ex : Kamga',
+          hint: 'Ex : Baraka',
           icon: Icons.person_outline,
           keyboardType: TextInputType.name,
           textInputAction: TextInputAction.next,
           validator: Validators.validateName,
         ),
-        
+
         // Email (désactivé)
         AuthTextField(
           controller: widget.emailController,
@@ -96,20 +100,20 @@ class _EditProfileFormState extends State<EditProfileForm> {
           validator: Validators.validateEmail,
           enabled: false,
         ),
-        
+
         // Téléphone
         AuthTextField(
           controller: widget.phoneController,
           label: 'Téléphone',
-          hint: 'Ex : +237 6 00 00 00 00',
+          hint: 'Ex : +243 99 000 00 00',
           icon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
           textInputAction: TextInputAction.next,
           validator: Validators.validatePhone,
         ),
-        
+
         const SizedBox(height: 25),
-        
+
         // ============================================
         // SECTION : ADRESSE
         // ============================================
@@ -123,14 +127,14 @@ class _EditProfileFormState extends State<EditProfileForm> {
             letterSpacing: 1.5,
           ),
         ),
-        
+
         const SizedBox(height: 15),
-        
+
         // Pays
         AuthTextField(
           controller: widget.countryController,
           label: 'Pays',
-          hint: 'Ex : Cameroun',
+          hint: 'Ex : RDC',
           icon: Icons.flag_outlined,
           keyboardType: TextInputType.text,
           textInputAction: TextInputAction.next,
@@ -141,13 +145,13 @@ class _EditProfileFormState extends State<EditProfileForm> {
             return null;
           },
         ),
-        
+
         // Ville
         AuthTextField(
           controller: widget.cityController,
           label: 'Ville',
-          hint: 'Ex : Douala',
-          icon: Icons.location_city,
+          hint: 'Ex : Goma',
+          icon: Icons.location_city_outlined,
           keyboardType: TextInputType.text,
           textInputAction: TextInputAction.next,
           validator: (value) {
@@ -157,12 +161,12 @@ class _EditProfileFormState extends State<EditProfileForm> {
             return null;
           },
         ),
-        
+
         // Adresse complète
         AuthTextField(
           controller: widget.addressController,
           label: 'Adresse complète',
-          hint: 'Ex : Rue 123, Quartier Bonamoussadi',
+          hint: 'Ex : Katindo, Avenue du Port',
           icon: Icons.location_on_outlined,
           keyboardType: TextInputType.streetAddress,
           textInputAction: TextInputAction.next,
@@ -173,9 +177,9 @@ class _EditProfileFormState extends State<EditProfileForm> {
             return null;
           },
         ),
-        
+
         const SizedBox(height: 25),
-        
+
         // ============================================
         // SECTION : PRÉFÉRENCES
         // ============================================
@@ -189,10 +193,10 @@ class _EditProfileFormState extends State<EditProfileForm> {
             letterSpacing: 1.5,
           ),
         ),
-        
+
         const SizedBox(height: 15),
-        
-        // Langue (Dropdown)
+
+        // Langue
         _buildDropdown(
           label: 'Langue',
           icon: Icons.language,
@@ -200,10 +204,10 @@ class _EditProfileFormState extends State<EditProfileForm> {
           items: _languages,
           onChanged: widget.onLanguageChanged,
         ),
-        
+
         const SizedBox(height: 20),
-        
-        // Devise (Dropdown)
+
+        // Devise
         _buildDropdown(
           label: 'Devise',
           icon: Icons.attach_money,
@@ -215,7 +219,10 @@ class _EditProfileFormState extends State<EditProfileForm> {
     );
   }
 
-  // Construire un dropdown personnalisé
+  // ============================================
+  // DROPDOWN PERSONNALISÉ
+  // ============================================
+
   Widget _buildDropdown({
     required String label,
     required IconData icon,
@@ -226,7 +233,6 @@ class _EditProfileFormState extends State<EditProfileForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label
         Text(
           label,
           style: const TextStyle(
@@ -236,10 +242,9 @@ class _EditProfileFormState extends State<EditProfileForm> {
             color: AppColors.textPrimary,
           ),
         ),
-        
+
         const SizedBox(height: 8),
-        
-        // Dropdown
+
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -255,7 +260,7 @@ class _EditProfileFormState extends State<EditProfileForm> {
               prefixIcon: Container(
                 margin: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
