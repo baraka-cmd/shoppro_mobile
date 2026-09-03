@@ -256,6 +256,11 @@ class FavoriteProvider extends ChangeNotifier {
     return await _favoriteRepository.isFavorite(productId);
   }
 
+  /// Vérifier si un produit est favori (synchrone)
+  bool isFavoriteSync(int productId) {
+    return _favorites.any((f) => f.productId == productId);
+  }
+
   // ============================================
   // ALERTES PRIX
   // ============================================

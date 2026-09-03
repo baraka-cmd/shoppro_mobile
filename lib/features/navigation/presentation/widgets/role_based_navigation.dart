@@ -4,6 +4,7 @@
 // Affiche les onglets adaptés au rôle de l'utilisateur.
 // Design : Floating Bottom Navigation avec capsule
 // coulissante, animations fluides et badges dynamiques.
+// Supporte l'avatar de profil dans la navigation.
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -33,8 +34,8 @@ class _RoleBasedNavigationState extends State<RoleBasedNavigation> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final currentRole = _getCurrentRole(authProvider);
+    final avatarUrl = authProvider.user?.avatar;
 
-    // Récupérer les items selon le rôle
     final items = widget.roleItems[currentRole] ?? [];
 
     if (items.isEmpty) {
@@ -72,6 +73,7 @@ class _RoleBasedNavigationState extends State<RoleBasedNavigation> {
               child: _buildNavItem(
                 item: item,
                 isSelected: isSelected,
+                avatarUrl: avatarUrl,
                 onTap: () {
                   setState(() {
                     _currentIndex = index;
@@ -93,6 +95,7 @@ class _RoleBasedNavigationState extends State<RoleBasedNavigation> {
   Widget _buildNavItem({
     required NavigationItem item,
     required bool isSelected,
+    String? avatarUrl,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -109,11 +112,12 @@ class _RoleBasedNavigationState extends State<RoleBasedNavigation> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icône avec badge éventuel
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // Capsule de sélection
+                  // ============================================
+                  // CAPSULE DE SÉLECTION
+                  // ============================================
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeInOut,
@@ -134,18 +138,31 @@ class _RoleBasedNavigationState extends State<RoleBasedNavigation> {
                           child: child,
                         );
                       },
-                      child: Icon(
-                        isSelected ? item.selectedIcon : item.icon,
-                        key: ValueKey<bool>(isSelected),
-                        size: 22,
-                        color: isSelected
-                            ? item.selectedColor
-                            : item.unselectedColor,
-                      ),
+                      // ============================================
+                      // AVATAR OU ICÔNE
+                      // ============================================
+                      child: item.isProfile &&
+                              avatarUrl != null &&
+                              avatarUrl.isNotEmpty
+                          ? _buildProfileAvatar(
+                              avatarUrl: avatarUrl,
+                              isSelected: isSelected,
+                              selectedColor: item.selectedColor,
+                            )
+                          : Icon(
+                              isSelected ? item.selectedIcon : item.icon,
+                              key: ValueKey<bool>(isSelected),
+                              size: 22,
+                              color: isSelected
+                                  ? item.selectedColor
+                                  : item.unselectedColor,
+                            ),
                     ),
                   ),
 
-                  // Badge
+                  // ============================================
+                  // BADGE
+                  // ============================================
                   if (item.badgeCount != null && item.badgeCount! > 0)
                     Positioned(
                       right: -6,
@@ -194,6 +211,54 @@ class _RoleBasedNavigationState extends State<RoleBasedNavigation> {
   }
 
   // ============================================
+  // AVATAR DE PROFIL DANS LA NAVIGATION
+  // ============================================
+  Widget _buildProfileAvatar({
+    required String avatarUrl,
+    required bool isSelected,
+    required Color selectedColor,
+  }) {
+    return Container(
+      key: ValueKey<String>(avatarUrl),
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isSelected ? selectedColor : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: ClipOval(
+        child: Image.network(
+          avatarUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              isSelected ? Icons.person : Icons.person_outline,
+              size: 22,
+              color: isSelected ? selectedColor : AppColors.textSecondary,
+            );
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return const Center(
+              child: SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: AppColors.primary,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // ============================================
   // RÉCUPÉRER LE RÔLE ACTUEL
   // ============================================
   UserRole _getCurrentRole(AuthProvider authProvider) {
@@ -216,6 +281,7 @@ class NavigationItem {
   final Color unselectedColor;
   final int? badgeCount;
   final VoidCallback? onTap;
+  final bool isProfile;
 
   const NavigationItem({
     required this.label,
@@ -225,6 +291,7 @@ class NavigationItem {
     this.unselectedColor = const Color(0xFF68756F),
     this.badgeCount,
     this.onTap,
+    this.isProfile = false,
   });
 }
 
@@ -268,6 +335,7 @@ class RoleNavigationItems {
           selectedIcon: Icons.person,
           selectedColor: Color(0xFF087F5B),
           unselectedColor: Color(0xFF68756F),
+          isProfile: true,
         ),
       ];
 
@@ -307,6 +375,7 @@ class RoleNavigationItems {
           selectedIcon: Icons.person,
           selectedColor: AppColors.warning,
           unselectedColor: Color(0xFF68756F),
+          isProfile: true,
         ),
       ];
 

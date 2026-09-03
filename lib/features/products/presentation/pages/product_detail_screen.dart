@@ -87,6 +87,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _isLoading = false;
       });
 
+      // Vérifier si le produit est déjà en favori
+      final favoriteProvider = context.read<FavoriteProvider>();
+      final isFav = await favoriteProvider.isFavorite(widget.productId);
+
+      if (mounted) {
+        setState(() {
+          _isFavorite = isFav;
+        });
+      }
+
       // Ajouter aux récemment consultés
       await provider.addToRecentlyViewed(widget.productId);
 
@@ -99,7 +109,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       });
     }
   }
-
   // ============================================
   // BUILD PRINCIPAL
   // ============================================
@@ -710,51 +719,86 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   // ============================================
   // TOGGLE FAVORI
   // ============================================
-
   Future<void> _toggleFavorite(Product product) async {
     final favoriteProvider = context.read<FavoriteProvider>();
 
-    final favorite = Favorite(
-      id: DateTime.now().millisecondsSinceEpoch,
-      productId: product.id,
-      productName: product.name,
-      productImage: product.fullImageUrl.isNotEmpty
-          ? product.fullImageUrl
-          : product.mainImage,
-      productSku: product.sku,
-      productPrice: product.price,
-      productDiscountPrice: product.hasDiscount ? product.discountPrice : null,
-      isInStock: product.isInStock,
-      stock: product.stock,
-      averageRating: product.averageRating,
-      addedAt: DateTime.now(),
-    );
+    if (_isFavorite) {
+      // ============================================
+      // RETIRER DES FAVORIS
+      // ============================================
+      final success = await favoriteProvider.removeByProductId(product.id);
 
-    final result = await favoriteProvider.toggleFavorite(favorite);
+      if (!mounted) return;
 
-    if (!mounted) return;
+      if (success) {
+        setState(() {
+          _isFavorite = false;
+        });
 
-    setState(() {
-      _isFavorite = result ?? false;
-    });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Retiré des favoris',
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(20),
+            duration: Duration(seconds: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+            ),
+          ),
+        );
+      }
+    } else {
+      // ============================================
+      // AJOUTER AUX FAVORIS
+      // ============================================
+      final favorite = Favorite(
+        id: DateTime.now().millisecondsSinceEpoch,
+        productId: product.id,
+        productName: product.name,
+        productImage: product.fullImageUrl.isNotEmpty
+            ? product.fullImageUrl
+            : product.mainImage,
+        productSku: product.sku,
+        productPrice: product.price,
+        productDiscountPrice: product.hasDiscount ? product.discountPrice : null,
+        isInStock: product.isInStock,
+        stock: product.stock,
+        averageRating: product.averageRating,
+        addedAt: DateTime.now(),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isFavorite ? 'Ajouté aux favoris !' : 'Retiré des favoris',
-          style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
-        ),
-        backgroundColor: _isFavorite ? AppColors.success : AppColors.error,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(20),
-        duration: const Duration(seconds: 2),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-      ),
-    );
+      final success = await favoriteProvider.addFavorite(favorite);
+
+      if (!mounted) return;
+
+      if (success) {
+        setState(() {
+          _isFavorite = true;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Ajouté aux favoris !',
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(20),
+            duration: Duration(seconds: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+            ),
+          ),
+        );
+      }
+    }
   }
-
+  
   // ============================================
   // CONSTRUIRE LES VARIANTES
   // ============================================

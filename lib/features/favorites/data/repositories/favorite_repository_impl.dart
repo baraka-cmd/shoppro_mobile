@@ -99,18 +99,20 @@ class FavoriteRepositoryImpl implements FavoriteRepository {
   // ============================================
 
   @override
-  Future<List<Favorite>> addFavorite(Favorite favorite) async {
-    final favorites = await getFavorites();
+Future<List<Favorite>> addFavorite(Favorite favorite) async {
+  final favorites = await getFavorites();
 
-    final exists = favorites.any((f) => f.productId == favorite.productId);
+  final exists = favorites.any((f) => f.productId == favorite.productId);
 
-    if (!exists) {
-      favorites.add(favorite);
-      await _localDataSource.saveFavorites(favorites);
-    }
-
-    return favorites;
+  if (!exists) {
+    // ✅ Convertir en FavoriteModel
+    final favoriteModel = FavoriteModel.fromEntity(favorite);
+    favorites.add(favoriteModel);
+    await _localDataSource.saveFavorites(favorites);
   }
+
+  return favorites;
+}
 
   @override
   Future<List<Favorite>> addFavorites(List<Favorite> newFavorites) async {
@@ -152,20 +154,22 @@ class FavoriteRepositoryImpl implements FavoriteRepository {
   }
 
   @override
-  Future<bool> toggleFavorite(Favorite favorite) async {
-    final favorites = await getFavorites();
-    final exists = favorites.any((f) => f.productId == favorite.productId);
+Future<bool> toggleFavorite(Favorite favorite) async {
+  final favorites = await getFavorites();
+  final exists = favorites.any((f) => f.productId == favorite.productId);
 
-    if (exists) {
-      favorites.removeWhere((f) => f.productId == favorite.productId);
-      await _localDataSource.saveFavorites(favorites);
-      return false;
-    } else {
-      favorites.add(favorite);
-      await _localDataSource.saveFavorites(favorites);
-      return true;
-    }
+  if (exists) {
+    favorites.removeWhere((f) => f.productId == favorite.productId);
+    await _localDataSource.saveFavorites(favorites);
+    return false;
+  } else {
+    // ✅ Convertir en FavoriteModel
+    final favoriteModel = FavoriteModel.fromEntity(favorite);
+    favorites.add(favoriteModel);
+    await _localDataSource.saveFavorites(favorites);
+    return true;
   }
+}
 
   @override
   Future<void> clearFavorites() async {

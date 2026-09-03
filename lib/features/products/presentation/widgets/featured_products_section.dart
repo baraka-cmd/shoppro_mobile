@@ -18,6 +18,8 @@ class FeaturedProductsSection extends StatelessWidget {
   final void Function(Product)? onProductTap;
   final VoidCallback? onAddToCart;
   final void Function(Product, bool)? onToggleFavorite;
+  final bool Function(Product)? isFavorite;
+  
 
   const FeaturedProductsSection({
     super.key,
@@ -27,6 +29,7 @@ class FeaturedProductsSection extends StatelessWidget {
     this.onProductTap,
     this.onAddToCart,
     this.onToggleFavorite,
+    this.isFavorite,
   });
 
   @override
@@ -118,6 +121,7 @@ class FeaturedProductsSection extends StatelessWidget {
                       onToggleFavorite: onToggleFavorite != null
                           ? () => onToggleFavorite!(product, false)
                           : null,
+                      isFavorite: isFavorite?.call(product) ?? false,
                     ),
                   ),
                 );

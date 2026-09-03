@@ -1,5 +1,9 @@
-// Carte de notification
-// Affiche le titre, le contenu et le type avec couleur
+// ============================================
+// CARTE DE NOTIFICATION - VERSION PREMIUM
+// ============================================
+// Affiche le titre, le contenu et le type avec
+// couleur, animations et actions. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -9,45 +13,52 @@ class NotificationCard extends StatelessWidget {
   final AppNotification notification;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
+  final VoidCallback? onMarkUnread;
 
   const NotificationCard({
     super.key,
     required this.notification,
     this.onTap,
     this.onDelete,
+    this.onMarkUnread,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: notification.isRead
               ? Colors.white
-              : Color(notification.typeColor).withValues(alpha: 0.05),
+              : Color(notification.typeColorHex).withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: notification.isRead
                 ? AppColors.borderColor.withValues(alpha: 0.5)
-                : Color(notification.typeColor).withValues(alpha: 0.3),
+                : Color(notification.typeColorHex).withValues(alpha: 0.3),
           ),
+          boxShadow: notification.isRead ? null : AppColors.softShadow,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icône du type
+            // ============================================
+            // ICÔNE DU TYPE
+            // ============================================
             Container(
               width: 45,
               height: 45,
               decoration: BoxDecoration(
-                color: Color(notification.typeColor).withValues(alpha: 0.1),
+                color: Color(notification.typeColorHex).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
                 child: Text(
-                  notification.typeIcon,
+                  notification.typeEmoji,
                   style: const TextStyle(fontSize: 20),
                 ),
               ),
@@ -55,7 +66,9 @@ class NotificationCard extends StatelessWidget {
 
             const SizedBox(width: 12),
 
-            // Contenu
+            // ============================================
+            // CONTENU
+            // ============================================
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,8 +96,15 @@ class NotificationCard extends StatelessWidget {
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: Color(notification.typeColor),
+                            color: Color(notification.typeColorHex),
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    Color(notification.typeColorHex).withValues(alpha: 0.4),
+                                blurRadius: 3,
+                              ),
+                            ],
                           ),
                         ),
                     ],
@@ -110,14 +130,14 @@ class NotificationCard extends StatelessWidget {
                   // Type + Temps
                   Row(
                     children: [
-                      // Badge type
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: Color(notification.typeColor).withValues(alpha: 0.1),
+                          color: Color(notification.typeColorHex)
+                              .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -126,13 +146,12 @@ class NotificationCard extends StatelessWidget {
                             fontFamily: 'Poppins',
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
-                            color: Color(notification.typeColor),
+                            color: Color(notification.typeColorHex),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Temps
-                      Icon(
+                      const Icon(
                         Icons.access_time,
                         size: 10,
                         color: AppColors.textLight,
@@ -152,16 +171,33 @@ class NotificationCard extends StatelessWidget {
               ),
             ),
 
-            // Supprimer
-            if (onDelete != null)
-              GestureDetector(
-                onTap: onDelete,
-                child: const Icon(
-                  Icons.close,
-                  size: 16,
-                  color: AppColors.textLight,
-                ),
-              ),
+            // ============================================
+            // ACTIONS
+            // ============================================
+            Column(
+              children: [
+                if (onDelete != null)
+                  GestureDetector(
+                    onTap: onDelete,
+                    child: const Icon(
+                      Icons.close,
+                      size: 16,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                if (onMarkUnread != null) ...[
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: onMarkUnread,
+                    child: const Icon(
+                      Icons.mark_email_unread_outlined,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
       ),

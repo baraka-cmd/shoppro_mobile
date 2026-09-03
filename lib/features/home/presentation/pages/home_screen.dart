@@ -182,6 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         productProvider,
                         categoryProvider,
                         bannerProvider,
+                        favoriteProvider,
                       ),
                     ),
 
@@ -211,6 +212,10 @@ class _HomeScreenState extends State<HomeScreen> {
   // ============================================
 
   Widget _buildBottomNavigation(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final productProvider = context.watch<ProductProvider>();
+    final categoryProvider = context.watch<CategoryProvider>();
+    final bannerProvider = context.watch<BannerProvider>();
     final cartProvider = context.watch<CartProvider>();
     final favoriteProvider = context.watch<FavoriteProvider>();
 
@@ -249,7 +254,6 @@ class _HomeScreenState extends State<HomeScreen> {
       onItemSelected: _onNavItemSelected,
     );
   }
-
   // ============================================
   // CONTENU PRINCIPAL
   // ============================================
@@ -258,6 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ProductProvider productProvider,
     CategoryProvider categoryProvider,
     BannerProvider bannerProvider,
+    FavoriteProvider favoriteProvider,
   ) {
     
     return Column(
@@ -329,6 +334,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             onProductTap: (product) => _navigateToProduct(product.id),
             onToggleFavorite: (product) => _toggleFavorite(product),
+            isFavorite: (product) => favoriteProvider.isFavoriteSync(product.id),
           ),
 
         const SizedBox(height: 15),
@@ -360,6 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             onProductTap: (product) => _navigateToProduct(product.id),
             onToggleFavorite: (product) => _toggleFavorite(product),
+            isFavorite: (product) => favoriteProvider.isFavoriteSync(product.id),
           ),
 
         const SizedBox(height: 15),
@@ -415,24 +422,70 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _toggleFavorite(dynamic product) {
+  Future<void> _toggleFavorite(dynamic product) async {
   final favoriteProvider = context.read<FavoriteProvider>();
 
-  // Créer un objet Favorite à partir du Product
-  final favorite = Favorite(
-    id: 0, // L'ID sera généré par le backend
-    productId: product.id,
-    productName: product.name,
-    productImage: product.mainImage,
-    productSku: product.sku ?? '',
-    productPrice: product.price,
-    productDiscountPrice: product.discountPrice,
-    isInStock: product.isInStock,
-    stock: product.stock,
-    averageRating: product.averageRating,
-    addedAt: DateTime.now(),
-  );
+  // Vérifier si le produit est déjà en favori
+  final isFav = await favoriteProvider.isFavorite(product.id);
 
-  favoriteProvider.toggleFavorite(favorite);
+  if (isFav) {
+    // Retirer des favoris
+    final success = await favoriteProvider.removeByProductId(product.id);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Retiré des favoris',
+            style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(20),
+          duration: Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+        ),
+      );
+    }
+  } else {
+    // Ajouter aux favoris
+    final favorite = Favorite(
+      id: DateTime.now().millisecondsSinceEpoch,
+      productId: product.id,
+      productName: product.name,
+      productImage: product.fullImageUrl.isNotEmpty
+          ? product.fullImageUrl
+          : product.mainImage,
+      productSku: product.sku ?? '',
+      productPrice: product.price,
+      productDiscountPrice: product.hasDiscount ? product.discountPrice : null,
+      isInStock: product.isInStock,
+      stock: product.stock,
+      averageRating: product.averageRating,
+      addedAt: DateTime.now(),
+    );
+
+    final success = await favoriteProvider.addFavorite(favorite);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Ajouté aux favoris !',
+            style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+          ),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(20),
+          duration: Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+        ),
+      );
+    }
+  }
 }
 }

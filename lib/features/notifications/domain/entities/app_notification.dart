@@ -1,5 +1,10 @@
-// Entité AppNotification (Domaine)
+// ============================================
+// ENTITÉ APP NOTIFICATION (DOMAINE) - PREMIUM
+// ============================================
 // Représente une notification dans l'application
+// avec types métier, destination et actions.
+// Design ShopPro.
+// ============================================
 
 class AppNotification {
   final int id;
@@ -12,6 +17,7 @@ class AppNotification {
   final bool isRead;
   final DateTime? readAt;
   final DateTime createdAt;
+  final bool isArchived;
 
   const AppNotification({
     required this.id,
@@ -24,61 +30,131 @@ class AppNotification {
     this.isRead = false,
     this.readAt,
     required this.createdAt,
+    this.isArchived = false,
   });
 
-  /// Label du type
+  // ============================================
+  // TYPES DE NOTIFICATIONS
+  // ============================================
+
+  /// Types métier disponibles
+  static const String typeOrder = 'order';
+  static const String typePromotion = 'promotion';
+  static const String typePriceAlert = 'price_alert';
+  static const String typeStockAlert = 'stock_alert';
+  static const String typeDelivery = 'delivery';
+  static const String typeSystem = 'system';
+
+  /// Liste des types valides
+  static const List<String> validTypes = [
+    typeOrder,
+    typePromotion,
+    typePriceAlert,
+    typeStockAlert,
+    typeDelivery,
+    typeSystem,
+  ];
+
+  // ============================================
+  // LABEL DU TYPE
+  // ============================================
+
   String get typeLabel {
     switch (type) {
-      case 'order':
+      case typeOrder:
         return 'Commande';
-      case 'promotion':
+      case typePromotion:
         return 'Promotion';
-      case 'delivery':
-        return 'Livraison';
-      case 'price_alert':
+      case typePriceAlert:
         return 'Alerte prix';
-      case 'system':
+      case typeStockAlert:
+        return 'Retour en stock';
+      case typeDelivery:
+        return 'Livraison';
+      case typeSystem:
         return 'Système';
       default:
         return type;
     }
   }
 
-  /// Icône du type
-  String get typeIcon {
+  // ============================================
+  // EMOJI DU TYPE
+  // ============================================
+
+  String get typeEmoji {
     switch (type) {
-      case 'order':
+      case typeOrder:
         return '🛒';
-      case 'promotion':
+      case typePromotion:
         return '🎉';
-      case 'delivery':
+      case typePriceAlert:
+        return '🔔';
+      case typeStockAlert:
         return '📦';
-      case 'price_alert':
-        return '💰';
-      case 'system':
+      case typeDelivery:
+        return '🚚';
+      case typeSystem:
         return '⚙️';
       default:
         return '🔔';
     }
   }
 
-  /// Couleur du type
-  int get typeColor {
+  // ============================================
+  // COULEUR DU TYPE (HEX)
+  // ============================================
+
+  int get typeColorHex {
     switch (type) {
-      case 'order':
-        return 0xFF3498DB;
-      case 'promotion':
-        return 0xFFE67E22;
-      case 'delivery':
-        return 0xFF27AE60;
-      case 'price_alert':
-        return 0xFFE74C3C;
-      case 'system':
-        return 0xFF7F8C8D;
+      case typeOrder:
+        return 0xFF3B82F6; // Bleu
+      case typePromotion:
+        return 0xFFF4B942; // Gold
+      case typePriceAlert:
+        return 0xFFFF6B6B; // Coral
+      case typeStockAlert:
+        return 0xFF087F5B; // Emerald
+      case typeDelivery:
+        return 0xFF20C997; // Mint
+      case typeSystem:
+        return 0xFF68756F; // Gris
       default:
-        return 0xFF7F8C8D;
+        return 0xFF68756F;
     }
   }
+
+  // ============================================
+  // DESTINATION / ACTION
+  // ============================================
+
+  /// Route de navigation selon le type
+  String get navigationRoute {
+    switch (type) {
+      case typeOrder:
+      case typeDelivery:
+        return '/order/detail';
+      case typePriceAlert:
+      case typeStockAlert:
+        return '/product/detail';
+      case typePromotion:
+        return '/product/list';
+      case typeSystem:
+      default:
+        return '/profile';
+    }
+  }
+
+  /// La notification a-t-elle une destination ?
+  bool get hasDestination =>
+      targetType != null && targetId != null && targetId!.isNotEmpty;
+
+  /// La notification est-elle actionnable ?
+  bool get isActionable => hasDestination || navigationRoute.isNotEmpty;
+
+  // ============================================
+  // ÉTAT DE LECTURE
+  // ============================================
 
   /// Date relative
   String get relativeTime {
@@ -103,6 +179,67 @@ class AppNotification {
     return 'À l\'instant';
   }
 
+  /// Date complète formatée
+  String get formattedDate {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+
+    if (difference.inDays == 0) {
+      return 'Aujourd\'hui';
+    }
+    if (difference.inDays == 1) {
+      return 'Hier';
+    }
+    return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+  }
+
+  /// La notification est-elle récente (moins de 24h) ?
+  bool get isRecent {
+    return DateTime.now().difference(createdAt).inHours < 24;
+  }
+
+  // ============================================
+  // VALIDATION
+  // ============================================
+
+  /// La notification a-t-elle des données valides ?
+  bool get isValid {
+    return id > 0 && title.isNotEmpty && body.isNotEmpty;
+  }
+
+  /// Le type est-il valide ?
+  bool get hasValidType => validTypes.contains(type);
+
+  // ============================================
+  // MÉTHODES
+  // ============================================
+
+  /// Marquer comme lue
+  AppNotification markAsRead() {
+    return copyWith(
+      isRead: true,
+      readAt: DateTime.now(),
+    );
+  }
+
+  /// Marquer comme non lue
+  AppNotification markAsUnread() {
+    return copyWith(
+      isRead: false,
+      readAt: null,
+    );
+  }
+
+  /// Archiver
+  AppNotification archive() {
+    return copyWith(isArchived: true);
+  }
+
+  /// Désarchiver
+  AppNotification unarchive() {
+    return copyWith(isArchived: false);
+  }
+
   /// Copier avec modifications
   AppNotification copyWith({
     int? id,
@@ -115,6 +252,7 @@ class AppNotification {
     bool? isRead,
     DateTime? readAt,
     DateTime? createdAt,
+    bool? isArchived,
   }) {
     return AppNotification(
       id: id ?? this.id,
@@ -127,10 +265,14 @@ class AppNotification {
       isRead: isRead ?? this.isRead,
       readAt: readAt ?? this.readAt,
       createdAt: createdAt ?? this.createdAt,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 
-  /// Convertir en JSON
+  // ============================================
+  // JSON
+  // ============================================
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -143,10 +285,10 @@ class AppNotification {
       'is_read': isRead,
       'read_at': readAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
+      'is_archived': isArchived,
     };
   }
 
-  /// Créer depuis JSON
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
       id: json['id'] as int? ?? 0,
@@ -158,7 +300,20 @@ class AppNotification {
       targetId: json['target_id'] as String?,
       isRead: json['is_read'] as bool? ?? false,
       readAt: DateTime.tryParse(json['read_at'] as String? ?? ''),
-      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
+      isArchived: json['is_archived'] as bool? ?? false,
     );
+  }
+
+  // ============================================
+  // TOSTRING
+  // ============================================
+
+  @override
+  String toString() {
+    return 'AppNotification(id: $id, type: $typeLabel, '
+        'title: $title, read: $isRead, archived: $isArchived, '
+        'createdAt: $relativeTime)';
   }
 }

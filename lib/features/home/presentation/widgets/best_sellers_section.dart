@@ -4,7 +4,7 @@
 // Section Meilleures Ventes avec :
 // - Badges or/argent/bronze pour le top 3
 // - Cartes produits propres et premium
-// - Boutons favoris élégants
+// - Boutons favoris élégants avec état dynamique
 // - Scroll horizontal fluide
 // ============================================
 
@@ -27,6 +27,7 @@ class BestSellersSection extends StatelessWidget {
   final ValueChanged<Product>? onProductTap;
   final ValueChanged<Product>? onAddToCart;
   final ValueChanged<Product>? onToggleFavorite;
+  final bool Function(Product)? isFavorite;
 
   const BestSellersSection({
     super.key,
@@ -35,6 +36,7 @@ class BestSellersSection extends StatelessWidget {
     this.onProductTap,
     this.onAddToCart,
     this.onToggleFavorite,
+    this.isFavorite,
   });
 
   // ============================================
@@ -190,6 +192,8 @@ class BestSellersSection extends StatelessWidget {
     String? badgeIcon,
     int index,
   ) {
+    final isFav = isFavorite?.call(product) ?? false;
+
     return GestureDetector(
       onTap: () => onProductTap?.call(product),
       child: Container(
@@ -278,23 +282,27 @@ class BestSellersSection extends StatelessWidget {
                     ),
                   ),
 
-                // Bouton favori
+                // ✅ Bouton favori avec état dynamique
                 Positioned(
                   top: 6,
                   right: 6,
                   child: GestureDetector(
                     onTap: () => onToggleFavorite?.call(product),
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
                       width: 26,
                       height: 26,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.9),
                         shape: BoxShape.circle,
+                        border: isFav
+                            ? Border.all(color: AppColors.error, width: 1.5)
+                            : null,
                       ),
-                      child: const Icon(
-                        Icons.favorite_border,
+                      child: Icon(
+                        isFav ? Icons.favorite : Icons.favorite_border,
                         size: 14,
-                        color: AppColors.textSecondary,
+                        color: isFav ? AppColors.error : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -323,7 +331,6 @@ class BestSellersSection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 3),
-                    // Note
                     Row(
                       children: [
                         const Icon(
@@ -354,7 +361,6 @@ class BestSellersSection extends StatelessWidget {
                       ],
                     ),
                     const Spacer(),
-                    // Prix
                     Text(
                       '${product.currentPrice.round()} FCFA',
                       maxLines: 1,

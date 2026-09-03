@@ -1,9 +1,14 @@
-// Écran des notifications
-// Affiche la liste des notifications avec filtres
+// ============================================
+// ÉCRAN DES NOTIFICATIONS - VERSION PREMIUM
+// ============================================
+// Affiche la liste avec filtres, groupement par
+// date et actions. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../routes/app_routes.dart';
 import '../providers/notification_provider.dart';
 import '../widgets/notification_card.dart';
 import '../widgets/empty_notifications.dart';
@@ -21,37 +26,49 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadNotifications();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadNotifications();
+    });
   }
 
-  // Charger les notifications
+  // ============================================
+  // CHARGEMENT
+  // ============================================
+
   Future<void> _loadNotifications() async {
     final provider = context.read<NotificationProvider>();
     await provider.loadNotifications();
   }
 
-  // Filtrer les notifications
+  // ============================================
+  // FILTRAGE
+  // ============================================
+
   List<dynamic> _getFilteredNotifications(NotificationProvider provider) {
     switch (_selectedFilter) {
+      case 'unread':
+        return provider.unreadNotifications;
       case 'order':
         return provider.getOrderNotifications();
       case 'promotion':
         return provider.getPromotionNotifications();
-      case 'delivery':
-        return provider.getDeliveryNotifications();
       case 'price_alert':
         return provider.getPriceAlertNotifications();
       default:
-        return provider.notifications;
+        return provider.activeNotifications;
     }
   }
+
+  // ============================================
+  // BUILD
+  // ============================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -79,7 +96,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         actions: [
           Consumer<NotificationProvider>(
             builder: (context, provider, child) {
-              if (provider.isEmpty || provider.unreadCount == 0) {
+              if (provider.unreadCount == 0) {
                 return const SizedBox.shrink();
               }
               return IconButton(
@@ -89,6 +106,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   color: AppColors.primary,
                   size: 22,
                 ),
+                tooltip: 'Tout marquer comme lu',
               );
             },
           ),
@@ -102,6 +120,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   color: AppColors.error,
                   size: 22,
                 ),
+                tooltip: 'Tout effacer',
               );
             },
           ),
@@ -125,12 +144,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           return Column(
             children: [
-              // Chips de filtres
+              // ============================================
+              // CHIPS DE FILTRES
+              // ============================================
               _buildFilterChips(provider),
 
               const SizedBox(height: 10),
 
-              // Liste des notifications
+              // ============================================
+              // LISTE DES NOTIFICATIONS
+              // ============================================
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _loadNotifications,
@@ -153,10 +176,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   if (!notification.isRead) {
                                     provider.markAsRead(notification.id);
                                   }
+                                  _navigateToDestination(notification);
                                 },
                                 onDelete: () {
-                                  provider.removeNotification(notification.id);
+                                  _handleDelete(provider, notification.id);
                                 },
+                                onMarkUnread: notification.isRead
+                                    ? () => provider.markAsUnread(notification.id)
+                                    : null,
                               ),
                             );
                           },
@@ -170,13 +197,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  // Chips de filtres
+  // ============================================
+  // CHIPS DE FILTRES
+  // ============================================
+
   Widget _buildFilterChips(NotificationProvider provider) {
     return SizedBox(
-      height: 40,
+      height: 48,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
         children: [
           _buildChip(
             label: 'Toutes',
@@ -190,10 +220,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           const SizedBox(width: 8),
           _buildChip(
-            label: 'Commandes',
+            label: 'Non lues',
+            count: provider.unreadCount,
+            isSelected: _selectedFilter == 'unread',
+            color: AppColors.warning,
+            onTap: () {
+              setState(() {
+                _selectedFilter = 'unread';
+              });
+            },
+          ),
+          const SizedBox(width: 8),
+          _buildChip(
+            label: '🛒 Commandes',
             count: provider.getOrderNotifications().length,
             isSelected: _selectedFilter == 'order',
-            color: const Color(0xFF3498DB),
+            color: const Color(0xFF3B82F6),
             onTap: () {
               setState(() {
                 _selectedFilter = 'order';
@@ -202,7 +244,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           const SizedBox(width: 8),
           _buildChip(
-            label: 'Promos',
+            label: '🎉 Promos',
             count: provider.getPromotionNotifications().length,
             isSelected: _selectedFilter == 'promotion',
             color: AppColors.warning,
@@ -214,19 +256,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           const SizedBox(width: 8),
           _buildChip(
-            label: 'Livraisons',
-            count: provider.getDeliveryNotifications().length,
-            isSelected: _selectedFilter == 'delivery',
-            color: AppColors.success,
-            onTap: () {
-              setState(() {
-                _selectedFilter = 'delivery';
-              });
-            },
-          ),
-          const SizedBox(width: 8),
-          _buildChip(
-            label: 'Alertes prix',
+            label: '🔔 Alertes',
             count: provider.getPriceAlertNotifications().length,
             isSelected: _selectedFilter == 'price_alert',
             color: AppColors.error,
@@ -241,7 +271,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  // Chip de filtre
+  // ============================================
+  // CHIP DE FILTRE
+  // ============================================
+
   Widget _buildChip({
     required String label,
     required int count,
@@ -253,7 +286,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? color : Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -261,8 +295,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             color: isSelected ? color : AppColors.borderColor,
             width: 1.5,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.25),
+                    blurRadius: 5,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               label,
@@ -280,7 +323,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withValues(alpha: 0.3)
-                      : AppColors.background,
+                      : AppColors.surface,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -300,7 +343,66 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  // Dialog pour tout effacer
+  // ============================================
+  // NAVIGATION SELON LE TYPE
+  // ============================================
+
+  void _navigateToDestination(dynamic notification) {
+    if (!notification.isActionable) return;
+
+    final route = notification.navigationRoute;
+    final arguments = {
+      if (notification.targetType == 'order' || notification.type == 'order')
+        'order_id': int.tryParse(notification.targetId ?? '') ?? 0,
+      if (notification.targetType == 'product' || notification.type == 'price_alert' || notification.type == 'stock_alert')
+        'product_id': int.tryParse(notification.targetId ?? '') ?? 0,
+    };
+
+    if (arguments.isNotEmpty) {
+      Navigator.of(context).pushNamed(route, arguments: arguments);
+    } else {
+      Navigator.of(context).pushNamed(route);
+    }
+  }
+
+  // ============================================
+  // SUPPRESSION AVEC ANNULATION
+  // ============================================
+
+  Future<void> _handleDelete(
+      NotificationProvider provider, int notificationId) async {
+    final success = await provider.removeNotification(notificationId);
+
+    if (!mounted || !success) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Notification supprimée',
+          style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+        ),
+        backgroundColor: AppColors.textPrimary,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        action: SnackBarAction(
+          label: 'ANNULER',
+          textColor: AppColors.error,
+          onPressed: () {
+            provider.undoLastAction();
+          },
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // DIALOG TOUT EFFACER
+  // ============================================
+
   void _showClearDialog(NotificationProvider provider) {
     showDialog(
       context: context,
@@ -346,6 +448,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
                 foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               child: const Text(
                 'Effacer',

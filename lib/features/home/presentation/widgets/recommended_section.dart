@@ -5,6 +5,7 @@
 // - Titre contextuel et personnalisé
 // - Sous-titre explicatif
 // - Grille de produits 2 colonnes
+// - Boutons favoris avec état dynamique
 // - Design épuré et premium
 // ============================================
 
@@ -27,6 +28,7 @@ class RecommendedSection extends StatelessWidget {
   final VoidCallback? onSeeAllTap;
   final ValueChanged<Product>? onProductTap;
   final ValueChanged<Product>? onToggleFavorite;
+  final bool Function(Product)? isFavorite;
 
   const RecommendedSection({
     super.key,
@@ -35,6 +37,7 @@ class RecommendedSection extends StatelessWidget {
     this.onSeeAllTap,
     this.onProductTap,
     this.onToggleFavorite,
+    this.isFavorite,
   });
 
   // ============================================
@@ -154,6 +157,8 @@ class RecommendedSection extends StatelessWidget {
   // ============================================
 
   Widget _buildRecommendedCard(Product product) {
+    final isFav = isFavorite?.call(product) ?? false;
+
     return GestureDetector(
       onTap: () => onProductTap?.call(product),
       child: Container(
@@ -212,24 +217,28 @@ class RecommendedSection extends StatelessWidget {
                   ),
                 ),
 
-                // Bouton favori
+                // ✅ Bouton favori avec état dynamique
                 Positioned(
                   top: 6,
                   right: 6,
                   child: GestureDetector(
                     onTap: () => onToggleFavorite?.call(product),
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.9),
                         shape: BoxShape.circle,
                         boxShadow: AppColors.softShadow,
+                        border: isFav
+                            ? Border.all(color: AppColors.error, width: 1.5)
+                            : null,
                       ),
-                      child: const Icon(
-                        Icons.favorite_border,
+                      child: Icon(
+                        isFav ? Icons.favorite : Icons.favorite_border,
                         size: 15,
-                        color: AppColors.textSecondary,
+                        color: isFav ? AppColors.error : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -259,7 +268,6 @@ class RecommendedSection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 3),
-                    // Note
                     Row(
                       children: [
                         const Icon(
@@ -280,7 +288,6 @@ class RecommendedSection extends StatelessWidget {
                       ],
                     ),
                     const Spacer(),
-                    // Prix
                     Row(
                       children: [
                         Text(
