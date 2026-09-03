@@ -1,5 +1,9 @@
-// Badge de type d'adresse
-// Affiche le type avec couleur et icône adaptées
+// ============================================
+// BADGE DE TYPE D'ADRESSE - VERSION PREMIUM
+// ============================================
+// Affiche le type avec couleur, icône et
+// emoji. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -16,7 +20,8 @@ class AddressTypeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 12,
         vertical: compact ? 4 : 6,
@@ -53,13 +58,20 @@ class AddressTypeBadge extends StatelessWidget {
     );
   }
 
-  // Label du type
+  // ============================================
+  // LABEL DU TYPE
+  // ============================================
+
   String _getLabel() {
     switch (type) {
       case 'home':
         return 'DOMICILE';
       case 'work':
         return 'TRAVAIL';
+      case 'shop':
+        return 'BOUTIQUE';
+      case 'parents':
+        return 'FAMILLE';
       case 'other':
         return 'AUTRE';
       default:
@@ -67,13 +79,20 @@ class AddressTypeBadge extends StatelessWidget {
     }
   }
 
-  // Couleur du type
+  // ============================================
+  // COULEUR DU TYPE
+  // ============================================
+
   Color _getColor() {
     switch (type) {
       case 'home':
         return AppColors.success;
       case 'work':
         return AppColors.info;
+      case 'shop':
+        return AppColors.warning;
+      case 'parents':
+        return const Color(0xFFE91E63);
       case 'other':
         return AppColors.textSecondary;
       default:
@@ -81,17 +100,24 @@ class AddressTypeBadge extends StatelessWidget {
     }
   }
 
-  // Icône du type
+  // ============================================
+  // ICÔNE DU TYPE
+  // ============================================
+
   IconData _getIcon() {
     switch (type) {
       case 'home':
-        return Icons.home;
+        return Icons.home_outlined;
       case 'work':
-        return Icons.work;
+        return Icons.work_outline;
+      case 'shop':
+        return Icons.store_outlined;
+      case 'parents':
+        return Icons.family_restroom;
       case 'other':
-        return Icons.location_on;
+        return Icons.location_on_outlined;
       default:
-        return Icons.home;
+        return Icons.home_outlined;
     }
   }
 }

@@ -1,5 +1,9 @@
-// Carte d'adresse
-// Affiche les informations complètes avec actions
+// ============================================
+// CARTE D'ADRESSE - VERSION PREMIUM
+// ============================================
+// Affiche les informations complètes avec actions,
+// badges et point de repère. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -30,7 +34,9 @@ class AddressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: isSelected
@@ -43,22 +49,40 @@ class AddressCard extends StatelessWidget {
                 : AppColors.borderColor.withValues(alpha: 0.5),
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                  ),
+                ]
+              : AppColors.softShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // En-tête : Type + Badge défaut
+            // ============================================
+            // EN-TÊTE : LABEL + BADGE DÉFAUT
+            // ============================================
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                AddressTypeBadge(type: address.type),
+                Row(
+                  children: [
+                    AddressTypeBadge(type: address.type),
+                    const SizedBox(width: 6),
+                    if (address.label.isNotEmpty)
+                      Text(
+                        address.label,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                  ],
+                ),
                 if (address.isDefault)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -95,7 +119,9 @@ class AddressCard extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            // Nom complet
+            // ============================================
+            // NOM COMPLET
+            // ============================================
             Text(
               address.fullName,
               style: const TextStyle(
@@ -108,11 +134,13 @@ class AddressCard extends StatelessWidget {
 
             const SizedBox(height: 3),
 
-            // Téléphone
+            // ============================================
+            // TÉLÉPHONE
+            // ============================================
             Row(
               children: [
                 const Icon(
-                  Icons.phone,
+                  Icons.phone_outlined,
                   size: 12,
                   color: AppColors.textSecondary,
                 ),
@@ -128,12 +156,15 @@ class AddressCard extends StatelessWidget {
               ],
             ),
 
+            // ============================================
+            // EMAIL
+            // ============================================
             if (address.email != null && address.email!.isNotEmpty) ...[
               const SizedBox(height: 3),
               Row(
                 children: [
                   const Icon(
-                    Icons.email,
+                    Icons.email_outlined,
                     size: 12,
                     color: AppColors.textSecondary,
                   ),
@@ -152,12 +183,14 @@ class AddressCard extends StatelessWidget {
 
             const SizedBox(height: 5),
 
-            // Adresse complète
+            // ============================================
+            // ADRESSE COMPLÈTE
+            // ============================================
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Icon(
-                  Icons.location_on,
+                  Icons.location_on_outlined,
                   size: 12,
                   color: AppColors.textSecondary,
                 ),
@@ -176,9 +209,64 @@ class AddressCard extends StatelessWidget {
               ],
             ),
 
-            // Instructions de livraison
-            if (address.deliveryInstructions != null &&
-                address.deliveryInstructions!.isNotEmpty) ...[
+            // ============================================
+            // POINT DE REPÈRE
+            // ============================================
+            if (address.hasLandmark) ...[
+              const SizedBox(height: 5),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.place_outlined,
+                    size: 12,
+                    color: AppColors.warning,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      '📍 ${address.landmark}',
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            // ============================================
+            // INDICATEUR GPS
+            // ============================================
+            if (address.hasGps) ...[
+              const SizedBox(height: 3),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.gps_fixed,
+                    size: 10,
+                    color: AppColors.success,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Position GPS enregistrée',
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 10,
+                      color: AppColors.success,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            // ============================================
+            // INSTRUCTIONS DE LIVRAISON
+            // ============================================
+            if (address.hasDeliveryInstructions) ...[
               const SizedBox(height: 5),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +292,9 @@ class AddressCard extends StatelessWidget {
               ),
             ],
 
-            // Indicateur de sélection
+            // ============================================
+            // INDICATEUR DE SÉLECTION
+            // ============================================
             if (isSelectable) ...[
               const SizedBox(height: 10),
               Align(
@@ -234,11 +324,13 @@ class AddressCard extends StatelessWidget {
               ),
             ],
 
-            // Actions
+            // ============================================
+            // ACTIONS
+            // ============================================
             if (!isSelectable &&
                 (onEdit != null || onDelete != null || onSetDefault != null)) ...[
               const SizedBox(height: 12),
-              const Divider(height: 1),
+              const Divider(height: 1, color: AppColors.borderColor),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -265,7 +357,7 @@ class AddressCard extends StatelessWidget {
                     TextButton.icon(
                       onPressed: onEdit,
                       icon: const Icon(
-                        Icons.edit,
+                        Icons.edit_outlined,
                         size: 14,
                         color: AppColors.primary,
                       ),

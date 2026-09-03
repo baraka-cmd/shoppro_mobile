@@ -1,5 +1,10 @@
-// Écran de liste des adresses
-// Affiche toutes les adresses avec actions
+// ============================================
+// ÉCRAN DE LISTE DES ADRESSES - VERSION PREMIUM
+// ============================================
+// Affiche toutes les adresses avec actions,
+// sélection et suppression avec annulation.
+// Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -29,21 +34,30 @@ class _AddressListScreenState extends State<AddressListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadAddresses();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAddresses();
+    });
   }
 
-  // Charger les adresses
+  // ============================================
+  // CHARGEMENT
+  // ============================================
+
   Future<void> _loadAddresses() async {
     final provider = context.read<AddressProvider>();
     await provider.loadAddresses();
   }
 
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -76,6 +90,7 @@ class _AddressListScreenState extends State<AddressListScreen> {
               color: AppColors.primary,
               size: 24,
             ),
+            tooltip: 'Ajouter une adresse',
           ),
         ],
       ),
@@ -123,10 +138,10 @@ class _AddressListScreenState extends State<AddressListScreen> {
                         : () => _navigateToForm(address: address),
                     onDelete: widget.isSelectable
                         ? null
-                        : () => _showDeleteDialog(provider, address.id),
+                        : () => _handleDelete(provider, address.id),
                     onSetDefault: widget.isSelectable
                         ? null
-                        : () => provider.setDefaultAddress(address.id),
+                        : () => _handleSetDefault(provider, address.id),
                   ),
                 );
               },
@@ -134,16 +149,21 @@ class _AddressListScreenState extends State<AddressListScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToForm(),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: widget.isSelectable
+          ? null
+          : FloatingActionButton(
+              onPressed: () => _navigateToForm(),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.add),
+            ),
     );
   }
 
-  // Naviguer vers le formulaire
+  // ============================================
+  // NAVIGATION
+  // ============================================
+
   void _navigateToForm({dynamic address}) {
     Navigator.of(context)
         .pushNamed(
@@ -151,70 +171,68 @@ class _AddressListScreenState extends State<AddressListScreen> {
           arguments: address != null ? {'address': address} : null,
         )
         .then((result) {
-          if (result == true) {
+          if (result == true && mounted) {
             _loadAddresses();
           }
         });
   }
 
-  // Dialog de suppression
-  void _showDeleteDialog(AddressProvider provider, int addressId) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text(
-            'Supprimer l\'adresse ?',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          content: const Text(
-            'Cette action est irréversible.',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(
-                'Annuler',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                await provider.removeAddress(addressId);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text(
-                'Supprimer',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+  // ============================================
+  // SUPPRESSION AVEC ANNULATION
+  // ============================================
+
+  Future<void> _handleDelete(AddressProvider provider, int addressId) async {
+    final success = await provider.removeAddress(addressId);
+
+    if (!mounted || !success) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Adresse supprimée',
+          style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+        ),
+        backgroundColor: AppColors.textPrimary,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        action: SnackBarAction(
+          label: 'ANNULER',
+          textColor: AppColors.error,
+          onPressed: () {
+            provider.undoLastAction();
+          },
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // DÉFINIR COMME DÉFAUT
+  // ============================================
+
+  Future<void> _handleSetDefault(AddressProvider provider, int addressId) async {
+    final success = await provider.setDefaultAddress(addressId);
+
+    if (!mounted || !success) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Adresse définie comme défaut',
+          style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+        ),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(20),
+        duration: Duration(seconds: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
     );
   }
 }

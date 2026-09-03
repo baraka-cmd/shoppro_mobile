@@ -1,5 +1,9 @@
-// Implémentation du repository des adresses
-// Gère la logique métier avec stockage local
+// ============================================
+// IMPLÉMENTATION DU REPOSITORY DES ADRESSES - PREMIUM
+// ============================================
+// Gère la logique métier avec stockage local,
+// défaut intelligent et snapshot.
+// ============================================
 
 import '../../domain/entities/address.dart';
 import '../../domain/repositories/address_repository.dart';
@@ -12,17 +16,29 @@ class AddressRepositoryImpl implements AddressRepository {
   AddressRepositoryImpl({AddressLocalDataSource? localDataSource})
       : _localDataSource = localDataSource ?? AddressLocalDataSource();
 
+  // ============================================
+  // LECTURE
+  // ============================================
+
   @override
   Future<List<Address>> getAddresses() async {
     final addresses = await _localDataSource.getAddresses();
-    // Trier : défaut d'abord, puis par type
     addresses.sort((a, b) {
       if (a.isDefault != b.isDefault) {
         return a.isDefault ? -1 : 1;
       }
-      return a.type.compareTo(b.type);
+      // Trier par date de création (plus récent en premier)
+      final aDate = a.createdAt ?? DateTime(2000);
+      final bDate = b.createdAt ?? DateTime(2000);
+      return bDate.compareTo(aDate);
     });
     return addresses;
+  }
+
+  @override
+  Future<List<Address>> getActiveAddresses() async {
+    final addresses = await getAddresses();
+    return addresses.where((a) => a.isActive).toList();
   }
 
   @override
@@ -40,13 +56,32 @@ class AddressRepositoryImpl implements AddressRepository {
   Future<Address?> getDefaultAddress() async {
     final addresses = await getAddresses();
     for (final address in addresses) {
-      if (address.isDefault) {
+      if (address.isDefault && address.isActive) {
         return address;
       }
     }
-    // Si pas de défaut, retourner la première
     return addresses.isNotEmpty ? addresses.first : null;
   }
+
+  @override
+  Future<List<Address>> getAddressesByType(String type) async {
+    final addresses = await getAddresses();
+    return addresses.where((a) => a.type == type).toList();
+  }
+
+  @override
+  Future<int> getAddressesCount() async {
+    return await _localDataSource.getAddressesCount();
+  }
+
+  @override
+  Future<bool> hasAddresses() async {
+    return await _localDataSource.hasAddresses();
+  }
+
+  // ============================================
+  // CRÉATION
+  // ============================================
 
   @override
   Future<List<Address>> addAddress(Address address) async {
@@ -70,12 +105,30 @@ class AddressRepositoryImpl implements AddressRepository {
   }
 
   @override
+  Future<List<Address>> addAddresses(List<Address> newAddresses) async {
+    var addresses = await getAddresses();
+
+    for (var address in newAddresses) {
+      if (addresses.isEmpty) {
+        address = address.copyWith(isDefault: true);
+      }
+      addresses.add(address);
+    }
+
+    await _localDataSource.saveAddresses(addresses);
+    return addresses;
+  }
+
+  // ============================================
+  // MODIFICATION
+  // ============================================
+
+  @override
   Future<List<Address>> updateAddress(Address address) async {
     final addresses = await getAddresses();
     final index = addresses.indexWhere((a) => a.id == address.id);
 
     if (index >= 0) {
-      // Si cette adresse est définie comme défaut
       if (address.isDefault) {
         for (int i = 0; i < addresses.length; i++) {
           addresses[i] = addresses[i].copyWith(isDefault: false);
@@ -86,22 +139,6 @@ class AddressRepositoryImpl implements AddressRepository {
       await _localDataSource.saveAddresses(addresses);
     }
 
-    return addresses;
-  }
-
-  @override
-  Future<List<Address>> removeAddress(int addressId) async {
-    final addresses = await getAddresses();
-    final removedAddress = addresses.where((a) => a.id == addressId).firstOrNull;
-
-    addresses.removeWhere((a) => a.id == addressId);
-
-    // Si l'adresse supprimée était la défaut, définir la première comme défaut
-    if (removedAddress != null && removedAddress.isDefault && addresses.isNotEmpty) {
-      addresses[0] = addresses[0].copyWith(isDefault: true);
-    }
-
-    await _localDataSource.saveAddresses(addresses);
     return addresses;
   }
 
@@ -120,20 +157,64 @@ class AddressRepositoryImpl implements AddressRepository {
   }
 
   @override
-  Future<List<Address>> getAddressesByType(String type) async {
+  Future<List<Address>> toggleAddressActive(int addressId) async {
     final addresses = await getAddresses();
-    return addresses.where((a) => a.type == type).toList();
+    final index = addresses.indexWhere((a) => a.id == addressId);
+
+    if (index >= 0) {
+      addresses[index] = addresses[index].copyWith(
+        isActive: !addresses[index].isActive,
+      );
+      await _localDataSource.saveAddresses(addresses);
+    }
+
+    return addresses;
+  }
+
+  // ============================================
+  // SUPPRESSION
+  // ============================================
+
+  @override
+  Future<List<Address>> removeAddress(int addressId) async {
+    final addresses = await getAddresses();
+    Address? removedAddress;
+
+    for (final address in addresses) {
+      if (address.id == addressId) {
+        removedAddress = address;
+        break;
+      }
+    }
+
+    addresses.removeWhere((a) => a.id == addressId);
+
+    if (removedAddress != null &&
+        removedAddress.isDefault &&
+        addresses.isNotEmpty) {
+      addresses[0] = addresses[0].copyWith(isDefault: true);
+    }
+
+    await _localDataSource.saveAddresses(addresses);
+    return addresses;
   }
 
   @override
-  Future<int> getAddressesCount() async {
-    return await _localDataSource.getAddressesCount();
+  Future<List<Address>> removeAddresses(List<int> addressIds) async {
+    var addresses = await getAddresses();
+    addresses.removeWhere((a) => addressIds.contains(a.id));
+    await _localDataSource.saveAddresses(addresses);
+    return addresses;
   }
 
   @override
-  Future<bool> hasAddresses() async {
-    return await _localDataSource.hasAddresses();
+  Future<void> clearAddresses() async {
+    await _localDataSource.clearAddresses();
   }
+
+  // ============================================
+  // SAUVEGARDE
+  // ============================================
 
   @override
   Future<void> saveAddresses(List<Address> addresses) async {
@@ -147,16 +228,26 @@ class AddressRepositoryImpl implements AddressRepository {
   }
 
   @override
-  Future<void> clearAddresses() async {
-    await _localDataSource.clearAddresses();
+  Future<bool> isAddressesSynced() async {
+    return true;
   }
-}
 
-// Extension firstOrNull
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull {
-    final iterator = this.iterator;
-    if (iterator.moveNext()) return iterator.current;
-    return null;
+  // ============================================
+  // ANNULATION (Undo)
+  // ============================================
+
+  @override
+  Future<void> saveAddressesSnapshot() async {
+    await _localDataSource.saveAddressesSnapshot();
+  }
+
+  @override
+  Future<List<Address>> restoreAddressesSnapshot() async {
+    return await _localDataSource.restoreAddressesSnapshot() ?? [];
+  }
+
+  @override
+  Future<void> clearAddressesSnapshot() async {
+    await _localDataSource.clearAddressesSnapshot();
   }
 }

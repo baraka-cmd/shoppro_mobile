@@ -101,40 +101,39 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   // ============================================
-  // CHARGEMENT DES ADRESSES
-  // ============================================
+// CHARGEMENT DES ADRESSES
+// ============================================
 
-  Future<void> _loadAddresses() async {
-    final addressProvider = context.read<AddressProvider>();
-    await addressProvider.loadAddresses();
+Future<void> _loadAddresses() async {
+  final addressProvider = context.read<AddressProvider>();
+  await addressProvider.loadAddresses();
 
-    if (mounted) {
-      setState(() {
-        _addresses = addressProvider.addresses.map((a) {
-          return AddressData(
-            id: a.id,
-            fullName: a.fullName,
-            phone: a.phone,
-            addressLine1: a.addressLine1,
-            addressLine2: a.addressLine2,
-            city: a.city,
-            state: a.state,
-            country: a.country,
-            type: a.type,
-            isDefault: a.isDefault,
-          );
-        }).toList();
+  if (mounted) {
+    setState(() {
+      _addresses = addressProvider.addresses.map((a) {
+        return AddressData(
+          id: a.id,
+          fullName: a.fullName,
+          phone: a.phone,
+          addressLine1: '${a.commune}, ${a.city}', // Adapter
+          addressLine2: a.quartier,
+          city: a.city,
+          state: a.province,
+          country: a.country,
+          type: a.type,
+          isDefault: a.isDefault,
+        );
+      }).toList();
 
-        if (_selectedAddress == null && _addresses.isNotEmpty) {
-          _selectedAddress = _addresses.firstWhere(
-            (a) => a.isDefault,
-            orElse: () => _addresses.first,
-          );
-        }
-      });
-    }
+      if (_selectedAddress == null && _addresses.isNotEmpty) {
+        _selectedAddress = _addresses.firstWhere(
+          (a) => a.isDefault,
+          orElse: () => _addresses.first,
+        );
+      }
+    });
   }
-
+}
   // ============================================
   // BUILD
   // ============================================

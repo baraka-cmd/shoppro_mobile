@@ -1,5 +1,9 @@
-// Écran de formulaire d'adresse
+// ============================================
+// ÉCRAN DE FORMULAIRE D'ADRESSE - VERSION PREMIUM
+// ============================================
 // Permet d'ajouter ou modifier une adresse
+// adaptée au contexte RDC. Design ShopPro.
+// ============================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -23,19 +27,24 @@ class AddressFormScreen extends StatefulWidget {
 class _AddressFormScreenState extends State<AddressFormScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  late final TextEditingController _labelController;
   late final TextEditingController _fullNameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
-  late final TextEditingController _addressLine1Controller;
-  late final TextEditingController _addressLine2Controller;
+  late final TextEditingController _provinceController;
   late final TextEditingController _cityController;
-  late final TextEditingController _stateController;
-  late final TextEditingController _postalCodeController;
-  late final TextEditingController _countryController;
+  late final TextEditingController _communeController;
+  late final TextEditingController _quartierController;
+  late final TextEditingController _avenueController;
+  late final TextEditingController _landmarkController;
+  late final TextEditingController _additionalInfoController;
   late final TextEditingController _deliveryInstructionsController;
 
   String _selectedType = 'home';
   bool _isDefault = false;
+  bool _hasGps = false;
+  double? _latitude;
+  double? _longitude;
   bool _isSaving = false;
   String? _errorMessage;
 
@@ -48,160 +57,228 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     _loadAddressData();
   }
 
-  // Initialiser les contrôleurs
+  // ============================================
+  // INITIALISATION
+  // ============================================
+
   void _initControllers() {
+    _labelController = TextEditingController();
     _fullNameController = TextEditingController();
     _phoneController = TextEditingController();
     _emailController = TextEditingController();
-    _addressLine1Controller = TextEditingController();
-    _addressLine2Controller = TextEditingController();
+    _provinceController = TextEditingController();
     _cityController = TextEditingController();
-    _stateController = TextEditingController();
-    _postalCodeController = TextEditingController();
-    _countryController = TextEditingController(text: 'Cameroun');
+    _communeController = TextEditingController();
+    _quartierController = TextEditingController();
+    _avenueController = TextEditingController();
+    _landmarkController = TextEditingController();
+    _additionalInfoController = TextEditingController();
     _deliveryInstructionsController = TextEditingController();
   }
 
-  // Charger les données si modification
   void _loadAddressData() {
     if (widget.address != null) {
+      _labelController.text = widget.address!.label;
       _fullNameController.text = widget.address!.fullName;
       _phoneController.text = widget.address!.phone;
       _emailController.text = widget.address!.email ?? '';
-      _addressLine1Controller.text = widget.address!.addressLine1;
-      _addressLine2Controller.text = widget.address!.addressLine2 ?? '';
+      _provinceController.text = widget.address!.province;
       _cityController.text = widget.address!.city;
-      _stateController.text = widget.address!.state ?? '';
-      _postalCodeController.text = widget.address!.postalCode ?? '';
-      _countryController.text = widget.address!.country;
-      _deliveryInstructionsController.text = widget.address!.deliveryInstructions ?? '';
+      _communeController.text = widget.address!.commune;
+      _quartierController.text = widget.address!.quartier ?? '';
+      _avenueController.text = widget.address!.avenue ?? '';
+      _landmarkController.text = widget.address!.landmark ?? '';
+      _additionalInfoController.text = widget.address!.additionalInfo ?? '';
+      _deliveryInstructionsController.text =
+          widget.address!.deliveryInstructions ?? '';
       _selectedType = widget.address!.type;
       _isDefault = widget.address!.isDefault;
+      _hasGps = widget.address!.hasGps;
+      _latitude = widget.address!.latitude;
+      _longitude = widget.address!.longitude;
     }
   }
 
   @override
   void dispose() {
+    _labelController.dispose();
     _fullNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _addressLine1Controller.dispose();
-    _addressLine2Controller.dispose();
+    _provinceController.dispose();
     _cityController.dispose();
-    _stateController.dispose();
-    _postalCodeController.dispose();
-    _countryController.dispose();
+    _communeController.dispose();
+    _quartierController.dispose();
+    _avenueController.dispose();
+    _landmarkController.dispose();
+    _additionalInfoController.dispose();
     _deliveryInstructionsController.dispose();
     super.dispose();
   }
 
-  // Sauvegarder l'adresse
-Future<void> _saveAddress() async {
-  FocusScope.of(context).unfocus();
+  // ============================================
+  // SAUVEGARDE
+  // ============================================
 
-  print('=== SAVE ADDRESS START ===');
+  Future<void> _saveAddress() async {
+    FocusScope.of(context).unfocus();
 
-  if (!_formKey.currentState!.validate()) {
-    print('VALIDATION ÉCHOUE');
-    return;
-  }
-  print('VALIDATION OK');
-
-  setState(() {
-    _isSaving = true;
-    _errorMessage = null;
-  });
-
-  try {
-    final provider = context.read<AddressProvider>();
-    print('PROVIDER TROUVÉ: ${provider.addressesCount} adresses');
-
-    final address = Address(
-      id: widget.address?.id ?? DateTime.now().millisecondsSinceEpoch,
-      fullName: _fullNameController.text.trim(),
-      phone: _phoneController.text.trim(),
-      email: _emailController.text.trim().isEmpty
-          ? null
-          : _emailController.text.trim(),
-      addressLine1: _addressLine1Controller.text.trim(),
-      addressLine2: _addressLine2Controller.text.trim().isEmpty
-          ? null
-          : _addressLine2Controller.text.trim(),
-      city: _cityController.text.trim(),
-      state: _stateController.text.trim().isEmpty
-          ? null
-          : _stateController.text.trim(),
-      postalCode: _postalCodeController.text.trim().isEmpty
-          ? null
-          : _postalCodeController.text.trim(),
-      country: _countryController.text.trim(),
-      type: _selectedType,
-      isDefault: _isDefault,
-      deliveryInstructions: _deliveryInstructionsController.text.trim().isEmpty
-          ? null
-          : _deliveryInstructionsController.text.trim(),
-    );
-    print('ADDRESS CRÉÉE: ${address.fullName}');
-
-    final success = _isEditing
-        ? await provider.updateAddress(address)
-        : await provider.addAddress(address);
-    print('RÉSULTAT: $success');
-
-    if (!mounted) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     setState(() {
-      _isSaving = false;
+      _isSaving = true;
+      _errorMessage = null;
     });
 
-    if (success) {
-      print('SUCCÈS - NAVIGATION RETOUR');
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isEditing ? 'Adresse modifiée !' : 'Adresse ajoutée !',
-            style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
-          ),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(20),
-          duration: const Duration(seconds: 2),
-        ),
+    try {
+      final provider = context.read<AddressProvider>();
+
+      final address = Address(
+        id: widget.address?.id ?? DateTime.now().millisecondsSinceEpoch,
+        label: _labelController.text.trim().isEmpty
+            ? _getTypeLabel(_selectedType)
+            : _labelController.text.trim(),
+        fullName: _fullNameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        email: _emailController.text.trim().isEmpty
+            ? null
+            : _emailController.text.trim(),
+        province: _provinceController.text.trim(),
+        city: _cityController.text.trim(),
+        commune: _communeController.text.trim(),
+        quartier: _quartierController.text.trim().isEmpty
+            ? null
+            : _quartierController.text.trim(),
+        avenue: _avenueController.text.trim().isEmpty
+            ? null
+            : _avenueController.text.trim(),
+        landmark: _landmarkController.text.trim().isEmpty
+            ? null
+            : _landmarkController.text.trim(),
+        additionalInfo: _additionalInfoController.text.trim().isEmpty
+            ? null
+            : _additionalInfoController.text.trim(),
+        country: 'RDC',
+        type: _selectedType,
+        isDefault: _isDefault,
+        latitude: _latitude,
+        longitude: _longitude,
+        deliveryInstructions: _deliveryInstructionsController.text.trim().isEmpty
+            ? null
+            : _deliveryInstructionsController.text.trim(),
+        createdAt: widget.address?.createdAt,
+        updatedAt: DateTime.now(),
       );
 
-      // Utiliser addPostFrameCallback pour éviter les blocages
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.of(context).pop(true);
-        }
-      });
-    } else {
-      print('ERREUR: ${provider.errorMessage}');
-      setState(() {
-        _errorMessage = provider.errorMessage;
-      });
-    }
-  } catch (e) {
-    print('EXCEPTION: $e');
-    print('STACKTRACE: ${StackTrace.current}');
-    
-    if (mounted) {
+      final success = _isEditing
+          ? await provider.updateAddress(address)
+          : await provider.addAddress(address);
+
+      if (!mounted) return;
+
       setState(() {
         _isSaving = false;
-        _errorMessage = 'Erreur: $e';
       });
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isEditing ? 'Adresse modifiée !' : 'Adresse ajoutée !',
+              style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(20),
+            duration: const Duration(seconds: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+            ),
+          ),
+        );
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            Navigator.of(context).pop(true);
+          }
+        });
+      } else {
+        setState(() {
+          _errorMessage = provider.errorMessage;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+          _errorMessage = 'Erreur: $e';
+        });
+      }
     }
   }
 
-  print('=== SAVE ADDRESS END ===');
-}
+  // ============================================
+  // GPS (simulation)
+  // ============================================
+
+  void _useGpsLocation() {
+    // Simuler la position GPS de Goma, RDC
+    setState(() {
+      _hasGps = true;
+      _latitude = -1.6792;
+      _longitude = 29.2236;
+      if (_provinceController.text.isEmpty) {
+        _provinceController.text = 'Nord-Kivu';
+      }
+      if (_cityController.text.isEmpty) {
+        _cityController.text = 'Goma';
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          '📍 Position GPS enregistrée',
+          style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+        ),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(20),
+        duration: Duration(seconds: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  String _getTypeLabel(String type) {
+    switch (type) {
+      case 'home':
+        return 'Maison';
+      case 'work':
+        return 'Travail';
+      case 'shop':
+        return 'Boutique';
+      case 'parents':
+        return 'Famille';
+      default:
+        return 'Autre';
+    }
+  }
+
+  // ============================================
+  // BUILD
+  // ============================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -228,7 +305,9 @@ Future<void> _saveAddress() async {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Message d'erreur
+              // ============================================
+              // MESSAGE D'ERREUR
+              // ============================================
               if (_errorMessage != null) ...[
                 Container(
                   width: double.infinity,
@@ -236,7 +315,9 @@ Future<void> _saveAddress() async {
                   decoration: BoxDecoration(
                     color: AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Text(
                     _errorMessage!,
@@ -250,7 +331,19 @@ Future<void> _saveAddress() async {
                 const SizedBox(height: 20),
               ],
 
-              // Type d'adresse
+              // ============================================
+              // NOM DE L'ADRESSE
+              // ============================================
+              _buildTextField(
+                controller: _labelController,
+                label: 'Nom de l\'adresse',
+                hint: 'Ex : Maison, Travail, Chez mes parents...',
+                icon: Icons.label_outline,
+              ),
+
+              // ============================================
+              // TYPE D'ADRESSE
+              // ============================================
               const Text(
                 'TYPE D\'ADRESSE',
                 style: TextStyle(
@@ -262,74 +355,82 @@ Future<void> _saveAddress() async {
                 ),
               ),
               const SizedBox(height: 10),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  _buildTypeChip('home', 'Domicile', Icons.home),
-                  const SizedBox(width: 8),
-                  _buildTypeChip('work', 'Travail', Icons.work),
-                  const SizedBox(width: 8),
-                  _buildTypeChip('other', 'Autre', Icons.location_on),
+                  _buildTypeChip('home', 'Domicile', Icons.home_outlined),
+                  _buildTypeChip('work', 'Travail', Icons.work_outline),
+                  _buildTypeChip('shop', 'Boutique', Icons.store_outlined),
+                  _buildTypeChip('parents', 'Famille', Icons.family_restroom),
+                  _buildTypeChip('other', 'Autre', Icons.location_on_outlined),
                 ],
               ),
 
               const SizedBox(height: 20),
 
-              // Nom complet
+              // ============================================
+              // NOM COMPLET
+              // ============================================
               _buildTextField(
                 controller: _fullNameController,
-                label: 'Nom complet',
-                hint: 'Ex : Jean Kamga',
-                icon: Icons.person,
+                label: 'Nom complet *',
+                hint: 'Ex : Félix Baraka',
+                icon: Icons.person_outline,
                 validator: Validators.validateName,
               ),
 
-              // Téléphone
+              // ============================================
+              // TÉLÉPHONE
+              // ============================================
               _buildTextField(
                 controller: _phoneController,
-                label: 'Téléphone',
-                hint: 'Ex : +237 6 00 00 00 00',
-                icon: Icons.phone,
+                label: 'Téléphone *',
+                hint: 'Ex : +243 99 000 00 00',
+                icon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
                 validator: Validators.validatePhone,
               ),
 
-              // Email (optionnel)
+              // ============================================
+              // EMAIL (OPTIONNEL)
+              // ============================================
               _buildTextField(
                 controller: _emailController,
                 label: 'Email (optionnel)',
-                hint: 'Ex : jean@email.com',
-                icon: Icons.email,
+                hint: 'Ex : felix@email.com',
+                icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
               ),
 
-              // Adresse ligne 1
+              const SizedBox(height: 5),
+              const Divider(height: 1),
+              const SizedBox(height: 15),
+
+              // ============================================
+              // PROVINCE
+              // ============================================
               _buildTextField(
-                controller: _addressLine1Controller,
-                label: 'Adresse ligne 1',
-                hint: 'Ex : Bonamoussadi, Rue 123',
-                icon: Icons.location_on,
+                controller: _provinceController,
+                label: 'Province / Région *',
+                hint: 'Ex : Nord-Kivu',
+                icon: Icons.map_outlined,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'L\'adresse est obligatoire';
+                    return 'La province est obligatoire';
                   }
                   return null;
                 },
               ),
 
-              // Adresse ligne 2 (optionnel)
-              _buildTextField(
-                controller: _addressLine2Controller,
-                label: 'Adresse ligne 2 (optionnel)',
-                hint: 'Ex : Près de la pharmacie',
-                icon: Icons.location_on_outlined,
-              ),
-
-              // Ville
+              // ============================================
+              // VILLE
+              // ============================================
               _buildTextField(
                 controller: _cityController,
-                label: 'Ville',
-                hint: 'Ex : Douala',
-                icon: Icons.location_city,
+                label: 'Ville / Territoire *',
+                hint: 'Ex : Goma',
+                icon: Icons.location_city_outlined,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'La ville est obligatoire';
@@ -338,48 +439,129 @@ Future<void> _saveAddress() async {
                 },
               ),
 
-              // Région (optionnel)
+              // ============================================
+              // COMMUNE
+              // ============================================
               _buildTextField(
-                controller: _stateController,
-                label: 'Région (optionnel)',
-                hint: 'Ex : Littoral',
-                icon: Icons.map,
-              ),
-
-              // Code postal (optionnel)
-              _buildTextField(
-                controller: _postalCodeController,
-                label: 'Code postal (optionnel)',
-                hint: 'Ex : BP 0000',
-                icon: Icons.markunread_mailbox,
-              ),
-
-              // Pays
-              _buildTextField(
-                controller: _countryController,
-                label: 'Pays',
-                hint: 'Ex : Cameroun',
-                icon: Icons.flag,
+                controller: _communeController,
+                label: 'Commune / Zone *',
+                hint: 'Ex : Goma, Karisimbi',
+                icon: Icons.location_on_outlined,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Le pays est obligatoire';
+                    return 'La commune est obligatoire';
                   }
                   return null;
                 },
               ),
 
-              // Instructions de livraison (optionnel)
+              // ============================================
+              // QUARTIER
+              // ============================================
+              _buildTextField(
+                controller: _quartierController,
+                label: 'Quartier (optionnel)',
+                hint: 'Ex : Katindo, Himbi...',
+                icon: Icons.home_work_outlined,
+              ),
+
+              // ============================================
+              // AVENUE
+              // ============================================
+              _buildTextField(
+                controller: _avenueController,
+                label: 'Avenue / Rue (optionnel)',
+                hint: 'Ex : Avenue du Port...',
+                icon: Icons.add_road,
+              ),
+
+              // ============================================
+              // POINT DE REPÈRE
+              // ============================================
+              _buildTextField(
+                controller: _landmarkController,
+                label: 'Point de repère (optionnel)',
+                hint: 'Ex : Près de l\'église, derrière le marché...',
+                icon: Icons.place_outlined,
+              ),
+
+              const SizedBox(height: 5),
+
+              // ============================================
+              // GPS
+              // ============================================
+              GestureDetector(
+                onTap: _useGpsLocation,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _hasGps
+                        ? AppColors.success.withValues(alpha: 0.1)
+                        : AppColors.primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _hasGps
+                          ? AppColors.success
+                          : AppColors.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _hasGps ? Icons.gps_fixed : Icons.gps_not_fixed,
+                        size: 18,
+                        color: _hasGps ? AppColors.success : AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _hasGps
+                            ? 'Position GPS enregistrée'
+                            : 'Utiliser ma position GPS',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _hasGps ? AppColors.success : AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              // ============================================
+              // INFORMATIONS COMPLÉMENTAIRES
+              // ============================================
+              _buildTextField(
+                controller: _additionalInfoController,
+                label: 'Informations complémentaires (optionnel)',
+                hint: 'Ex : Porte bleue, 2ème étage...',
+                icon: Icons.info_outline,
+                maxLines: 2,
+              ),
+
+              // ============================================
+              // INSTRUCTIONS DE LIVRAISON
+              // ============================================
               _buildTextField(
                 controller: _deliveryInstructionsController,
                 label: 'Instructions de livraison (optionnel)',
                 hint: 'Ex : Appeler à l\'arrivée',
-                icon: Icons.info,
+                icon: Icons.info_outline,
                 maxLines: 3,
               ),
 
               const SizedBox(height: 10),
 
-              // Checkbox défaut
+              // ============================================
+              // CHECKBOX DÉFAUT
+              // ============================================
               Row(
                 children: [
                   SizedBox(
@@ -415,7 +597,9 @@ Future<void> _saveAddress() async {
 
               const SizedBox(height: 30),
 
-              // Bouton sauvegarder
+              // ============================================
+              // BOUTON SAUVEGARDER
+              // ============================================
               ElevatedButton(
                 onPressed: _isSaving ? null : _saveAddress,
                 style: ElevatedButton.styleFrom(
@@ -426,6 +610,8 @@ Future<void> _saveAddress() async {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 0,
+                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
+                  disabledBackgroundColor: AppColors.borderColor,
                 ),
                 child: _isSaving
                     ? const SizedBox(
@@ -454,7 +640,10 @@ Future<void> _saveAddress() async {
     );
   }
 
-  // Chip de type
+  // ============================================
+  // CHIP DE TYPE
+  // ============================================
+
   Widget _buildTypeChip(String type, String label, IconData icon) {
     final isSelected = _selectedType == type;
 
@@ -466,6 +655,7 @@ Future<void> _saveAddress() async {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : Colors.white,
@@ -474,6 +664,14 @@ Future<void> _saveAddress() async {
             color: isSelected ? AppColors.primary : AppColors.borderColor,
             width: 1.5,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                    blurRadius: 5,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -499,7 +697,10 @@ Future<void> _saveAddress() async {
     );
   }
 
-  // Champ de texte
+  // ============================================
+  // CHAMP DE TEXTE
+  // ============================================
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
