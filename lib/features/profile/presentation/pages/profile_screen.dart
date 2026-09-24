@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -26,13 +27,19 @@ class ProfileScreen extends StatelessWidget {
     final notificationProvider = context.watch<NotificationProvider>();
     final favoriteProvider = context.watch<FavoriteProvider>();
     final orderProvider = context.watch<OrderProvider>();
+
     final user = authProvider.user;
 
     return Scaffold(
       backgroundColor: AppColors.cream,
+
+      // ============================================
+      // APP BAR
+      // ============================================
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(
@@ -41,6 +48,7 @@ class ProfileScreen extends StatelessWidget {
             size: 20,
           ),
         ),
+
         title: const Text(
           'Mon Profil',
           style: TextStyle(
@@ -50,28 +58,39 @@ class ProfileScreen extends StatelessWidget {
             color: AppColors.textPrimary,
           ),
         ),
+
+        // ============================================
+        // NOTIFICATIONS
+        // ============================================
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.of(context).pushNamed(AppRoutes.notifications);
+              Navigator.of(context).pushNamed(
+                AppRoutes.notifications,
+              );
             },
             icon: Stack(
+              clipBehavior: Clip.none,
               children: [
                 const Icon(
                   Icons.notifications_none,
                   color: AppColors.textPrimary,
                   size: 22,
                 ),
+
                 if (notificationProvider.unreadCount > 0)
                   Positioned(
-                    right: 0,
-                    top: 0,
+                    right: -3,
+                    top: -3,
                     child: Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
                         color: AppColors.error,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.5),
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 1.5,
+                        ),
                       ),
                       constraints: const BoxConstraints(
                         minWidth: 14,
@@ -96,8 +115,15 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
+
+      // ============================================
+      // CONTENU
+      // ============================================
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 10,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -111,11 +137,19 @@ class ProfileScreen extends StatelessWidget {
               role: user?.roles.isNotEmpty == true
                   ? user!.roles.first
                   : 'Client',
+
               onEdit: () {
-                Navigator.of(context).pushNamed(AppRoutes.editProfile);
+                Navigator.of(context).pushNamed(
+                  AppRoutes.editProfile,
+                );
               },
+
               onAvatarTap: () {
-                _showAvatarDialog(context, user?.avatar, user?.fullName ?? '');
+                _showAvatarDialog(
+                  context,
+                  user?.avatar,
+                  user?.fullName ?? '',
+                );
               },
             ),
 
@@ -126,39 +160,61 @@ class ProfileScreen extends StatelessWidget {
             // ============================================
             Row(
               children: [
+                // ========================================
+                // COMMANDES
+                // ========================================
                 Expanded(
                   child: ProfileStatsCard(
                     icon: Icons.shopping_bag_outlined,
                     value: '${orderProvider.ordersCount}',
                     label: 'Commandes',
                     iconColor: AppColors.primary,
-                    iconBackgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    iconBackgroundColor:
+                        AppColors.primary.withValues(alpha: 0.1),
                     onTap: () {
-                      Navigator.of(context).pushNamed(AppRoutes.orders);
+                      Navigator.of(context).pushNamed(
+                        AppRoutes.orders,
+                      );
                     },
                   ),
                 ),
+
                 const SizedBox(width: 12),
+
+                // ========================================
+                // FAVORIS
+                // ========================================
                 Expanded(
                   child: ProfileStatsCard(
                     icon: Icons.favorite_outline,
                     value: '${favoriteProvider.favoritesCount}',
                     label: 'Favoris',
                     iconColor: AppColors.error,
-                    iconBackgroundColor: AppColors.error.withValues(alpha: 0.1),
+                    iconBackgroundColor:
+                        AppColors.error.withValues(alpha: 0.1),
                     onTap: () {
-                      Navigator.of(context).pushNamed(AppRoutes.favorites);
+                      Navigator.of(context).pushNamed(
+                        AppRoutes.favorites,
+                      );
                     },
                   ),
                 ),
+
                 const SizedBox(width: 12),
+
+                // ========================================
+                // TOTAL DÉPENSÉ
+                // ========================================
                 Expanded(
                   child: ProfileStatsCard(
                     icon: Icons.wallet_outlined,
-                    value: _formatAmount(user?.totalSpent ?? 0),
+                    value: _formatAmount(
+                      user?.totalSpent ?? 0,
+                    ),
                     label: 'Dépensé',
                     iconColor: AppColors.success,
-                    iconBackgroundColor: AppColors.success.withValues(alpha: 0.1),
+                    iconBackgroundColor:
+                        AppColors.success.withValues(alpha: 0.1),
                   ),
                 ),
               ],
@@ -182,42 +238,60 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 12),
 
+            // ============================================
+            // MES COMMANDES
+            // ============================================
             ProfileMenuItem(
               icon: Icons.shopping_bag_outlined,
               title: 'Mes commandes',
               subtitle: 'Voir l\'historique de vos achats',
               iconColor: AppColors.primary,
-              iconBackgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              iconBackgroundColor:
+                  AppColors.primary.withValues(alpha: 0.1),
               badge: '${orderProvider.ordersCount}',
               onTap: () {
-                Navigator.of(context).pushNamed(AppRoutes.orders);
+                Navigator.of(context).pushNamed(
+                  AppRoutes.orders,
+                );
               },
             ),
 
             const SizedBox(height: 10),
 
+            // ============================================
+            // MES FAVORIS
+            // ============================================
             ProfileMenuItem(
               icon: Icons.favorite_outline,
               title: 'Mes favoris',
               subtitle: 'Vos produits sauvegardés',
               iconColor: AppColors.error,
-              iconBackgroundColor: AppColors.error.withValues(alpha: 0.1),
+              iconBackgroundColor:
+                  AppColors.error.withValues(alpha: 0.1),
               badge: '${favoriteProvider.favoritesCount}',
               onTap: () {
-                Navigator.of(context).pushNamed(AppRoutes.favorites);
+                Navigator.of(context).pushNamed(
+                  AppRoutes.favorites,
+                );
               },
             ),
 
             const SizedBox(height: 10),
 
+            // ============================================
+            // MES ADRESSES
+            // ============================================
             ProfileMenuItem(
               icon: Icons.location_on_outlined,
               title: 'Mes adresses',
               subtitle: 'Gérer vos adresses de livraison',
               iconColor: AppColors.info,
-              iconBackgroundColor: AppColors.info.withValues(alpha: 0.1),
+              iconBackgroundColor:
+                  AppColors.info.withValues(alpha: 0.1),
               onTap: () {
-                Navigator.of(context).pushNamed(AppRoutes.addresses);
+                Navigator.of(context).pushNamed(
+                  AppRoutes.addresses,
+                );
               },
             ),
 
@@ -239,19 +313,28 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 12),
 
+            // ============================================
+            // CHANGER MOT DE PASSE
+            // ============================================
             ProfileMenuItem(
               icon: Icons.lock_outline,
               title: 'Changer mot de passe',
               subtitle: 'Modifier votre mot de passe',
               iconColor: AppColors.primary,
-              iconBackgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              iconBackgroundColor:
+                  AppColors.primary.withValues(alpha: 0.1),
               onTap: () {
-                Navigator.of(context).pushNamed(AppRoutes.changePassword);
+                Navigator.of(context).pushNamed(
+                  AppRoutes.changePassword,
+                );
               },
             ),
 
             const SizedBox(height: 10),
 
+            // ============================================
+            // NOTIFICATIONS
+            // ============================================
             ProfileMenuItem(
               icon: Icons.notifications_none,
               title: 'Notifications',
@@ -259,12 +342,15 @@ class ProfileScreen extends StatelessWidget {
                   ? '${notificationProvider.unreadCount} non lue(s)'
                   : 'Gérer vos notifications',
               iconColor: AppColors.info,
-              iconBackgroundColor: AppColors.info.withValues(alpha: 0.1),
+              iconBackgroundColor:
+                  AppColors.info.withValues(alpha: 0.1),
               badge: notificationProvider.unreadCount > 0
                   ? '${notificationProvider.unreadCount}'
                   : null,
               onTap: () {
-                Navigator.of(context).pushNamed(AppRoutes.notifications);
+                Navigator.of(context).pushNamed(
+                  AppRoutes.notifications,
+                );
               },
             ),
 
@@ -286,31 +372,64 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 12),
 
+            // ============================================
+            // AIDE & SUPPORT
+            // ============================================
             ProfileMenuItem(
               icon: Icons.help_outline,
               title: 'Aide & Support',
-              subtitle: 'FAQ, contactez-nous',
+              subtitle: 'FAQ, assistance et contact',
               iconColor: AppColors.info,
-              iconBackgroundColor: AppColors.info.withValues(alpha: 0.1),
+              iconBackgroundColor:
+                  AppColors.info.withValues(alpha: 0.1),
               onTap: () {
-                // TODO: Navigation vers support
+                Navigator.of(context).pushNamed(
+                  AppRoutes.support,
+                );
               },
             ),
 
             const SizedBox(height: 10),
 
+            // ============================================
+            // CONDITIONS D'UTILISATION
+            // ============================================
             ProfileMenuItem(
               icon: Icons.description_outlined,
               title: 'Conditions d\'utilisation',
+              subtitle: 'Consultez les conditions de ShopPro',
               iconColor: AppColors.textSecondary,
               iconBackgroundColor: AppColors.surface,
               onTap: () {
-                // TODO: Navigation vers CGU
+                Navigator.of(context).pushNamed(
+                  AppRoutes.termsConditions,
+                );
               },
             ),
 
             const SizedBox(height: 10),
 
+            // ============================================
+            // POLITIQUE DE CONFIDENTIALITÉ
+            // ============================================
+            ProfileMenuItem(
+              icon: Icons.privacy_tip_outlined,
+              title: 'Politique de confidentialité',
+              subtitle: 'Comment vos données sont utilisées',
+              iconColor: AppColors.textSecondary,
+              iconBackgroundColor: AppColors.surface,
+              onTap: () {
+                Navigator.of(context).pushNamed(
+                  AppRoutes.privacyPolicy,
+                );
+              },
+            ),
+
+            const SizedBox(height: 10),
+
+            // ============================================
+            // À PROPOS
+            // ============================================
             ProfileMenuItem(
               icon: Icons.info_outline,
               title: 'À propos de ShopPro',
@@ -318,7 +437,9 @@ class ProfileScreen extends StatelessWidget {
               iconColor: AppColors.textSecondary,
               iconBackgroundColor: AppColors.surface,
               onTap: () {
-                // TODO: Navigation vers à propos
+                Navigator.of(context).pushNamed(
+                  AppRoutes.about,
+                );
               },
             ),
 
@@ -331,11 +452,15 @@ class ProfileScreen extends StatelessWidget {
               icon: Icons.logout,
               title: 'Se déconnecter',
               iconColor: AppColors.error,
-              iconBackgroundColor: AppColors.error.withValues(alpha: 0.1),
+              iconBackgroundColor:
+                  AppColors.error.withValues(alpha: 0.1),
               isDestructive: true,
               showArrow: false,
               onTap: () {
-                _showLogoutDialog(context, authProvider);
+                _showLogoutDialog(
+                  context,
+                  authProvider,
+                );
               },
             ),
 
@@ -354,9 +479,11 @@ class ProfileScreen extends StatelessWidget {
     if (amount >= 1000000) {
       return '${(amount / 1000000).toStringAsFixed(1)}M';
     }
+
     if (amount >= 1000) {
       return '${(amount / 1000).toStringAsFixed(0)}K';
     }
+
     return amount.toStringAsFixed(0);
   }
 
@@ -364,7 +491,11 @@ class ProfileScreen extends StatelessWidget {
   // DIALOG AVATAR
   // ============================================
 
-  void _showAvatarDialog(BuildContext context, String? avatarUrl, String name) {
+  void _showAvatarDialog(
+    BuildContext context,
+    String? avatarUrl,
+    String name,
+  ) {
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -375,12 +506,18 @@ class ProfileScreen extends StatelessWidget {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // ========================================
+                  // AVATAR AGRANDI
+                  // ========================================
                   Container(
                     width: 200,
                     height: 200,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 3,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.2),
@@ -388,21 +525,34 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: avatarUrl != null && avatarUrl.isNotEmpty
+                    child: avatarUrl != null &&
+                            avatarUrl.isNotEmpty
                         ? ClipOval(
                             child: Image.network(
                               avatarUrl,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildAvatarFallback(name);
+                              errorBuilder: (
+                                context,
+                                error,
+                                stackTrace,
+                              ) {
+                                return _buildAvatarFallback(
+                                  name,
+                                );
                               },
                             ),
                           )
                         : _buildAvatarFallback(name),
                   ),
+
                   const SizedBox(height: 15),
+
+                  // ========================================
+                  // NOM
+                  // ========================================
                   Text(
                     name,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 16,
@@ -412,11 +562,17 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ],
               ),
+
+              // ============================================
+              // BOUTON FERMER
+              // ============================================
               Positioned(
                 top: 5,
                 right: 5,
                 child: GestureDetector(
-                  onTap: () => Navigator.of(dialogContext).pop(),
+                  onTap: () {
+                    Navigator.of(dialogContext).pop();
+                  },
                   child: Container(
                     width: 32,
                     height: 32,
@@ -439,7 +595,10 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // Fallback pour l'avatar
+  // ============================================
+  // FALLBACK POUR L'AVATAR
+  // ============================================
+
   Widget _buildAvatarFallback(String name) {
     return Container(
       decoration: const BoxDecoration(
@@ -448,7 +607,9 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Center(
         child: Text(
-          name.isNotEmpty ? name[0].toUpperCase() : '?',
+          name.isNotEmpty
+              ? name[0].toUpperCase()
+              : '?',
           style: const TextStyle(
             fontFamily: 'Poppins',
             fontSize: 60,
@@ -464,7 +625,10 @@ class ProfileScreen extends StatelessWidget {
   // DIALOG DÉCONNEXION
   // ============================================
 
-  void _showLogoutDialog(BuildContext context, AuthProvider authProvider) {
+  void _showLogoutDialog(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) {
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -473,6 +637,10 @@ class ProfileScreen extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
+
+          // ==========================================
+          // TITRE
+          // ==========================================
           title: const Text(
             'Se déconnecter ?',
             style: TextStyle(
@@ -482,6 +650,10 @@ class ProfileScreen extends StatelessWidget {
               color: AppColors.textPrimary,
             ),
           ),
+
+          // ==========================================
+          // MESSAGE
+          // ==========================================
           content: const Text(
             'Vous devrez vous reconnecter pour accéder à votre compte.',
             style: TextStyle(
@@ -492,9 +664,18 @@ class ProfileScreen extends StatelessWidget {
               height: 1.5,
             ),
           ),
+
+          // ==========================================
+          // ACTIONS
+          // ==========================================
           actions: [
+            // ========================================
+            // ANNULER
+            // ========================================
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
               child: const Text(
                 'Annuler',
                 style: TextStyle(
@@ -505,10 +686,16 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
             ),
+
+            // ========================================
+            // DÉCONNEXION
+            // ========================================
             ElevatedButton(
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
+
                 await authProvider.logout();
+
                 if (context.mounted) {
                   Navigator.of(context).pushNamedAndRemoveUntil(
                     AppRoutes.login,

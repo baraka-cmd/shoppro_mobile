@@ -21,16 +21,16 @@ class AppRoutes {
   static const String resetPassword = '/reset-password';
 
   // ============================================
-  // 🏠 NAVIGATION PRINCIPALE CLIENT (Bottom Nav)
+  // 🏠 NAVIGATION PRINCIPALE CLIENT
   // ============================================
   static const String home = '/home';
-  static const String explore = '/explore'; // NOUVEAU - onglet Explorer
+  static const String explore = '/explore';
   static const String favorites = '/favorites';
   static const String cart = '/cart';
   static const String profile = '/profile';
 
   // ============================================
-  // 👤 PROFIL (sous-routes)
+  // 👤 PROFIL
   // ============================================
   static const String editProfile = '/profile/edit';
   static const String changePassword = '/profile/change-password';
@@ -41,7 +41,7 @@ class AppRoutes {
   static const String checkout = '/checkout';
   static const String orders = '/orders';
   static const String orderDetail = '/order/detail';
-  static const String orderTracking = '/order/tracking'; // NOUVEAU
+  static const String orderTracking = '/order/tracking';
 
   // ============================================
   // 📍 ADRESSES
@@ -67,7 +67,7 @@ class AppRoutes {
   // 💳 PAIEMENT
   // ============================================
   static const String payment = '/payment';
-  static const String paymentSuccess = '/payment/success'; // NOUVEAU
+  static const String paymentSuccess = '/payment/success';
 
   // ============================================
   // 🔔 NOTIFICATIONS
@@ -80,11 +80,20 @@ class AppRoutes {
   static const String stockDetail = '/stock/detail';
 
   // ============================================
-  // 🎧 SUPPORT (NOUVEAU)
+  // 🎧 SUPPORT
   // ============================================
   static const String support = '/support';
   static const String faq = '/faq';
   static const String contactUs = '/contact-us';
+
+  // ============================================
+  // ⚖️ DOCUMENTS LÉGAUX
+  // ============================================
+  static const String termsConditions = '/terms-conditions';
+  static const String privacyPolicy = '/privacy-policy';
+  static const String refundPolicy = '/refund-policy';
+  static const String shippingPolicy = '/shipping-policy';
+  static const String about = '/about';
 
   // ============================================
   // 👑 ROUTES ADMIN - DASHBOARD
@@ -159,5 +168,5 @@ class AppRoutes {
   static const String sellerProducts = '/seller/products';
   static const String sellerOrders = '/seller/orders';
   static const String sellerStats = '/seller/stats';
-  static const String sellerStocks = '/seller/stocks'; // NOUVEAU
+  static const String sellerStocks = '/seller/stocks';
 }

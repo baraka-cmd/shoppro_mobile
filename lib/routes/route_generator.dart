@@ -118,6 +118,16 @@ import '../features/admin/presentation/pages/admin_banners_screen.dart';
 import '../features/admin/presentation/pages/admin_banner_form_screen.dart';
 import '../features/admin/presentation/pages/admin_settings_screen.dart';
 
+
+// ============================================
+// IMPORTS SUPPORT & DOCUMENTS LÉGAUX
+// ============================================
+import '../features/legal/presentation/pages/about_screen.dart';
+import '../features/legal/presentation/pages/privacy_policy_screen.dart';
+import '../features/legal/presentation/pages/terms_conditions_screen.dart';
+
+
+import '../features/support/presentation/pages/support_screen.dart';
 // ============================================
 // CLASSE PRINCIPALE
 // ============================================
@@ -317,6 +327,40 @@ class RouteGenerator {
       // ============================================
       case AppRoutes.search:
         return _buildRoute(settings: settings, page: const SearchScreen());
+
+      // ============================================
+// 🆘 ROUTE AIDE & SUPPORT
+// ============================================
+case AppRoutes.support:
+  return _buildRoute(
+    settings: settings,
+    page: const SupportScreen(),
+  );
+  
+      // ============================================
+// ⚖️ DOCUMENTS LÉGAUX
+// ============================================
+
+case AppRoutes.termsConditions:
+  return _buildRoute(
+    settings: settings,
+    page: const TermsConditionsScreen(),
+  );
+
+case AppRoutes.privacyPolicy:
+  return _buildRoute(
+    settings: settings,
+    page: const PrivacyPolicyScreen(),
+  );
+
+
+
+case AppRoutes.about:
+  return _buildRoute(
+    settings: settings,
+    page: const AboutScreen(),
+  );
+
 
       // ============================================
       // 👑 ROUTE ADMIN - DASHBOARD

@@ -1,0 +1,705 @@
+Structure du dossier
+Le num‚ro de s‚rie du volume est 000000FB 12F5:A3F7
+C:\USERS\BARAK\SHOPPRO_MOBILE\LIB
+³   main.dart
+³   
+ÃÄÄÄcore
+³   ÃÄÄÄconstants
+³   ³       api_constants.dart
+³   ³       app_colors.dart
+³   ³       app_constants.dart
+³   ³       
+³   ÃÄÄÄdatabase
+³   ³       app_database.dart
+³   ³       boxes.dart
+³   ³       hive_config.dart
+³   ³       
+³   ÃÄÄÄmiddleware
+³   ³       auth_middleware.dart
+³   ³       
+³   ÃÄÄÄnetwork
+³   ³       api_client.dart
+³   ³       secure_storage.dart
+³   ³       
+³   ÃÄÄÄoffline
+³   ³       action_queue.dart
+³   ³       cache_manager.dart
+³   ³       conflict_resolver.dart
+³   ³       connectivity_service.dart
+³   ³       offline_repository.dart
+³   ³       sync_engine.dart
+³   ³       
+³   ÃÄÄÄservices
+³   ³       navigation_service.dart
+³   ³       token_service.dart
+³   ³       upload_service.dart
+³   ³       
+³   ÃÄÄÄtheme
+³   ³       app_theme.dart
+³   ³       
+³   ÃÄÄÄutils
+³   ³       validators.dart
+³   ³       
+³   ÀÄÄÄwidgets
+³           connectivity_indicator.dart
+³           offline_banner.dart
+³           sync_status_widget.dart
+³           
+ÃÄÄÄfeatures
+³   ÃÄÄÄaddresses
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       address_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       address_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           address_local_data_source.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       address.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           address_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       address_form_screen.dart
+³   ³       ³       address_list_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       address_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               address_card.dart
+³   ³               address_type_badge.dart
+³   ³               empty_addresses.dart
+³   ³               
+³   ÃÄÄÄadmin
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       admin_notification_model.dart
+³   ³   ³   ³       admin_promotion_model.dart
+³   ³   ³   ³       admin_review_model.dart
+³   ³   ³   ³       admin_setting_model.dart
+³   ³   ³   ³       admin_user_model.dart
+³   ³   ³   ³       dashboard_stats_model.dart
+³   ³   ³   ³       sales_report_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       admin_dashboard_repository_impl.dart
+³   ³   ³   ³       admin_notification_repository_impl.dart
+³   ³   ³   ³       admin_order_repository_impl.dart
+³   ³   ³   ³       admin_promotion_repository_impl.dart
+³   ³   ³   ³       admin_review_repository_impl.dart
+³   ³   ³   ³       admin_setting_repository_impl.dart
+³   ³   ³   ³       admin_stats_repository_impl.dart
+³   ³   ³   ³       admin_user_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           admin_brand_api.dart
+³   ³   ³           admin_category_api.dart
+³   ³   ³           admin_dashboard_api.dart
+³   ³   ³           admin_notification_api.dart
+³   ³   ³           admin_order_api.dart
+³   ³   ³           admin_promotion_api.dart
+³   ³   ³           admin_review_api.dart
+³   ³   ³           admin_setting_api.dart
+³   ³   ³           admin_stats_api.dart
+³   ³   ³           admin_stock_api.dart
+³   ³   ³           admin_user_api.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       admin_notification.dart
+³   ³   ³   ³       admin_promotion.dart
+³   ³   ³   ³       admin_review.dart
+³   ³   ³   ³       admin_setting.dart
+³   ³   ³   ³       admin_user.dart
+³   ³   ³   ³       dashboard_stats.dart
+³   ³   ³   ³       sales_report.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           admin_dashboard_repository.dart
+³   ³   ³           admin_notification_repository.dart
+³   ³   ³           admin_order_repository.dart
+³   ³   ³           admin_promotion_repository.dart
+³   ³   ³           admin_review_repository.dart
+³   ³   ³           admin_setting_repository.dart
+³   ³   ³           admin_stats_repository.dart
+³   ³   ³           admin_user_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       admin_banners_screen.dart
+³   ³       ³       admin_banner_form_screen.dart
+³   ³       ³       admin_brands_screen.dart
+³   ³       ³       admin_brand_form_screen.dart
+³   ³       ³       admin_categories_screen.dart
+³   ³       ³       admin_category_form_screen.dart
+³   ³       ³       admin_dashboard_screen.dart
+³   ³       ³       admin_notifications_screen.dart
+³   ³       ³       admin_orders_screen.dart
+³   ³       ³       admin_order_detail_screen.dart
+³   ³       ³       admin_products_screen.dart
+³   ³       ³       admin_product_form_screen.dart
+³   ³       ³       admin_promotions_screen.dart
+³   ³       ³       admin_promotion_form_screen.dart
+³   ³       ³       admin_reviews_screen.dart
+³   ³       ³       admin_sales_report_screen.dart
+³   ³       ³       admin_settings_screen.dart
+³   ³       ³       admin_stats_screen.dart
+³   ³       ³       admin_stocks_screen.dart
+³   ³       ³       admin_users_screen.dart
+³   ³       ³       admin_user_detail_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       admin_brand_provider.dart
+³   ³       ³       admin_category_provider.dart
+³   ³       ³       admin_dashboard_provider.dart
+³   ³       ³       admin_notification_provider.dart
+³   ³       ³       admin_order_provider.dart
+³   ³       ³       admin_product_provider.dart
+³   ³       ³       admin_promotion_provider.dart
+³   ³       ³       admin_review_provider.dart
+³   ³       ³       admin_setting_provider.dart
+³   ³       ³       admin_stats_provider.dart
+³   ³       ³       admin_stock_provider.dart
+³   ³       ³       admin_user_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               admin_app_bar.dart
+³   ³               admin_bottom_nav_bar.dart
+³   ³               admin_confirm_dialog.dart
+³   ³               admin_data_table.dart
+³   ³               admin_drawer.dart
+³   ³               admin_empty_state.dart
+³   ³               admin_error_state.dart
+³   ³               admin_filter_bar.dart
+³   ³               admin_header.dart
+³   ³               admin_loading_state.dart
+³   ³               admin_pagination.dart
+³   ³               admin_quick_actions.dart
+³   ³               admin_sales_chart.dart
+³   ³               admin_scaffold.dart
+³   ³               admin_search_bar.dart
+³   ³               admin_sidebar.dart
+³   ³               admin_stat_card.dart
+³   ³               
+³   ÃÄÄÄauth
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       onboarding_model.dart
+³   ³   ³   ³       user_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       auth_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           auth_api.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       user.dart
+³   ³   ³   ³       user_role.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       auth_repository.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄusecases
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       forgot_password_screen.dart
+³   ³       ³       login_screen.dart
+³   ³       ³       onboarding_screen.dart
+³   ³       ³       register_screen.dart
+³   ³       ³       splash_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       auth_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               auth_textfield.dart
+³   ³               onboarding_slide.dart
+³   ³               password_strength_indicator.dart
+³   ³               password_textfield.dart
+³   ³               role_badge.dart
+³   ³               role_guard.dart
+³   ³               social_button.dart
+³   ³               
+³   ÃÄÄÄcart
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       cart_item_model.dart
+³   ³   ³   ³       cart_model.dart
+³   ³   ³   ³       offline_cart_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       cart_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           cart_local_data_source.dart
+³   ³   ³           cart_offline_data_source.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       cart.dart
+³   ³   ³   ³       cart_item.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           cart_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       cart_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       cart_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               add_to_cart_animation.dart
+³   ³               cart_badge.dart
+³   ³               cart_item_widget.dart
+³   ³               cart_suggestions.dart
+³   ³               cart_summary.dart
+³   ³               coupon_field.dart
+³   ³               empty_cart.dart
+³   ³               free_shipping_progress.dart
+³   ³               saved_for_later_section.dart
+³   ³               
+³   ÃÄÄÄcategories
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       category_detail_screen.dart
+³   ³       ³       category_list_screen.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               category_card.dart
+³   ³               category_chip.dart
+³   ³               category_empty_state.dart
+³   ³               category_header.dart
+³   ³               category_list_item.dart
+³   ³               category_skeleton.dart
+³   ³               filter_bar.dart
+³   ³               filter_sheet.dart
+³   ³               sort_sheet.dart
+³   ³               subcategory_chip.dart
+³   ³               
+³   ÃÄÄÄfavorites
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       favorite_model.dart
+³   ³   ³   ³       offline_favorite_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       favorite_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           favorite_local_data_source.dart
+³   ³   ³           favorite_offline_data_source.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       favorite.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           favorite_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       favorites_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       favorite_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               empty_favorites.dart
+³   ³               favorite_badge.dart
+³   ³               favorite_item_widget.dart
+³   ³               
+³   ÃÄÄÄhome
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       banner_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           banner_api.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       home_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       banner_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               ad_banner.dart
+³   ³               banner_carousel.dart
+³   ³               best_sellers_section.dart
+³   ³               blog_card.dart
+³   ³               blog_section.dart
+³   ³               category_grid.dart
+³   ³               dynamic_sections.dart
+³   ³               dynamic_section_item.dart
+³   ³               flash_sale_section.dart
+³   ³               home_appbar.dart
+³   ³               recommended_section.dart
+³   ³               
+³   ÃÄÄÄlegal
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       legal_document_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       legal_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           legal_api.dart
+³   ³   ³           legal_local_data_source.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       legal_document.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           legal_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       about_screen.dart
+³   ³       ³       privacy_policy_screen.dart
+³   ³       ³       terms_conditions_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       legal_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               legal_section.dart
+³   ³               
+³   ÃÄÄÄnavigation
+³   ³   ÀÄÄÄpresentation
+³   ³       ÀÄÄÄwidgets
+³   ³               role_based_appbar.dart
+³   ³               role_based_drawer.dart
+³   ³               role_based_navigation.dart
+³   ³               role_dashboard.dart
+³   ³               
+³   ÃÄÄÄnotifications
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       app_notification_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       notification_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           notification_local_data_source.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       app_notification.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           notification_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       notifications_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       notification_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               empty_notifications.dart
+³   ³               notification_badge.dart
+³   ³               notification_card.dart
+³   ³               
+³   ÃÄÄÄoffline
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       cache_entry_model.dart
+³   ³   ³   ³       sync_action_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       sync_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           sync_local_data_source.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       conflict_result.dart
+³   ³   ³   ³       sync_action.dart
+³   ³   ³   ³       sync_status.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           sync_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄproviders
+³   ³       ³       connectivity_provider.dart
+³   ³       ³       sync_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               offline_mode_indicator.dart
+³   ³               sync_actions_badge.dart
+³   ³               
+³   ÃÄÄÄorders
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       order_item_model.dart
+³   ³   ³   ³       order_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       order_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           order_local_data_source.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       order.dart
+³   ³   ³   ³       order_item.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           order_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       checkout_screen.dart
+³   ³       ³       orders_screen.dart
+³   ³       ³       order_detail_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       order_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               address_selector.dart
+³   ³               empty_orders.dart
+³   ³               order_card.dart
+³   ³               order_status_badge.dart
+³   ³               order_timeline.dart
+³   ³               payment_selector.dart
+³   ³               shipping_selector.dart
+³   ³               
+³   ÃÄÄÄpayment
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       payment_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       payment_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           payment_local_data_source.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       payment.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           payment_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       payment_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       payment_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               payment_confirmation_dialog.dart
+³   ³               payment_method_card.dart
+³   ³               payment_summary.dart
+³   ³               
+³   ÃÄÄÄproducts
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       brand_model.dart
+³   ³   ³   ³       category_model.dart
+³   ³   ³   ³       offline_product_model.dart
+³   ³   ³   ³       product_image_model.dart
+³   ³   ³   ³       product_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       product_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           brand_api.dart
+³   ³   ³           category_api.dart
+³   ³   ³           product_api.dart
+³   ³   ³           product_cache.dart
+³   ³   ³           product_offline_data_source.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       brand.dart
+³   ³   ³   ³       category.dart
+³   ³   ³   ³       product.dart
+³   ³   ³   ³       product_image.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           product_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       product_detail_screen.dart
+³   ³       ³       product_grid_screen.dart
+³   ³       ³       product_list_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       brand_provider.dart
+³   ³       ³       category_provider.dart
+³   ³       ³       product_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               add_review_sheet.dart
+³   ³               color_selector.dart
+³   ³               discount_badge.dart
+³   ³               discount_price_display.dart
+³   ³               empty_state.dart
+³   ³               error_state.dart
+³   ³               featured_badge.dart
+³   ³               featured_products_section.dart
+³   ³               filter_sheet.dart
+³   ³               lazy_product_image.dart
+³   ³               new_badge.dart
+³   ³               on_sale_products_section.dart
+³   ³               pagination_loader.dart
+³   ³               popular_products_section.dart
+³   ³               price_display.dart
+³   ³               product_card.dart
+³   ³               product_gallery.dart
+³   ³               product_grid_item.dart
+³   ³               product_image.dart
+³   ³               product_image_carousel.dart
+³   ³               product_info_section.dart
+³   ³               product_list_item.dart
+³   ³               product_thumbnail.dart
+³   ³               quantity_selector.dart
+³   ³               recently_viewed_section.dart
+³   ³               recent_products_section.dart
+³   ³               reviews_section.dart
+³   ³               review_card.dart
+³   ³               share_button.dart
+³   ³               shimmer_product_card.dart
+³   ³               similar_products_section.dart
+³   ³               size_selector.dart
+³   ³               specifications_section.dart
+³   ³               stock_indicator.dart
+³   ³               variation_selector.dart
+³   ³               
+³   ÃÄÄÄprofile
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       change_password_screen.dart
+³   ³       ³       edit_profile_screen.dart
+³   ³       ³       profile_screen.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               avatar_uploader.dart
+³   ³               edit_profile_form.dart
+³   ³               profile_avatar.dart
+³   ³               profile_header.dart
+³   ³               profile_image_picker.dart
+³   ³               profile_menu_item.dart
+³   ³               profile_section.dart
+³   ³               profile_stats_card.dart
+³   ³               
+³   ÃÄÄÄsearch
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       search_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       search_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               search_bar.dart
+³   ³               search_history.dart
+³   ³               search_suggestions.dart
+³   ³               
+³   ÃÄÄÄstock
+³   ³   ÃÄÄÄdata
+³   ³   ³   ÃÄÄÄmodels
+³   ³   ³   ³       stock_model.dart
+³   ³   ³   ³       stock_movement_model.dart
+³   ³   ³   ³       
+³   ³   ³   ÃÄÄÄrepositories
+³   ³   ³   ³       stock_repository_impl.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄsources
+³   ³   ³           stock_local_data_source.dart
+³   ³   ³           
+³   ³   ÃÄÄÄdomain
+³   ³   ³   ÃÄÄÄentities
+³   ³   ³   ³       stock.dart
+³   ³   ³   ³       stock_movement.dart
+³   ³   ³   ³       
+³   ³   ³   ÀÄÄÄrepositories
+³   ³   ³           stock_repository.dart
+³   ³   ³           
+³   ³   ÀÄÄÄpresentation
+³   ³       ÃÄÄÄpages
+³   ³       ³       stock_detail_screen.dart
+³   ³       ³       
+³   ³       ÃÄÄÄproviders
+³   ³       ³       stock_provider.dart
+³   ³       ³       
+³   ³       ÀÄÄÄwidgets
+³   ³               stock_alert_banner.dart
+³   ³               stock_indicator_widget.dart
+³   ³               stock_movement_card.dart
+³   ³               
+³   ÀÄÄÄsupport
+³       ÃÄÄÄdata
+³       ³   ÃÄÄÄmodels
+³       ³   ³       faq_category_model.dart
+³       ³   ³       faq_model.dart
+³       ³   ³       support_ticket_model.dart
+³       ³   ³       ticket_message_model.dart
+³       ³   ³       
+³       ³   ÃÄÄÄrepositories
+³       ³   ³       support_repository_impl.dart
+³       ³   ³       
+³       ³   ÀÄÄÄsources
+³       ³           support_api.dart
+³       ³           support_local_data_source.dart
+³       ³           
+³       ÃÄÄÄdomain
+³       ³   ÃÄÄÄentities
+³       ³   ³       faq.dart
+³       ³   ³       faq_category.dart
+³       ³   ³       support_ticket.dart
+³       ³   ³       ticket_message.dart
+³       ³   ³       
+³       ³   ÀÄÄÄrepositories
+³       ³           support_repository.dart
+³       ³           
+³       ÀÄÄÄpresentation
+³           ÃÄÄÄpages
+³           ³       contact_us_screen.dart
+³           ³       faq_screen.dart
+³           ³       help_center_screen.dart
+³           ³       my_tickets_screen.dart
+³           ³       support_screen.dart
+³           ³       
+³           ÃÄÄÄproviders
+³           ³       support_provider.dart
+³           ³       
+³           ÀÄÄÄwidgets
+³                   contact_form.dart
+³                   faq_card.dart
+³                   support_option_card.dart
+³                   ticket_card.dart
+³                   
+ÃÄÄÄroutes
+³       app_routes.dart
+³       role_route_guard.dart
+³       route_generator.dart
+³       
+ÀÄÄÄshared
+    ÃÄÄÄproviders
+    ÀÄÄÄwidgets
