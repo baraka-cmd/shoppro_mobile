@@ -2,8 +2,8 @@
 // SECTION DES AVIS CLIENTS - VERSION PREMIUM
 // ============================================
 // Affiche la note moyenne, la distribution,
-// la liste des avis et le bouton d'ajout.
-// Design conforme à la vision ShopPro.
+// la liste des avis (avec photos) et le bouton
+// d'ajout. Design conforme à la vision ShopPro.
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -37,6 +37,10 @@ class ReviewsSection extends StatelessWidget {
     if (totalReviews == 0 && reviews.isEmpty) {
       return _buildEmptyState();
     }
+
+    // Nombre d'avis avec photos
+    final reviewsWithPhotos =
+        reviews.where((r) => r.images != null && r.images!.isNotEmpty).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,6 +222,47 @@ class ReviewsSection extends StatelessWidget {
           ),
         ),
 
+        // ============================================
+        // BADGE PHOTOS (NOUVEAU)
+        // ============================================
+        if (reviewsWithPhotos > 0) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.photo_library,
+                      size: 13,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '$reviewsWithPhotos avis avec photos',
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+
         const SizedBox(height: 15),
 
         // ============================================
@@ -250,7 +295,8 @@ class ReviewsSection extends StatelessWidget {
               onPressed: onSeeAllReviews,
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

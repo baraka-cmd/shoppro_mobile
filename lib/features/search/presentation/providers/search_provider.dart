@@ -465,6 +465,76 @@ class SearchProvider extends ChangeNotifier {
   }
 
   // ============================================
+  // RECHERCHE VOCALE (NOUVEAU)
+  // ============================================
+
+  /// Recherche vocale : prend le texte dicté et lance la recherche
+  /// avec les filtres actuels s'ils existent
+  Future<void> searchFromVoice(String voiceText) async {
+    final cleaned = voiceText.trim();
+
+    if (cleaned.isEmpty) {
+      _status = SearchStatus.empty;
+      notifyListeners();
+      return;
+    }
+
+    // Mettre à jour la requête
+    _query = cleaned;
+
+    // Si des filtres sont actifs, on les conserve
+    if (hasActiveFilters) {
+      await searchWithFilters(
+        query: cleaned,
+        categoryId: _categoryId,
+        brandId: _brandId,
+        minPrice: _minPrice,
+        maxPrice: _maxPrice,
+        inStock: _inStock,
+        minRating: _minRating,
+        sortBy: _sortBy,
+        sortDirection: _sortDirection,
+      );
+    } else {
+      await search(cleaned);
+    }
+  }
+
+  /// Nettoie une requête vocale (retire les mots parasites)
+  String normalizeVoiceQuery(String raw) {
+    var cleaned = raw.toLowerCase().trim();
+
+    // Retirer les articles/mots parasites français
+    const stopWords = [
+      'recherche ',
+      'cherche ',
+      'je veux ',
+      'trouve ',
+      'montre moi ',
+      'affiche ',
+      'le ',
+      'la ',
+      'les ',
+      'un ',
+      'une ',
+      'des ',
+      'du ',
+      'de ',
+      'pour ',
+    ];
+
+    for (final word in stopWords) {
+      if (cleaned.startsWith(word)) {
+        cleaned = cleaned.substring(word.length).trim();
+      }
+    }
+
+    // Retirer la ponctuation finale
+    cleaned = cleaned.replaceAll(RegExp(r'[.,!?;:]+$'), '').trim();
+
+    return cleaned;
+  }
+  // ============================================
   // DISPOSE
   // ============================================
 

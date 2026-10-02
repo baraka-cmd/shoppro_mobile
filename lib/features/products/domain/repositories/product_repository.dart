@@ -165,6 +165,27 @@ abstract class ProductRepository {
     int perPage = 10,
   });
 
+  /// Soumettre un avis avec photos optionnelles
+  Future<Map<String, dynamic>> submitReview({
+    required int productId,
+    required double rating,
+    required String comment,
+    String? title,
+    double qualityRating = 0,
+    double priceRating = 0,
+    double shippingRating = 0,
+    List<String> imagePaths = const [],
+  });
+
+  /// Supprimer un avis
+  Future<void> deleteReview(int reviewId);
+
+  /// Voter pour un avis (utile / pas utile)
+  Future<Map<String, dynamic>> voteReview({
+    required int reviewId,
+    required bool helpful,
+  });
+
   /// Récupérer la note moyenne d'un produit
   Future<double> getProductAverageRating(int productId);
 

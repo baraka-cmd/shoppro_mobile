@@ -431,6 +431,60 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> submitReview({
+    required int productId,
+    required double rating,
+    required String comment,
+    String? title,
+    double qualityRating = 0,
+    double priceRating = 0,
+    double shippingRating = 0,
+    List<String> imagePaths = const [],
+  }) async {
+    try {
+      return await _productApi.submitReview(
+        productId: productId,
+        rating: rating,
+        comment: comment,
+        title: title,
+        qualityRating: qualityRating,
+        priceRating: priceRating,
+        shippingRating: shippingRating,
+        imagePaths: imagePaths,
+      );
+    } catch (e) {
+      debugPrint('❌ Erreur submitReview: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> deleteReview(int reviewId) async {
+    try {
+      await _productApi.deleteReview(reviewId);
+    } catch (e) {
+      debugPrint('❌ Erreur deleteReview($reviewId): $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> voteReview({
+    required int reviewId,
+    required bool helpful,
+  }) async {
+    try {
+      return await _productApi.voteReview(
+        reviewId: reviewId,
+        helpful: helpful,
+      );
+    } catch (e) {
+      debugPrint('❌ Erreur voteReview($reviewId): $e');
+      rethrow;
+    }
+  }
+
+  @override
   Future<double> getProductAverageRating(int productId) async {
     try {
       return await _productApi.getProductAverageRating(productId);

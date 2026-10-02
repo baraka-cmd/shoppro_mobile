@@ -3,6 +3,7 @@
 // ============================================
 // Avec auto-focus, effacement, debounce et
 // micro-interactions. Design ShopPro.
+// (Recherche vocale désactivée temporairement)
 // ============================================
 
 import 'package:flutter/material.dart';

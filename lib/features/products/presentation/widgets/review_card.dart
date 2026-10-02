@@ -2,12 +2,14 @@
 // CARTE D'AVIS CLIENT - VERSION PREMIUM
 // ============================================
 // Affiche avatar, nom, note, commentaire,
-// badges et actions utiles. Design ShopPro.
+// badges, photos (galerie zoomable) et actions.
+// Design ShopPro.
 // ============================================
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'review_gallery.dart';
 
 class ReviewCard extends StatelessWidget {
   final String userName;
@@ -78,7 +80,8 @@ class ReviewCard extends StatelessWidget {
                           imageUrl: userAvatar!,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => _buildInitials(),
-                          errorWidget: (context, url, error) => _buildInitials(),
+                          errorWidget: (context, url, error) =>
+                              _buildInitials(),
                         ),
                       )
                     : _buildInitials(),
@@ -91,7 +94,6 @@ class ReviewCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Nom + badge vérifié
                     Row(
                       children: [
                         Flexible(
@@ -157,7 +159,7 @@ class ReviewCard extends StatelessWidget {
                 ),
               ),
 
-              // Étoiles (droite)
+              // Étoiles
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: List.generate(5, (index) {
@@ -165,7 +167,8 @@ class ReviewCard extends StatelessWidget {
                   return Icon(
                     isFilled ? Icons.star : Icons.star_border,
                     size: 14,
-                    color: isFilled ? AppColors.ratingColor : AppColors.textLight,
+                    color:
+                        isFilled ? AppColors.ratingColor : AppColors.textLight,
                   );
                 }),
               ),
@@ -205,55 +208,15 @@ class ReviewCard extends StatelessWidget {
           ),
 
           // ============================================
-          // IMAGES DE L'AVIS
+          // PHOTOS DE L'AVIS (via ReviewGallery)
           // ============================================
           if (images != null && images!.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 60,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: images!.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () => _showImageDialog(context, images![index]),
-                    child: Container(
-                      width: 60,
-                      height: 60,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.borderColor.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(9),
-                        child: CachedNetworkImage(
-                          imageUrl: images![index],
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: AppColors.surface,
-                            child: const Icon(
-                              Icons.image_outlined,
-                              size: 20,
-                              color: AppColors.textLight,
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: AppColors.surface,
-                            child: const Icon(
-                              Icons.broken_image_outlined,
-                              size: 20,
-                              color: AppColors.textLight,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+            const SizedBox(height: 12),
+            ReviewGallery(
+              images: images!,
+              thumbnailSize: 80,
+              userName: userName,
+              reviewTitle: title,
             ),
           ],
 
@@ -349,69 +312,6 @@ class ReviewCard extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-
-  // ============================================
-  // ZOOM IMAGE
-  // ============================================
-
-  void _showImageDialog(BuildContext context, String imageUrl) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Stack(
-            children: [
-              InteractiveViewer(
-                minScale: 1,
-                maxScale: 4,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.contain,
-                    placeholder: (context, url) => const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => const Icon(
-                      Icons.broken_image_outlined,
-                      size: 80,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: GestureDetector(
-                  onTap: () => Navigator.of(dialogContext).pop(),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.close,
-                      size: 18,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 

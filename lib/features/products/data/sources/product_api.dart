@@ -5,6 +5,7 @@
 // Gestion robuste des erreurs avec messages clairs.
 // ============================================
 
+import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_client.dart';
@@ -277,6 +278,124 @@ class ProductApi {
   }
 
   // ============================================
+  // AVIS (NOUVEAU) — Envoi avec photos
+  // ============================================
+
+  /// Soumettre un avis avec photos optionnelles
+  /// [productId] : ID du produit
+  /// [rating] : note globale 1-5
+  /// [comment] : commentaire (obligatoire)
+  /// [title] : titre (optionnel)
+  /// [qualityRating], [priceRating], [shippingRating] : notes spécifiques (0-5)
+  /// [imagePaths] : chemins locaux des photos (max 5 recommandé)
+  Future<Map<String, dynamic>> submitReview({
+    required int productId,
+    required double rating,
+    required String comment,
+    String? title,
+    double qualityRating = 0,
+    double priceRating = 0,
+    double shippingRating = 0,
+    List<String> imagePaths = const [],
+  }) async {
+    try {
+      // Construction du FormData
+      final formData = FormData();
+
+      formData.fields.addAll([
+        MapEntry('product_id', productId.toString()),
+        MapEntry('rating', rating.toStringAsFixed(1)),
+        MapEntry('comment', comment),
+      ]);
+
+      if (title != null && title.trim().isNotEmpty) {
+        formData.fields.add(MapEntry('title', title.trim()));
+      }
+      if (qualityRating > 0) {
+        formData.fields.add(
+          MapEntry('quality_rating', qualityRating.toStringAsFixed(1)),
+        );
+      }
+      if (priceRating > 0) {
+        formData.fields.add(
+          MapEntry('price_rating', priceRating.toStringAsFixed(1)),
+        );
+      }
+      if (shippingRating > 0) {
+        formData.fields.add(
+          MapEntry('shipping_rating', shippingRating.toStringAsFixed(1)),
+        );
+      }
+
+      // Ajout des images
+      for (int i = 0; i < imagePaths.length; i++) {
+        final path = imagePaths[i];
+        final file = File(path);
+        if (!await file.exists()) continue;
+
+        final fileName = path.split(Platform.pathSeparator).last;
+        formData.files.add(
+          MapEntry(
+            'images[]', // 👈 Laravel attend un tableau d'images
+            await MultipartFile.fromFile(
+              path,
+              filename: fileName,
+              contentType: _guessContentType(fileName),
+            ),
+          ),
+        );
+      }
+
+      final response = await _dio.post(
+        '/reviews', // 👈 Endpoint API : POST /api/v1/reviews
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
+          },
+          sendTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data as Map<String, dynamic>;
+      }
+
+      throw Exception('Échec de l\'envoi de l\'avis');
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Supprimer un avis
+  Future<void> deleteReview(int reviewId) async {
+    try {
+      await _dio.delete('/reviews/$reviewId');
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Voter pour un avis (utile / pas utile)
+  Future<Map<String, dynamic>> voteReview({
+    required int reviewId,
+    required bool helpful,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/reviews/$reviewId/vote',
+        data: {'vote_type': helpful ? 'helpful' : 'not_helpful'},
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ============================================
   // HELPERS PRIVÉS
   // ============================================
 
@@ -333,6 +452,16 @@ class ProductApi {
     return 0;
   }
 
+  /// Devine le Content-Type d'une image selon son extension
+  DioMediaType? _guessContentType(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.png')) return DioMediaType('image', 'png');
+    if (lower.endsWith('.gif')) return DioMediaType('image', 'gif');
+    if (lower.endsWith('.webp')) return DioMediaType('image', 'webp');
+    if (lower.endsWith('.heic')) return DioMediaType('image', 'heic');
+    return DioMediaType('image', 'jpeg');
+  }
+
   // ============================================
   // GESTION DES ERREURS
   // ============================================
@@ -342,17 +471,32 @@ class ProductApi {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.sendTimeout:
-        return Exception('Connexion lente. Vérifiez votre réseau et réessayez.');
+        return Exception(
+            'Connexion lente. Vérifiez votre réseau et réessayez.');
 
       case DioExceptionType.connectionError:
-        return Exception('Impossible de se connecter au serveur. Vérifiez votre connexion Internet.');
+        return Exception(
+            'Impossible de se connecter au serveur. Vérifiez votre connexion Internet.');
 
       case DioExceptionType.badResponse:
         final statusCode = e.response?.statusCode;
         final data = e.response?.data;
 
         if (data is Map<String, dynamic>) {
-          if (data['message'] != null && data['message'].toString().isNotEmpty) {
+          // Gestion des erreurs de validation Laravel
+          if (data['errors'] is Map) {
+            final errors = data['errors'] as Map;
+            if (errors.isNotEmpty) {
+              final firstError = errors.values.first;
+              if (firstError is List && firstError.isNotEmpty) {
+                return Exception(firstError.first.toString());
+              }
+              return Exception(firstError.toString());
+            }
+          }
+
+          if (data['message'] != null &&
+              data['message'].toString().isNotEmpty) {
             return Exception(data['message'].toString());
           }
           if (data['error'] != null && data['error'].toString().isNotEmpty) {
@@ -364,7 +508,8 @@ class ProductApi {
           return Exception('Session expirée. Veuillez vous reconnecter.');
         }
         if (statusCode == 403) {
-          return Exception('Accès refusé. Vous n\'avez pas les permissions nécessaires.');
+          return Exception(
+              'Accès refusé. Vous n\'avez pas les permissions nécessaires.');
         }
         if (statusCode == 404) {
           return Exception('Ressource introuvable.');
@@ -376,7 +521,8 @@ class ProductApi {
           return Exception('Erreur serveur. Réessayez plus tard.');
         }
 
-        return Exception('Erreur ${statusCode ?? 'inconnue'}. Veuillez réessayer.');
+        return Exception(
+            'Erreur ${statusCode ?? 'inconnue'}. Veuillez réessayer.');
 
       case DioExceptionType.cancel:
         return Exception('Requête annulée.');

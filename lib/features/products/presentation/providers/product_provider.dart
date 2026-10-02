@@ -2,7 +2,8 @@
 // PROVIDER DES PRODUITS
 // ============================================
 // Gère l'état des produits avec pagination,
-// filtres, tri et recherche intelligente.
+// filtres, tri, recherche intelligente
+// et gestion des avis clients.
 // ============================================
 
 import 'package:flutter/foundation.dart';
@@ -16,6 +17,14 @@ enum ProductStatus {
   loaded,        // Chargé
   loadingMore,   // Chargement supplémentaire (pagination)
   error,         // Erreur
+}
+
+/// Statut de la soumission d'un avis
+enum ReviewSubmitStatus {
+  idle,       // Rien en cours
+  submitting, // Envoi en cours
+  success,    // Envoyé
+  error,      // Erreur
 }
 
 class ProductProvider extends ChangeNotifier {
@@ -59,6 +68,15 @@ class ProductProvider extends ChangeNotifier {
   List<Product> _recentlyViewedProducts = [];
 
   // ============================================
+  // ÉTAT DES AVIS (NOUVEAU)
+  // ============================================
+
+  ReviewSubmitStatus _reviewStatus = ReviewSubmitStatus.idle;
+  String? _reviewError;
+  List<dynamic> _productReviews = [];
+  bool _isLoadingReviews = false;
+
+  // ============================================
   // GETTERS DE BASE
   // ============================================
 
@@ -97,6 +115,19 @@ class ProductProvider extends ChangeNotifier {
     sorted.sort((a, b) => b.discountPercent.compareTo(a.discountPercent));
     return sorted;
   }
+
+  // ============================================
+  // GETTERS AVIS (NOUVEAU)
+  // ============================================
+
+  ReviewSubmitStatus get reviewStatus => _reviewStatus;
+  String? get reviewError => _reviewError;
+  bool get isSubmittingReview =>
+      _reviewStatus == ReviewSubmitStatus.submitting;
+  bool get reviewSubmitSuccess =>
+      _reviewStatus == ReviewSubmitStatus.success;
+  List<dynamic> get productReviews => _productReviews;
+  bool get isLoadingReviews => _isLoadingReviews;
 
   // ============================================
   // GETTERS FILTRES ACTIFS
@@ -380,7 +411,8 @@ class ProductProvider extends ChangeNotifier {
   /// Charger les produits récemment consultés
   Future<void> loadRecentlyViewedProducts() async {
     try {
-      _recentlyViewedProducts = await _productRepository.getRecentlyViewedProducts();
+      _recentlyViewedProducts =
+          await _productRepository.getRecentlyViewedProducts();
       notifyListeners();
     } catch (e) {
       debugPrint('Erreur recently viewed: $e');
@@ -406,6 +438,78 @@ class ProductProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Erreur clearRecentlyViewed: $e');
     }
+  }
+
+  // ============================================
+  // AVIS (NOUVEAU)
+  // ============================================
+
+  /// Charger les avis d'un produit
+  Future<void> loadProductReviews(int productId) async {
+    _isLoadingReviews = true;
+    notifyListeners();
+
+    try {
+      _productReviews =
+          await _productRepository.getProductReviews(productId: productId);
+    } catch (e) {
+      debugPrint('Erreur loadProductReviews: $e');
+      _productReviews = [];
+    }
+
+    _isLoadingReviews = false;
+    notifyListeners();
+  }
+
+  /// Soumettre un avis avec photos
+  /// Retourne `true` si succès, `false` sinon
+  Future<bool> submitReview({
+    required int productId,
+    required double rating,
+    required String comment,
+    String? title,
+    double qualityRating = 0,
+    double priceRating = 0,
+    double shippingRating = 0,
+    List<String> imagePaths = const [],
+  }) async {
+    // Reset de l'état
+    _reviewStatus = ReviewSubmitStatus.submitting;
+    _reviewError = null;
+    notifyListeners();
+
+    try {
+      await _productRepository.submitReview(
+        productId: productId,
+        rating: rating,
+        comment: comment,
+        title: title,
+        qualityRating: qualityRating,
+        priceRating: priceRating,
+        shippingRating: shippingRating,
+        imagePaths: imagePaths,
+      );
+
+      _reviewStatus = ReviewSubmitStatus.success;
+
+      // Recharger les avis du produit
+      await loadProductReviews(productId);
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _reviewStatus = ReviewSubmitStatus.error;
+      _reviewError = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Réinitialiser le statut d'avis (à appeler après avoir affiché un message)
+  void resetReviewStatus() {
+    _reviewStatus = ReviewSubmitStatus.idle;
+    _reviewError = null;
+    notifyListeners();
   }
 
   // ============================================
@@ -438,6 +542,6 @@ class ProductProvider extends ChangeNotifier {
   String toString() {
     return 'ProductProvider(status: $_status, products: ${_products.length}, '
         'page: $_currentPage, hasMore: $_hasMore, filters: $activeFiltersCount, '
-        'sort: $currentSortLabel)';
+        'sort: $currentSortLabel, reviews: ${_productReviews.length})';
   }
 }

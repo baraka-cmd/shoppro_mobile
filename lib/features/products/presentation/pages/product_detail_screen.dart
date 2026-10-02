@@ -2,8 +2,8 @@
 // ÉCRAN DE DÉTAILS DU PRODUIT - VERSION PREMIUM
 // ============================================
 // Assemble galerie immersive, infos, variantes,
-// quantité, specs, avis, produits similaires
-// et CTA sticky avec animations professionnelles.
+// quantité, specs, avis (avec photos), produits
+// similaires et CTA sticky avec animations.
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -47,6 +47,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isAddingToCart = false;
   String? _errorMessage;
   Product? _product;
+
+  // 👈 NOUVEAU : liste des avis convertis pour l'UI
+  List<ReviewCardData> _reviews = [];
 
   @override
   void initState() {
@@ -102,6 +105,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
       // Charger les produits similaires
       await provider.loadSimilarProducts(widget.productId);
+
+      // 👈 NOUVEAU : charger les avis depuis l'API
+      await _loadReviews();
     } catch (e) {
       setState(() {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -109,6 +115,189 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       });
     }
   }
+
+  // ============================================
+  // CHARGEMENT DES AVIS (NOUVEAU)
+  // ============================================
+
+  Future<void> _loadReviews() async {
+    try {
+      final provider = context.read<ProductProvider>();
+      await provider.loadProductReviews(widget.productId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _reviews = _convertReviews(provider.productReviews);
+      });
+    } catch (e) {
+      debugPrint('❌ Erreur _loadReviews: $e');
+    }
+  }
+
+  /// Convertit les données brutes de l'API en ReviewCardData
+  List<ReviewCardData> _convertReviews(List<dynamic> raw) {
+    final result = <ReviewCardData>[];
+
+    for (final item in raw) {
+      if (item is! Map) continue;
+
+      try {
+        final map = Map<String, dynamic>.from(item);
+
+        // Récupération du user (plusieurs formats possibles)
+        String userName = 'Utilisateur';
+        String? userAvatar;
+
+        if (map['user'] is Map) {
+          final user = map['user'] as Map;
+          userName = user['name']?.toString() ?? 'Utilisateur';
+          userAvatar = user['avatar']?.toString();
+        } else if (map['user_name'] != null) {
+          userName = map['user_name'].toString();
+        }
+
+        // Récupération des images (liste d'URLs)
+        final images = <String>[];
+        if (map['images'] is List) {
+          for (final img in map['images']) {
+            if (img is String) {
+              images.add(img);
+            } else if (img is Map && img['url'] != null) {
+              images.add(img['url'].toString());
+            } else if (img is Map && img['image_path'] != null) {
+              images.add(img['image_path'].toString());
+            }
+          }
+        }
+
+        result.add(
+          ReviewCardData(
+            userName: userName,
+            userAvatar: userAvatar,
+            rating: _parseDouble(map['rating']),
+            comment: map['comment']?.toString() ?? '',
+            title: map['title']?.toString(),
+            date: _parseDate(map['created_at']),
+            isVerifiedPurchase: map['is_verified_purchase'] == true,
+            helpfulCount: _parseInt(map['helpful_count']),
+            notHelpfulCount: _parseInt(map['not_helpful_count']),
+            images: images.isEmpty ? null : images,
+          ),
+        );
+      } catch (e) {
+        debugPrint('⚠️ Erreur conversion avis: $e');
+      }
+    }
+
+    return result;
+  }
+
+  double _parseDouble(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  // ============================================
+  // AJOUTER UN AVIS (NOUVEAU)
+  // ============================================
+
+  Future<void> _handleAddReview() async {
+    final reviewData = await showAddReviewSheet(context);
+
+    if (!mounted || reviewData == null) return;
+
+    final provider = context.read<ProductProvider>();
+
+    // Afficher un loader
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
+    final success = await provider.submitReview(
+      productId: widget.productId,
+      rating: reviewData.rating,
+      comment: reviewData.comment,
+      title: reviewData.title,
+      qualityRating: reviewData.qualityRating,
+      priceRating: reviewData.priceRating,
+      shippingRating: reviewData.shippingRating,
+      imagePaths: reviewData.images,
+    );
+
+    if (!mounted) return;
+
+    // Fermer le loader
+    Navigator.of(context).pop();
+
+    if (success) {
+      // Recharger les avis
+      await _loadReviews();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Merci ! Votre avis a été publié.',
+            style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+          ),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(20),
+          duration: Duration(seconds: 3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+        ),
+      );
+
+      // Reset du statut
+      provider.resetReviewStatus();
+    } else {
+      final error = provider.reviewError ?? 'Erreur lors de l\'envoi';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error,
+            style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(20),
+          duration: const Duration(seconds: 3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+        ),
+      );
+
+      provider.resetReviewStatus();
+    }
+  }
+
   // ============================================
   // BUILD PRINCIPAL
   // ============================================
@@ -146,7 +335,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   child: Container(
                     width: 38,
                     height: 38,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
@@ -184,7 +373,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   child: Container(
                     width: 38,
                     height: 38,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
@@ -204,7 +393,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 60, color: AppColors.error),
+                const Icon(
+                  Icons.error_outline,
+                  size: 60,
+                  color: AppColors.error,
+                ),
                 const SizedBox(height: 15),
                 Text(
                   _errorMessage ?? 'Erreur',
@@ -220,7 +413,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 30,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -253,9 +449,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ============================================
-          // BARRE SUPÉRIEURE (RETOUR + FAVORI + PARTAGER)
-          // ============================================
+          // BARRE SUPÉRIEURE
           SafeArea(
             bottom: false,
             child: Padding(
@@ -263,7 +457,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Retour
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(),
                     child: Container(
@@ -286,11 +479,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ),
                   ),
-
-                  // Favori + Partager
                   Row(
                     children: [
-                      // Favori
                       GestureDetector(
                         onTap: () => _toggleFavorite(product),
                         child: AnimatedContainer(
@@ -319,7 +509,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Partager
                       Container(
                         width: 38,
                         height: 38,
@@ -347,9 +536,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ),
 
-          // ============================================
-          // GALERIE PREMIUM (COMMENCE APRÈS LA BARRE)
-          // ============================================
+          // GALERIE PREMIUM
           ProductGallery(
             imageUrls: imageUrls,
             height: 400,
@@ -360,9 +547,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             enableFloatingAnimation: true,
           ),
 
-          // ============================================
           // CONTENU PRINCIPAL
-          // ============================================
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -372,7 +557,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 const SizedBox(height: 20),
                 const Divider(height: 1),
-
                 const SizedBox(height: 15),
 
                 VariationSelector(
@@ -382,7 +566,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 const SizedBox(height: 15),
                 const Divider(height: 1),
-
                 const SizedBox(height: 15),
 
                 QuantitySelector(
@@ -398,27 +581,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 const SizedBox(height: 20),
                 const Divider(height: 1),
-
                 const SizedBox(height: 15),
 
                 SpecificationsSection(
-                  specifications: _buildSpecifications(product).cast<SpecificationItem>(),
+                  specifications:
+                      _buildSpecifications(product).cast<SpecificationItem>(),
                 ),
 
                 const SizedBox(height: 20),
                 const Divider(height: 1),
-
                 const SizedBox(height: 15),
 
+                // 👈 SECTION AVIS : utilise _reviews (vrais avis API) + _handleAddReview
                 ReviewsSection(
                   averageRating: product.averageRating,
                   totalReviews: product.reviewsCount,
-                  ratingDistribution: const {5: 2, 4: 3, 3: 1, 2: 0, 1: 0},
-                  reviews: _buildReviews(product).cast<ReviewCardData>(),
+                  ratingDistribution: _buildRatingDistribution(),
+                  reviews: _reviews,
                   onSeeAllReviews: () {},
-                  onAddReview: () {
-                    showAddReviewSheet(context);
-                  },
+                  onAddReview: _handleAddReview,
                 ),
 
                 const SizedBox(height: 20),
@@ -426,9 +607,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ),
 
-          // ============================================
           // PRODUITS SIMILAIRES
-          // ============================================
           Consumer<ProductProvider>(
             builder: (context, provider, child) {
               if (provider.similarProducts.isEmpty) {
@@ -507,9 +686,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
           const SizedBox(height: 25),
 
-          // ============================================
-          // RÉCEMMENT CONSULTÉS
-          // ============================================
           RecentlyViewedSection(
             onProductTap: (product) {
               Navigator.of(context).pushReplacementNamed(
@@ -523,6 +699,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ],
       ),
     );
+  }
+
+  // ============================================
+  // DISTRIBUTION DES NOTES (calculée depuis _reviews)
+  // ============================================
+
+  Map<int, int> _buildRatingDistribution() {
+    final distribution = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+
+    for (final review in _reviews) {
+      final rounded = review.rating.round().clamp(1, 5);
+      distribution[rounded] = (distribution[rounded] ?? 0) + 1;
+    }
+
+    return distribution;
   }
 
   // ============================================
@@ -548,7 +739,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         top: false,
         child: Row(
           children: [
-            // Favori
             Expanded(
               flex: 1,
               child: GestureDetector(
@@ -577,10 +767,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ),
               ),
             ),
-
             const SizedBox(width: 10),
-
-            // Ajouter au panier
             Expanded(
               flex: 3,
               child: ElevatedButton(
@@ -664,7 +851,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       id: DateTime.now().millisecondsSinceEpoch,
       productId: product.id,
       name: product.name,
-      imageUrl: product.fullImageUrl.isNotEmpty ? product.fullImageUrl : product.mainImage,
+      imageUrl: product.fullImageUrl.isNotEmpty
+          ? product.fullImageUrl
+          : product.mainImage,
       sku: product.sku,
       unitPrice: product.currentPrice,
       discountPrice: product.hasDiscount ? product.discountPrice : null,
@@ -719,22 +908,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   // ============================================
   // TOGGLE FAVORI
   // ============================================
+
   Future<void> _toggleFavorite(Product product) async {
     final favoriteProvider = context.read<FavoriteProvider>();
 
     if (_isFavorite) {
-      // ============================================
-      // RETIRER DES FAVORIS
-      // ============================================
       final success = await favoriteProvider.removeByProductId(product.id);
-
       if (!mounted) return;
 
       if (success) {
-        setState(() {
-          _isFavorite = false;
-        });
-
+        setState(() => _isFavorite = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -752,9 +935,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         );
       }
     } else {
-      // ============================================
-      // AJOUTER AUX FAVORIS
-      // ============================================
       final favorite = Favorite(
         id: DateTime.now().millisecondsSinceEpoch,
         productId: product.id,
@@ -764,7 +944,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             : product.mainImage,
         productSku: product.sku,
         productPrice: product.price,
-        productDiscountPrice: product.hasDiscount ? product.discountPrice : null,
+        productDiscountPrice:
+            product.hasDiscount ? product.discountPrice : null,
         isInStock: product.isInStock,
         stock: product.stock,
         averageRating: product.averageRating,
@@ -772,14 +953,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       );
 
       final success = await favoriteProvider.addFavorite(favorite);
-
       if (!mounted) return;
 
       if (success) {
-        setState(() {
-          _isFavorite = true;
-        });
-
+        setState(() => _isFavorite = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -798,13 +975,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       }
     }
   }
-  
+
   // ============================================
   // CONSTRUIRE LES VARIANTES
   // ============================================
 
   List<dynamic> _buildVariants(Product product) {
-    // Placeholder - à remplacer par les vraies variantes de l'API
     return const [];
   }
 
@@ -815,20 +991,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   List<SpecificationItem> _buildSpecifications(Product product) {
     return <SpecificationItem>[
       SpecificationItem(label: 'SKU', value: product.sku, icon: Icons.qr_code),
-      SpecificationItem(label: 'Stock', value: '${product.stock} unités', icon: Icons.inventory),
+      SpecificationItem(
+        label: 'Stock',
+        value: '${product.stock} unités',
+        icon: Icons.inventory,
+      ),
       if (product.category != null)
-        SpecificationItem(label: 'Catégorie', value: product.category!.name, icon: Icons.category),
+        SpecificationItem(
+          label: 'Catégorie',
+          value: product.category!.name,
+          icon: Icons.category,
+        ),
       if (product.brand != null)
-        SpecificationItem(label: 'Marque', value: product.brand!.name, icon: Icons.storefront),
+        SpecificationItem(
+          label: 'Marque',
+          value: product.brand!.name,
+          icon: Icons.storefront,
+        ),
     ];
-  }
-
-  // ============================================
-  // CONSTRUIRE LES AVIS
-  // ============================================
-
-  List<dynamic> _buildReviews(Product product) {
-    // Placeholder - à remplacer par les vrais avis de l'API
-    return const [];
   }
 }
