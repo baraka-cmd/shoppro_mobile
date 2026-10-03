@@ -4,6 +4,9 @@
 // Définit le contrat que le repository doit
 // respecter. Gestion complète des adresses
 // avec snapshot et synchronisation.
+//
+// ⚠️ L'implémentation utilise l'API Laravel
+//    comme source principale, avec cache local.
 // ============================================
 
 import '../entities/address.dart';
@@ -13,7 +16,7 @@ abstract class AddressRepository {
   // LECTURE
   // ============================================
 
-  /// Récupérer toutes les adresses
+  /// Récupérer toutes les adresses (depuis l'API)
   Future<List<Address>> getAddresses();
 
   /// Récupérer les adresses actives
@@ -35,43 +38,72 @@ abstract class AddressRepository {
   Future<bool> hasAddresses();
 
   // ============================================
-  // CRÉATION
+  // CRÉATION (API)
   // ============================================
 
-  /// Ajouter une adresse
-  Future<List<Address>> addAddress(Address address);
-
-  /// Ajouter plusieurs adresses
-  Future<List<Address>> addAddresses(List<Address> addresses);
+  /// Créer une nouvelle adresse côté serveur.
+  /// Retourne l'adresse créée (avec son ID serveur).
+  Future<Address> createAddress({
+    required String fullName,
+    required String phone,
+    String? email,
+    required String addressLine1,
+    String? addressLine2,
+    required String city,
+    String? state,
+    String? postalCode,
+    String? country,
+    String type = 'home',
+    bool isDefault = false,
+    double? latitude,
+    double? longitude,
+    String? deliveryInstructions,
+  });
 
   // ============================================
-  // MODIFICATION
+  // MODIFICATION (API)
   // ============================================
 
-  /// Mettre à jour une adresse
-  Future<List<Address>> updateAddress(Address address);
+  /// Mettre à jour une adresse côté serveur.
+  Future<Address> updateAddress({
+    required int id,
+    String? fullName,
+    String? phone,
+    String? email,
+    String? addressLine1,
+    String? addressLine2,
+    String? city,
+    String? state,
+    String? postalCode,
+    String? country,
+    String? type,
+    bool? isDefault,
+    double? latitude,
+    double? longitude,
+    String? deliveryInstructions,
+  });
 
-  /// Définir une adresse comme défaut
-  Future<List<Address>> setDefaultAddress(int addressId);
+  /// Définir une adresse comme défaut côté serveur.
+  Future<Address> setDefaultAddress(int addressId);
 
-  /// Activer/désactiver une adresse
+  /// Activer/désactiver une adresse (cache local uniquement)
   Future<List<Address>> toggleAddressActive(int addressId);
 
   // ============================================
-  // SUPPRESSION
+  // SUPPRESSION (API)
   // ============================================
 
-  /// Supprimer une adresse
-  Future<List<Address>> removeAddress(int addressId);
+  /// Supprimer une adresse côté serveur (soft delete)
+  Future<void> deleteAddress(int addressId);
 
-  /// Supprimer plusieurs adresses
+  /// Supprimer plusieurs adresses (cache local uniquement)
   Future<List<Address>> removeAddresses(List<int> addressIds);
 
-  /// Effacer toutes les adresses
+  /// Effacer toutes les adresses du cache local
   Future<void> clearAddresses();
 
   // ============================================
-  // SAUVEGARDE
+  // SAUVEGARDE (CACHE LOCAL)
   // ============================================
 
   /// Sauvegarder les adresses localement

@@ -3,6 +3,8 @@
 // ============================================
 // Gère l'état des adresses avec actions complètes,
 // défaut intelligent et annulation.
+//
+// ⚠️ L'API Laravel est la source principale.
 // ============================================
 
 import 'package:flutter/foundation.dart';
@@ -48,14 +50,12 @@ class AddressProvider extends ChangeNotifier {
   bool get isEmpty => _addresses.isEmpty;
   int get addressesCount => _addresses.length;
 
-  /// ID de l'adresse en cours de mise à jour
   int get updatingAddressId => _updatingAddressId;
 
   // ============================================
   // GETTERS DÉRIVÉS
   // ============================================
 
-  /// Adresse par défaut
   Address? get defaultAddress {
     for (final address in _addresses) {
       if (address.isDefault && address.isActive) return address;
@@ -63,17 +63,14 @@ class AddressProvider extends ChangeNotifier {
     return _addresses.isNotEmpty ? _addresses.first : null;
   }
 
-  /// Adresses actives
   List<Address> get activeAddresses {
     return _addresses.where((a) => a.isActive).toList();
   }
 
-  /// Adresses avec GPS
   List<Address> get addressesWithGps {
     return _addresses.where((a) => a.hasGps).toList();
   }
 
-  /// Adresses par type
   List<Address> getHomeAddresses() =>
       _addresses.where((a) => a.type == 'home').toList();
   List<Address> getWorkAddresses() =>
@@ -84,10 +81,9 @@ class AddressProvider extends ChangeNotifier {
       _addresses.where((a) => a.type == 'other').toList();
 
   // ============================================
-  // CHARGEMENT
+  // CHARGEMENT (API)
   // ============================================
 
-  /// Charger les adresses
   Future<void> loadAddresses() async {
     _setStatus(AddressStatus.loading);
     _clearError();
@@ -103,47 +99,113 @@ class AddressProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Rafraîchir les adresses
   Future<void> refreshAddresses() async {
     await loadAddresses();
   }
 
   // ============================================
-  // AJOUT
+  // AJOUT (API)
   // ============================================
 
-  /// Ajouter une adresse
-  Future<bool> addAddress(Address address) async {
+  /// Ajouter une adresse côté serveur.
+  /// Retourne l'adresse créée (avec son ID serveur).
+  Future<Address?> addAddress({
+    required String fullName,
+    required String phone,
+    String? email,
+    required String addressLine1,
+    String? addressLine2,
+    required String city,
+    String? state,
+    String? postalCode,
+    String? country,
+    String type = 'home',
+    bool isDefault = false,
+    double? latitude,
+    double? longitude,
+    String? deliveryInstructions,
+  }) async {
     _setStatus(AddressStatus.saving);
     _clearError();
 
     try {
-      await _addressRepository.saveAddressesSnapshot();
-      _addresses = await _addressRepository.addAddress(address);
+      final address = await _addressRepository.createAddress(
+        fullName: fullName,
+        phone: phone,
+        email: email,
+        addressLine1: addressLine1,
+        addressLine2: addressLine2,
+        city: city,
+        state: state,
+        postalCode: postalCode,
+        country: country,
+        type: type,
+        isDefault: isDefault,
+        latitude: latitude,
+        longitude: longitude,
+        deliveryInstructions: deliveryInstructions,
+      );
+
+      // Recharger la liste
+      _addresses = await _addressRepository.getAddresses();
       _setStatus(AddressStatus.loaded);
       notifyListeners();
-      return true;
+      return address;
     } catch (e) {
       _setError(e.toString());
       _setStatus(AddressStatus.error);
       notifyListeners();
-      return false;
+      return null;
     }
   }
 
   // ============================================
-  // MODIFICATION
+  // MODIFICATION (API)
   // ============================================
 
-  /// Mettre à jour une adresse
-  Future<bool> updateAddress(Address address) async {
+  /// Mettre à jour une adresse côté serveur.
+  Future<bool> updateAddress({
+    required int id,
+    String? fullName,
+    String? phone,
+    String? email,
+    String? addressLine1,
+    String? addressLine2,
+    String? city,
+    String? state,
+    String? postalCode,
+    String? country,
+    String? type,
+    bool? isDefault,
+    double? latitude,
+    double? longitude,
+    String? deliveryInstructions,
+  }) async {
     _setStatus(AddressStatus.saving);
-    _updatingAddressId = address.id;
+    _updatingAddressId = id;
     _clearError();
 
     try {
-      await _addressRepository.saveAddressesSnapshot();
-      _addresses = await _addressRepository.updateAddress(address);
+      await _addressRepository.updateAddress(
+        id: id,
+        fullName: fullName,
+        phone: phone,
+        email: email,
+        addressLine1: addressLine1,
+        addressLine2: addressLine2,
+        city: city,
+        state: state,
+        postalCode: postalCode,
+        country: country,
+        type: type,
+        isDefault: isDefault,
+        latitude: latitude,
+        longitude: longitude,
+        deliveryInstructions: deliveryInstructions,
+      );
+
+      // Recharger la liste
+      _addresses = await _addressRepository.getAddresses();
       _updatingAddressId = -1;
       _setStatus(AddressStatus.loaded);
       notifyListeners();
@@ -158,17 +220,16 @@ class AddressProvider extends ChangeNotifier {
   }
 
   // ============================================
-  // SUPPRESSION
+  // SUPPRESSION (API)
   // ============================================
 
-  /// Supprimer une adresse
   Future<bool> removeAddress(int addressId) async {
     _setStatus(AddressStatus.deleting);
     _updatingAddressId = addressId;
 
     try {
-      await _addressRepository.saveAddressesSnapshot();
-      _addresses = await _addressRepository.removeAddress(addressId);
+      await _addressRepository.deleteAddress(addressId);
+      _addresses = await _addressRepository.getAddresses();
       _updatingAddressId = -1;
       _setStatus(AddressStatus.loaded);
       notifyListeners();
@@ -183,17 +244,16 @@ class AddressProvider extends ChangeNotifier {
   }
 
   // ============================================
-  // ADRESSE PAR DÉFAUT
+  // ADRESSE PAR DÉFAUT (API)
   // ============================================
 
-  /// Définir une adresse comme défaut
   Future<bool> setDefaultAddress(int addressId) async {
     _setStatus(AddressStatus.saving);
     _updatingAddressId = addressId;
 
     try {
-      await _addressRepository.saveAddressesSnapshot();
-      _addresses = await _addressRepository.setDefaultAddress(addressId);
+      await _addressRepository.setDefaultAddress(addressId);
+      _addresses = await _addressRepository.getAddresses();
       _updatingAddressId = -1;
       _setStatus(AddressStatus.loaded);
       notifyListeners();
@@ -211,7 +271,6 @@ class AddressProvider extends ChangeNotifier {
   // RECHERCHE
   // ============================================
 
-  /// Récupérer une adresse par ID
   Address? getAddressById(int addressId) {
     for (final address in _addresses) {
       if (address.id == addressId) {
@@ -222,10 +281,9 @@ class AddressProvider extends ChangeNotifier {
   }
 
   // ============================================
-  // ANNULATION (Undo)
+  // ANNULATION (Undo - cache local)
   // ============================================
 
-  /// Annuler la dernière action
   Future<bool> undoLastAction() async {
     try {
       final restored = await _addressRepository.restoreAddressesSnapshot();
@@ -245,7 +303,6 @@ class AddressProvider extends ChangeNotifier {
   // EFFACEMENT
   // ============================================
 
-  /// Effacer l'erreur
   void clearError() {
     _errorMessage = null;
     notifyListeners();

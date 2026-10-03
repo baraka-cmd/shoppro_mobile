@@ -2,6 +2,7 @@
 // ÉCRAN DE PAIEMENT (CHECKOUT) - VERSION PREMIUM
 // ============================================
 // Processus complet : adresse → livraison → paiement → confirmation.
+// La commande est créée côté serveur Laravel avec les items.
 // Design conforme à la vision ShopPro.
 // ============================================
 
@@ -11,7 +12,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../orders/presentation/providers/order_provider.dart';
-import '../../../orders/domain/entities/order_item.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../../notifications/domain/entities/app_notification.dart';
 import '../../../addresses/presentation/providers/address_provider.dart';
@@ -101,10 +101,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   // ============================================
-// CHARGEMENT DES ADRESSES
-// ============================================
+  // CHARGEMENT DES ADRESSES
+  // ============================================
 
-Future<void> _loadAddresses() async {
+  Future<void> _loadAddresses() async {
   final addressProvider = context.read<AddressProvider>();
   await addressProvider.loadAddresses();
 
@@ -115,10 +115,10 @@ Future<void> _loadAddresses() async {
           id: a.id,
           fullName: a.fullName,
           phone: a.phone,
-          addressLine1: '${a.commune}, ${a.city}', // Adapter
-          addressLine2: a.quartier,
+          addressLine1: a.addressLine1,
+          addressLine2: a.addressLine2,
           city: a.city,
-          state: a.province,
+          state: a.state,
           country: a.country,
           type: a.type,
           isDefault: a.isDefault,
@@ -194,7 +194,6 @@ Future<void> _loadAddresses() async {
 
             const SizedBox(height: 20),
             const Divider(height: 1),
-
             const SizedBox(height: 15),
 
             // ============================================
@@ -212,7 +211,6 @@ Future<void> _loadAddresses() async {
 
             const SizedBox(height: 20),
             const Divider(height: 1),
-
             const SizedBox(height: 15),
 
             // ============================================
@@ -230,7 +228,6 @@ Future<void> _loadAddresses() async {
 
             const SizedBox(height: 20),
             const Divider(height: 1),
-
             const SizedBox(height: 15),
 
             // ============================================
@@ -424,6 +421,9 @@ Future<void> _loadAddresses() async {
   // ============================================
 
   Future<void> _confirmOrder(CartProvider cartProvider) async {
+    // ============================================
+    // VALIDATIONS
+    // ============================================
     if (_selectedAddress == null) {
       _showError('Veuillez sélectionner une adresse de livraison');
       return;
@@ -439,6 +439,11 @@ Future<void> _loadAddresses() async {
       return;
     }
 
+    if (cartProvider.cart.activeItems.isEmpty) {
+      _showError('Votre panier est vide');
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
     });
@@ -446,33 +451,28 @@ Future<void> _loadAddresses() async {
     try {
       final orderProvider = context.read<OrderProvider>();
 
-      final orderItems = cartProvider.cart.activeItems.map((cartItem) {
-        return OrderItem(
-          id: cartItem.id,
-          productId: cartItem.productId,
-          productName: cartItem.name,
-          productImage: cartItem.imageUrl,
-          productSku: cartItem.sku,
-          unitPrice: cartItem.unitPrice,
-          discountPrice: cartItem.discountPrice,
-          quantity: cartItem.quantity,
-          variantName: cartItem.variantName,
-          variantColor: cartItem.variantColor,
-          variantSize: cartItem.variantSize,
-        );
+      // ============================================
+      // CONSTRUIRE LA LISTE DES ITEMS POUR L'API
+      // ============================================
+      // Format attendu par Laravel : [{ product_id, quantity, variant_id? }]
+      final items = cartProvider.cart.activeItems.map((cartItem) {
+        return <String, dynamic>{
+          'product_id': cartItem.productId,
+          'quantity': cartItem.quantity,
+          'variant_id': null, // TODO: ajouter productVariantId à CartItem
+        };
       }).toList();
 
+      // ============================================
+      // CRÉER LA COMMANDE CÔTÉ SERVEUR
+      // ============================================
       final order = await orderProvider.createOrder(
-        items: orderItems,
-        subtotal: cartProvider.cart.subtotal,
-        total: cartProvider.cart.total,
-        shippingFee: _selectedShipping!.cost,
-        discount: cartProvider.cart.itemsDiscount,
-        couponDiscount: cartProvider.cart.couponDiscount,
-        tax: cartProvider.cart.taxes,
-        couponCode: cartProvider.cart.couponCode,
+        shippingAddressId: _selectedAddress!.id,
+        items: items,
+        billingAddressId: _selectedAddress!.id,
         shippingMethod: _selectedShipping!.code,
         paymentMethod: _selectedPayment!.code,
+        couponCode: cartProvider.cart.couponCode,
       );
 
       if (!mounted) return;
@@ -482,21 +482,29 @@ Future<void> _loadAddresses() async {
       });
 
       if (order != null) {
+        // ============================================
+        // NOTIFICATION LOCALE
+        // ============================================
         final notificationProvider = context.read<NotificationProvider>();
         await notificationProvider.addNotification(
           AppNotification(
             id: DateTime.now().millisecondsSinceEpoch,
             title: 'Commande confirmée !',
-            body: 'Votre commande ${order.orderNumber} a été enregistrée avec succès.',
+            body:
+                'Votre commande ${order.orderNumber} a été enregistrée avec succès.',
             type: 'order',
             createdAt: DateTime.now(),
           ),
         );
 
-        // Vider le panier
+        // ============================================
+        // VIDER LE PANIER LOCAL
+        // ============================================
         await cartProvider.clearCart();
 
-        // Naviguer vers le paiement
+        // ============================================
+        // NAVIGUER VERS LE PAIEMENT
+        // ============================================
         if (mounted) {
           Navigator.of(context).pushNamed(
             AppRoutes.payment,

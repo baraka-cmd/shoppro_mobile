@@ -2,14 +2,15 @@
 // REVIEW IMAGE PICKER - SHOPPRO
 // ============================================
 // Widget réutilisable pour sélectionner
-// jusqu'à 5 photos avec aperçu plein écran
-// et badge "principale".
-// (Compression désactivée temporairement)
+// jusqu'à 5 photos avec compression automatique,
+// aperçu plein écran et badge "principale".
 // ============================================
 
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../../core/constants/app_colors.dart';
 
 class ReviewImagePicker extends StatefulWidget {
@@ -57,61 +58,69 @@ class _ReviewImagePickerState extends State<ReviewImagePicker> {
   // SÉLECTION D'IMAGES
   // ============================================
 
-  Future<void> _pickImages() async {
-    if (widget.images.length >= widget.maxImages) return;
+  // ============================================
+// SÉLECTION D'IMAGES
+// ============================================
 
-    try {
-      final picked = await _picker.pickMultiImage(
-        maxWidth: widget.targetSize * 1.5,
-        maxHeight: widget.targetSize * 1.5,
-        imageQuality: 90,
-      );
+Future<void> _pickImages() async {
+  if (widget.images.length >= widget.maxImages) return;
 
-      if (picked.isEmpty) return;
+  try {
+    final picked = await _picker.pickMultiImage(
+      maxWidth: widget.targetSize * 1.5,
+      maxHeight: widget.targetSize * 1.5,
+      imageQuality: 90,
+    );
 
-      setState(() => _isCompressing = true);
+    if (picked.isEmpty) return;
 
-      final compressed = <String>[];
+    setState(() => _isCompressing = true);
 
-      for (final img in picked) {
-        if (widget.images.length + compressed.length >= widget.maxImages) {
-          break;
-        }
+    final compressed = <String>[];
 
-        final result = await _compressImage(File(img.path));
-        if (result != null) {
-          compressed.add(result.path);
-        }
+    for (final img in picked) {
+      if (widget.images.length + compressed.length >= widget.maxImages) {
+        break;
       }
 
-      if (!mounted) return;
-
-      final updated = [...widget.images, ...compressed];
-      widget.onImagesChanged(updated);
-
-      setState(() => _isCompressing = false);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isCompressing = false);
-      _showSnack('Erreur: $e');
+      final result = await _compressImage(File(img.path));
+      if (result != null) {
+        compressed.add(result.path);
+      }
     }
-  }
 
-  /// Compresse une image (version SANS flutter_image_compress)
-  /// Retourne simplement le fichier original en attendant la vraie compression
+    if (!mounted) return;
+
+    final updated = [...widget.images, ...compressed];
+    widget.onImagesChanged(updated);
+
+    setState(() => _isCompressing = false);
+  } catch (e) {
+    if (!mounted) return;
+    setState(() => _isCompressing = false);
+    _showSnack('Erreur: $e');
+  }
+}
+  /// Compresse une image à la taille cible
   Future<File?> _compressImage(File file) async {
     try {
-      // Vérifier que le fichier existe
-      if (!await file.exists()) {
-        debugPrint('⚠️ Fichier introuvable: ${file.path}');
-        return null;
-      }
+      final dir = await getTemporaryDirectory();
+      final targetPath =
+          '${dir.path}/review_${DateTime.now().microsecondsSinceEpoch}.jpg';
 
-      // Pas de compression pour l'instant — on retourne le fichier tel quel
-      return file;
+      final result = await FlutterImageCompress.compressAndGetFile(
+        file.absolute.path,
+        targetPath,
+        quality: widget.quality,
+        minWidth: widget.targetSize,
+        minHeight: widget.targetSize,
+      );
+
+      if (result == null) return null;
+      return File(result.path);
     } catch (e) {
-      debugPrint('❌ Erreur _compressImage: $e');
-      return file;
+      debugPrint('❌ Erreur compression: $e');
+      return file; // En cas d'échec, garder l'original
     }
   }
 
@@ -398,7 +407,7 @@ class _ReviewImagePickerState extends State<ReviewImagePicker> {
             ),
             const SizedBox(height: 2),
             Text(
-              _isCompressing ? 'Chargement' : 'Ajouter',
+              _isCompressing ? 'Compression' : 'Ajouter',
               style: const TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 9,

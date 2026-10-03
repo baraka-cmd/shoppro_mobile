@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../routes/app_routes.dart';
+import '../../domain/entities/order.dart';
 import '../providers/order_provider.dart';
 import '../widgets/order_card.dart';
 import '../widgets/empty_orders.dart';
@@ -44,7 +45,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   // FILTRAGE
   // ============================================
 
-  List<dynamic> _getFilteredOrders(OrderProvider provider) {
+  List<Order> _getFilteredOrders(OrderProvider provider) {
     switch (_selectedFilter) {
       case 'active':
         return provider.activeOrders;

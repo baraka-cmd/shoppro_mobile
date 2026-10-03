@@ -8,17 +8,19 @@
 
 class Address {
   final int id;
-  final String label;
+  final int? userId;
+
+  // ============================================
+  // CHAMPS API (Laravel user_addresses)
+  // ============================================
   final String fullName;
   final String phone;
   final String? email;
-  final String province;
+  final String addressLine1;
+  final String? addressLine2;
   final String city;
-  final String commune;
-  final String? quartier;
-  final String? avenue;
-  final String? landmark;
-  final String? additionalInfo;
+  final String? state;
+  final String? postalCode;
   final String country;
   final String type;
   final bool isDefault;
@@ -26,22 +28,33 @@ class Address {
   final double? longitude;
   final String? deliveryInstructions;
   final bool isActive;
+
+  // ============================================
+  // CHAMPS ÉTENDUS (côté Flutter uniquement)
+  // ============================================
+  final String label;
+  final String? commune;
+  final String? quartier;
+  final String? landmark;
+  final String? additionalInfo;
+
+  // ============================================
+  // HORODATAGE
+  // ============================================
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   const Address({
     required this.id,
-    required this.label,
+    this.userId,
     required this.fullName,
     required this.phone,
     this.email,
-    required this.province,
+    required this.addressLine1,
+    this.addressLine2,
     required this.city,
-    required this.commune,
-    this.quartier,
-    this.avenue,
-    this.landmark,
-    this.additionalInfo,
+    this.state,
+    this.postalCode,
     this.country = 'RDC',
     this.type = 'home',
     this.isDefault = false,
@@ -49,6 +62,11 @@ class Address {
     this.longitude,
     this.deliveryInstructions,
     this.isActive = true,
+    this.label = '',
+    this.commune,
+    this.quartier,
+    this.landmark,
+    this.additionalInfo,
     this.createdAt,
     this.updatedAt,
   });
@@ -57,24 +75,26 @@ class Address {
   // ADRESSE COMPLÈTE
   // ============================================
 
-  /// Adresse complète formatée
   String get fullAddress {
     final parts = <String>[];
-    if (quartier != null && quartier!.isNotEmpty) parts.add(quartier!);
-    if (avenue != null && avenue!.isNotEmpty) parts.add(avenue!);
-    parts.add(commune);
-    parts.add(city);
-    parts.add(province);
+    if (addressLine1.isNotEmpty) parts.add(addressLine1);
+    if (addressLine2 != null && addressLine2!.isNotEmpty) {
+      parts.add(addressLine2!);
+    }
+    if (commune != null && commune!.isNotEmpty) parts.add(commune!);
+    if (city.isNotEmpty) parts.add(city);
+    if (state != null && state!.isNotEmpty) parts.add(state!);
     if (country.isNotEmpty) parts.add(country);
     return parts.join(', ');
   }
 
-  /// Adresse courte (ville + commune)
   String get shortAddress {
-    return '$commune, $city';
+    if (commune != null && commune!.isNotEmpty) {
+      return '$commune, $city';
+    }
+    return city;
   }
 
-  /// Affichage principal (label + ville)
   String get displayLabel {
     if (label.isNotEmpty) return label;
     return typeLabel;
@@ -84,7 +104,6 @@ class Address {
   // TYPE
   // ============================================
 
-  /// Label du type d'adresse
   String get typeLabel {
     switch (type) {
       case 'home':
@@ -102,7 +121,6 @@ class Address {
     }
   }
 
-  /// Emoji du type d'adresse
   String get typeEmoji {
     switch (type) {
       case 'home':
@@ -120,35 +138,29 @@ class Address {
     }
   }
 
-  /// Couleur du type (hex)
   int get typeColorHex {
     switch (type) {
       case 'home':
-        return 0xFF087F5B; // Emerald
+        return 0xFF087F5B;
       case 'work':
-        return 0xFF3B82F6; // Bleu
+        return 0xFF3B82F6;
       case 'shop':
-        return 0xFFF4B942; // Gold
+        return 0xFFF4B942;
       case 'parents':
-        return 0xFFE91E63; // Rose
+        return 0xFFE91E63;
       case 'other':
-        return 0xFF68756F; // Gris
+        return 0xFF68756F;
       default:
         return 0xFF087F5B;
     }
   }
 
   // ============================================
-  // GPS
+  // GPS / POINT DE REPÈRE
   // ============================================
 
-  /// Le GPS est-il disponible ?
   bool get hasGps => latitude != null && longitude != null;
-
-  /// Le point de repère est-il défini ?
   bool get hasLandmark => landmark != null && landmark!.isNotEmpty;
-
-  /// Les instructions sont-elles définies ?
   bool get hasDeliveryInstructions =>
       deliveryInstructions != null && deliveryInstructions!.isNotEmpty;
 
@@ -156,7 +168,6 @@ class Address {
   // BADGES
   // ============================================
 
-  /// Badges actifs de l'adresse
   List<String> get activeBadges {
     final badges = <String>[];
     if (isDefault) badges.add('⭐ DÉFAUT');
@@ -169,40 +180,34 @@ class Address {
   // VALIDATION
   // ============================================
 
-  /// L'adresse a-t-elle des données valides ?
   bool get isValid {
     return id > 0 &&
         fullName.isNotEmpty &&
         phone.isNotEmpty &&
-        province.isNotEmpty &&
-        city.isNotEmpty &&
-        commune.isNotEmpty;
+        addressLine1.isNotEmpty &&
+        city.isNotEmpty;
   }
 
-  /// Le téléphone est-il valide (format RDC) ?
   bool get hasValidPhone {
     final cleaned = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-    return cleaned.length >= 10 && cleaned.length <= 13;
+    return cleaned.length >= 10 && cleaned.length <= 15;
   }
 
   // ============================================
   // MÉTHODES
   // ============================================
 
-  /// Copier avec modifications
   Address copyWith({
     int? id,
-    String? label,
+    int? userId,
     String? fullName,
     String? phone,
     String? email,
-    String? province,
+    String? addressLine1,
+    String? addressLine2,
     String? city,
-    String? commune,
-    String? quartier,
-    String? avenue,
-    String? landmark,
-    String? additionalInfo,
+    String? state,
+    String? postalCode,
     String? country,
     String? type,
     bool? isDefault,
@@ -210,49 +215,55 @@ class Address {
     double? longitude,
     String? deliveryInstructions,
     bool? isActive,
+    String? label,
+    String? commune,
+    String? quartier,
+    String? landmark,
+    String? additionalInfo,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return Address(
       id: id ?? this.id,
-      label: label ?? this.label,
+      userId: userId ?? this.userId,
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
       email: email ?? this.email,
-      province: province ?? this.province,
+      addressLine1: addressLine1 ?? this.addressLine1,
+      addressLine2: addressLine2 ?? this.addressLine2,
       city: city ?? this.city,
-      commune: commune ?? this.commune,
-      quartier: quartier ?? this.quartier,
-      avenue: avenue ?? this.avenue,
-      landmark: landmark ?? this.landmark,
-      additionalInfo: additionalInfo ?? this.additionalInfo,
+      state: state ?? this.state,
+      postalCode: postalCode ?? this.postalCode,
       country: country ?? this.country,
       type: type ?? this.type,
       isDefault: isDefault ?? this.isDefault,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
-      deliveryInstructions: deliveryInstructions ?? this.deliveryInstructions,
+      deliveryInstructions:
+          deliveryInstructions ?? this.deliveryInstructions,
       isActive: isActive ?? this.isActive,
+      label: label ?? this.label,
+      commune: commune ?? this.commune,
+      quartier: quartier ?? this.quartier,
+      landmark: landmark ?? this.landmark,
+      additionalInfo: additionalInfo ?? this.additionalInfo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  /// Convertir en JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'label': label,
+      'user_id': userId,
       'full_name': fullName,
       'phone': phone,
       'email': email,
-      'province': province,
+      'address_line1': addressLine1,
+      'address_line2': addressLine2,
       'city': city,
-      'commune': commune,
-      'quartier': quartier,
-      'avenue': avenue,
-      'landmark': landmark,
-      'additional_info': additionalInfo,
+      'state': state,
+      'postal_code': postalCode,
       'country': country,
       'type': type,
       'is_default': isDefault,
@@ -260,46 +271,107 @@ class Address {
       'longitude': longitude,
       'delivery_instructions': deliveryInstructions,
       'is_active': isActive,
+      'label': label,
+      'commune': commune,
+      'quartier': quartier,
+      'landmark': landmark,
+      'additional_info': additionalInfo,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
-  /// Créer depuis JSON
   factory Address.fromJson(Map<String, dynamic> json) {
     return Address(
-      id: json['id'] as int? ?? 0,
-      label: json['label'] as String? ?? '',
-      fullName: json['full_name'] as String? ?? '',
-      phone: json['phone'] as String? ?? '',
-      email: json['email'] as String?,
-      province: json['province'] as String? ?? '',
-      city: json['city'] as String? ?? '',
-      commune: json['commune'] as String? ?? '',
-      quartier: json['quartier'] as String?,
-      avenue: json['avenue'] as String?,
-      landmark: json['landmark'] as String?,
-      additionalInfo: json['additional_info'] as String?,
-      country: json['country'] as String? ?? 'RDC',
-      type: json['type'] as String? ?? 'home',
-      isDefault: json['is_default'] as bool? ?? false,
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
-      deliveryInstructions: json['delivery_instructions'] as String?,
-      isActive: json['is_active'] as bool? ?? true,
-      createdAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
-      updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? ''),
+      id: _parseInt(json['id']),
+      userId: _parseNullableInt(json['user_id']),
+      fullName: _parseString(json['full_name']),
+      phone: _parseString(json['phone']),
+      email: _parseNullableString(json['email']),
+      addressLine1: _parseString(json['address_line1']),
+      addressLine2: _parseNullableString(json['address_line2']),
+      city: _parseString(json['city']),
+      state: _parseNullableString(json['state']),
+      postalCode: _parseNullableString(json['postal_code']),
+      country: _parseString(json['country'], defaultValue: 'RDC'),
+      type: _parseString(json['type'], defaultValue: 'home'),
+      isDefault: _parseBool(json['is_default']),
+      latitude: _parseNullableDouble(json['latitude']),
+      longitude: _parseNullableDouble(json['longitude']),
+      deliveryInstructions:
+          _parseNullableString(json['delivery_instructions']),
+      isActive: _parseBool(json['is_active'], defaultValue: true),
+      label: _parseString(json['label']),
+      commune: _parseNullableString(json['commune']),
+      quartier: _parseNullableString(json['quartier']),
+      landmark: _parseNullableString(json['landmark']),
+      additionalInfo: _parseNullableString(json['additional_info']),
+      createdAt: _parseDate(json['created_at']),
+      updatedAt: _parseDate(json['updated_at']),
     );
   }
 
   // ============================================
-  // TOSTRING
+  // HELPERS DE PARSING
   // ============================================
+
+  static int _parseInt(dynamic value, {int defaultValue = 0}) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
+
+  static int? _parseNullableInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static double? _parseNullableDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static String _parseString(dynamic value, {String defaultValue = ''}) {
+    if (value == null) return defaultValue;
+    final string = value.toString().trim();
+    return string.isEmpty ? defaultValue : string;
+  }
+
+  static String? _parseNullableString(dynamic value) {
+    if (value == null) return null;
+    final string = value.toString().trim();
+    return string.isEmpty ? null : string;
+  }
+
+  static bool _parseBool(dynamic value, {bool defaultValue = false}) {
+    if (value == null) return defaultValue;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) {
+      return value.toLowerCase() == 'true' || value == '1';
+    }
+    return defaultValue;
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
 
   @override
   String toString() {
     return 'Address(id: $id, label: $displayLabel, '
-        'fullName: $fullName, city: $city, commune: $commune, '
+        'fullName: $fullName, city: $city, '
         'default: $isDefault, gps: $hasGps)';
   }
 }

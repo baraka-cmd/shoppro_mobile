@@ -10,17 +10,15 @@ import '../../domain/entities/address.dart';
 class AddressModel extends Address {
   const AddressModel({
     required super.id,
-    required super.label,
+    super.userId,
     required super.fullName,
     required super.phone,
     super.email,
-    required super.province,
+    required super.addressLine1,
+    super.addressLine2,
     required super.city,
-    required super.commune,
-    super.quartier,
-    super.avenue,
-    super.landmark,
-    super.additionalInfo,
+    super.state,
+    super.postalCode,
     super.country,
     super.type,
     super.isDefault,
@@ -28,6 +26,11 @@ class AddressModel extends Address {
     super.longitude,
     super.deliveryInstructions,
     super.isActive,
+    super.label,
+    super.commune,
+    super.quartier,
+    super.landmark,
+    super.additionalInfo,
     super.createdAt,
     super.updatedAt,
   });
@@ -36,24 +39,28 @@ class AddressModel extends Address {
   factory AddressModel.fromJson(Map<String, dynamic> json) {
     return AddressModel(
       id: _parseInt(json['id']),
-      label: _parseString(json['label']),
+      userId: _parseNullableInt(json['user_id']),
       fullName: _parseString(json['full_name']),
       phone: _parseString(json['phone']),
       email: _parseNullableString(json['email']),
-      province: _parseString(json['province']),
+      addressLine1: _parseString(json['address_line1']),
+      addressLine2: _parseNullableString(json['address_line2']),
       city: _parseString(json['city']),
-      commune: _parseString(json['commune']),
-      quartier: _parseNullableString(json['quartier']),
-      avenue: _parseNullableString(json['avenue']),
-      landmark: _parseNullableString(json['landmark']),
-      additionalInfo: _parseNullableString(json['additional_info']),
+      state: _parseNullableString(json['state']),
+      postalCode: _parseNullableString(json['postal_code']),
       country: _parseString(json['country'], defaultValue: 'RDC'),
       type: _parseString(json['type'], defaultValue: 'home'),
       isDefault: _parseBool(json['is_default']),
       latitude: _parseNullableDouble(json['latitude']),
       longitude: _parseNullableDouble(json['longitude']),
-      deliveryInstructions: _parseNullableString(json['delivery_instructions']),
+      deliveryInstructions:
+          _parseNullableString(json['delivery_instructions']),
       isActive: _parseBool(json['is_active'], defaultValue: true),
+      label: _parseString(json['label']),
+      commune: _parseNullableString(json['commune']),
+      quartier: _parseNullableString(json['quartier']),
+      landmark: _parseNullableString(json['landmark']),
+      additionalInfo: _parseNullableString(json['additional_info']),
       createdAt: _parseDate(json['created_at']),
       updatedAt: _parseDate(json['updated_at']),
     );
@@ -64,17 +71,15 @@ class AddressModel extends Address {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'label': label,
+      'user_id': userId,
       'full_name': fullName,
       'phone': phone,
       'email': email,
-      'province': province,
+      'address_line1': addressLine1,
+      'address_line2': addressLine2,
       'city': city,
-      'commune': commune,
-      'quartier': quartier,
-      'avenue': avenue,
-      'landmark': landmark,
-      'additional_info': additionalInfo,
+      'state': state,
+      'postal_code': postalCode,
       'country': country,
       'type': type,
       'is_default': isDefault,
@@ -82,26 +87,29 @@ class AddressModel extends Address {
       'longitude': longitude,
       'delivery_instructions': deliveryInstructions,
       'is_active': isActive,
+      'label': label,
+      'commune': commune,
+      'quartier': quartier,
+      'landmark': landmark,
+      'additional_info': additionalInfo,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
-  /// Copier depuis l'entité
+  /// Créer depuis une entité Address
   static AddressModel fromEntity(Address address) {
     return AddressModel(
       id: address.id,
-      label: address.label,
+      userId: address.userId,
       fullName: address.fullName,
       phone: address.phone,
       email: address.email,
-      province: address.province,
+      addressLine1: address.addressLine1,
+      addressLine2: address.addressLine2,
       city: address.city,
-      commune: address.commune,
-      quartier: address.quartier,
-      avenue: address.avenue,
-      landmark: address.landmark,
-      additionalInfo: address.additionalInfo,
+      state: address.state,
+      postalCode: address.postalCode,
       country: address.country,
       type: address.type,
       isDefault: address.isDefault,
@@ -109,6 +117,11 @@ class AddressModel extends Address {
       longitude: address.longitude,
       deliveryInstructions: address.deliveryInstructions,
       isActive: address.isActive,
+      label: address.label,
+      commune: address.commune,
+      quartier: address.quartier,
+      landmark: address.landmark,
+      additionalInfo: address.additionalInfo,
       createdAt: address.createdAt,
       updatedAt: address.updatedAt,
     );
@@ -124,6 +137,14 @@ class AddressModel extends Address {
     if (value is double) return value.toInt();
     if (value is String) return int.tryParse(value) ?? defaultValue;
     return defaultValue;
+  }
+
+  static int? _parseNullableInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   static double? _parseNullableDouble(dynamic value) {
@@ -150,7 +171,9 @@ class AddressModel extends Address {
     if (value == null) return defaultValue;
     if (value is bool) return value;
     if (value is int) return value == 1;
-    if (value is String) return value.toLowerCase() == 'true' || value == '1';
+    if (value is String) {
+      return value.toLowerCase() == 'true' || value == '1';
+    }
     return defaultValue;
   }
 

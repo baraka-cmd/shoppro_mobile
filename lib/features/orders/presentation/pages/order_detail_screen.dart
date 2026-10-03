@@ -2,7 +2,8 @@
 // ÉCRAN DE DÉTAIL D'UNE COMMANDE - VERSION PREMIUM
 // ============================================
 // Affiche les informations complètes avec timeline,
-// articles, résumé et actions. Design ShopPro.
+// articles, résumé, actions et téléchargement de
+// la facture PDF. Design ShopPro.
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ import '../../domain/repositories/order_repository.dart';
 import '../providers/order_provider.dart';
 import '../widgets/order_status_badge.dart';
 import '../widgets/order_timeline.dart';
+import '../widgets/invoice_button.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
@@ -108,6 +110,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             color: AppColors.textPrimary,
           ),
         ),
+        // 👈 Bouton facture dans l'AppBar
+        actions: [
+          if (_order != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: InvoiceButton(
+                orderId: _order!.id,
+                orderNumber: _order!.orderNumber,
+                style: 'icon',
+                autoOpen: false,
+              ),
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(
@@ -204,7 +219,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         fontFamily: 'Poppins',
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: order.isPaid ? AppColors.success : AppColors.warning,
+                        color: order.isPaid
+                            ? AppColors.success
+                            : AppColors.warning,
                       ),
                     ),
                   ],
@@ -371,7 +388,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 _buildAmountRow('Sous-total', order.formattedSubtotal),
                 if (order.discount > 0) ...[
                   const SizedBox(height: 6),
-                  _buildAmountRow('Remise', order.formattedDiscount, isGreen: true),
+                  _buildAmountRow(
+                    'Remise',
+                    order.formattedDiscount,
+                    isGreen: true,
+                  ),
                 ],
                 if (order.couponDiscount > 0) ...[
                   const SizedBox(height: 6),
@@ -395,6 +416,86 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 const Divider(height: 1, color: AppColors.borderColor),
                 const SizedBox(height: 8),
                 _buildAmountRow('TOTAL', order.formattedTotal, isBold: true),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // ============================================
+          // 📄 FACTURE PDF
+          // ============================================
+          Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.borderColor.withValues(alpha: 0.5),
+              ),
+              boxShadow: AppColors.softShadow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 35,
+                      height: 35,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.receipt_long_outlined,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'FACTURE',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textSecondary,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          Text(
+                            'Téléchargez ou partagez votre facture',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // 👈 BOUTON PRINCIPAL
+                InvoiceButton(
+                  orderId: order.id,
+                  orderNumber: order.orderNumber,
+                  style: 'primary',
+                  autoOpen: true,
+                  onSuccess: () {
+                    debugPrint('✅ Facture téléchargée');
+                  },
+                  onError: (error) {
+                    debugPrint('❌ Erreur : $error');
+                  },
+                ),
               ],
             ),
           ),
@@ -503,7 +604,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             child: SizedBox(
               width: 60,
               height: 60,
-              child: item.productImage != null && item.productImage!.isNotEmpty
+              child: item.productImage != null &&
+                      item.productImage!.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: item.productImage!,
                       fit: BoxFit.cover,
@@ -695,13 +797,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
                 final provider = context.read<OrderProvider>();
-                final success = await provider.cancelOrder(order.id, 'Annulation par le client');
+                final success = await provider.cancelOrder(
+                  order.id,
+                  'Annulation par le client',
+                );
                 if (success && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text(
                         'Commande annulée',
-                        style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+                        style:
+                            TextStyle(fontFamily: 'Poppins', fontSize: 13),
                       ),
                       backgroundColor: AppColors.textPrimary,
                       behavior: SnackBarBehavior.floating,

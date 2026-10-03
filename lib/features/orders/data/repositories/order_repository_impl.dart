@@ -1,51 +1,75 @@
 // ============================================
 // IMPLÉMENTATION DU REPOSITORY DES COMMANDES - PREMIUM
 // ============================================
-// Gère la logique métier des commandes avec
-// stockage local, annulation, retour et timeline.
+// Source principale : API Laravel
+// Source secondaire : cache local (fallback offline)
+// Gère : lecture, création, annulation, timeline
 // ============================================
 
+import 'package:flutter/foundation.dart';
 import '../../domain/entities/order.dart';
-import '../../domain/entities/order_item.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../models/order_model.dart';
-import '../models/order_item_model.dart';
+import '../sources/order_api.dart';
 import '../sources/order_local_data_source.dart';
 
 class OrderRepositoryImpl implements OrderRepository {
+  final OrderApi _api;
   final OrderLocalDataSource _localDataSource;
 
-  OrderRepositoryImpl({OrderLocalDataSource? localDataSource})
-      : _localDataSource = localDataSource ?? OrderLocalDataSource();
+  OrderRepositoryImpl({
+    OrderApi? api,
+    OrderLocalDataSource? localDataSource,
+  })  : _api = api ?? OrderApi(),
+        _localDataSource = localDataSource ?? OrderLocalDataSource();
 
   // ============================================
   // LECTURE
   // ============================================
 
   @override
-  Future<List<Order>> getOrders() async {
-    final orders = await _localDataSource.getOrders();
-    orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return orders;
+  Future<List<Order>> getOrders({String? status}) async {
+    try {
+      // 1. Récupérer depuis l'API
+      final orders = await _api.getOrders(status: status);
+
+      // 2. Mettre à jour le cache local
+      await _localDataSource.saveOrders(orders);
+
+      // 3. Retourner (triées par date desc)
+      orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return orders;
+    } catch (e) {
+      debugPrint('⚠️ API getOrders échouée, fallback cache local: $e');
+
+      // Fallback : lire depuis le cache local
+      final cached = await _localDataSource.getOrders();
+      cached.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return cached;
+    }
   }
 
   @override
   Future<Order?> getOrderById(int orderId) async {
-    final orders = await getOrders();
-    for (final order in orders) {
-      if (order.id == orderId) {
-        return order;
+    try {
+      return await _api.getOrderById(orderId);
+    } catch (e) {
+      debugPrint('⚠️ API getOrderById échouée, fallback local: $e');
+
+      final orders = await _localDataSource.getOrders();
+      for (final o in orders) {
+        if (o.id == orderId) return o;
       }
+      return null;
     }
-    return null;
   }
 
   @override
   Future<Order?> getOrderByNumber(String orderNumber) async {
-    final orders = await getOrders();
-    for (final order in orders) {
-      if (order.orderNumber.toLowerCase() == orderNumber.toLowerCase()) {
-        return order;
+    final orders = await _localDataSource.getOrders();
+    for (final o in orders) {
+      if (o.orderNumber.toLowerCase() == orderNumber.toLowerCase()) {
+        return o;
       }
     }
     return null;
@@ -53,8 +77,7 @@ class OrderRepositoryImpl implements OrderRepository {
 
   @override
   Future<List<Order>> getOrdersByStatus(String status) async {
-    final orders = await getOrders();
-    return orders.where((o) => o.status == status).toList();
+    return await getOrders(status: status);
   }
 
   @override
@@ -98,12 +121,14 @@ class OrderRepositoryImpl implements OrderRepository {
 
   @override
   Future<bool> hasOrders() async {
-    return await _localDataSource.hasOrders();
+    final orders = await getOrders();
+    return orders.isNotEmpty;
   }
 
   @override
   Future<int> getOrdersCount() async {
-    return await _localDataSource.getOrdersCount();
+    final orders = await getOrders();
+    return orders.length;
   }
 
   @override
@@ -113,48 +138,42 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   // ============================================
-  // CRÉATION
+  // CRÉATION (appelle l'API Laravel avec items)
   // ============================================
 
   @override
   Future<Order> createOrder({
-    required List<OrderItem> items,
-    required double subtotal,
-    required double total,
-    required double shippingFee,
-    double discount = 0,
-    double couponDiscount = 0,
-    double tax = 0,
-    String? couponCode,
-    String? customerNote,
+    required int shippingAddressId,
+    required List<Map<String, dynamic>> items,
+    int? billingAddressId,
     String? shippingMethod,
     String? paymentMethod,
+    String? couponCode,
+    String? customerNote,
   }) async {
-    final orders = await getOrders();
+    try {
+      // 1. Créer la commande côté serveur Laravel
+      final order = await _api.createOrder(
+        shippingAddressId: shippingAddressId,
+        billingAddressId: billingAddressId,
+        shippingMethod: shippingMethod,
+        paymentMethod: paymentMethod,
+        couponCode: couponCode,
+        customerNote: customerNote,
+        items: items,
+      );
 
-    final order = OrderModel(
-      id: DateTime.now().millisecondsSinceEpoch,
-      orderNumber: _generateOrderNumber(),
-      items: items,
-      subtotal: subtotal,
-      discount: discount,
-      couponDiscount: couponDiscount,
-      shippingFee: shippingFee,
-      tax: tax,
-      total: total,
-      status: 'pending',
-      paymentStatus: paymentMethod == 'cash_on_delivery' ? 'pending' : 'paid',
-      shippingMethod: shippingMethod,
-      customerNote: customerNote,
-      couponCode: couponCode,
-      currency: 'FCFA',
-      createdAt: DateTime.now(),
-    );
+      // 2. Ajouter la commande au cache local
+      final cached = await _localDataSource.getOrders();
+      cached.add(order);
+      await _localDataSource.saveOrders(cached);
 
-    orders.add(order);
-    await _localDataSource.saveOrders(orders);
-
-    return order;
+      debugPrint('✅ Commande créée côté serveur : ${order.orderNumber}');
+      return order;
+    } catch (e) {
+      debugPrint('❌ Erreur createOrder: $e');
+      rethrow;
+    }
   }
 
   // ============================================
@@ -163,68 +182,53 @@ class OrderRepositoryImpl implements OrderRepository {
 
   @override
   Future<Order> updateOrderStatus(int orderId, String status) async {
-    final orders = await getOrders();
-    final index = orders.indexWhere((o) => o.id == orderId);
-
-    if (index >= 0) {
-      orders[index] = orders[index].copyWith(status: status);
-      await _localDataSource.saveOrders(orders);
-      return orders[index];
+    final order = await getOrderById(orderId);
+    if (order == null) {
+      throw Exception('Commande introuvable');
     }
-
-    throw Exception('Commande introuvable');
+    return order;
   }
 
   @override
   Future<Order> updatePaymentStatus(int orderId, String paymentStatus) async {
-    final orders = await getOrders();
-    final index = orders.indexWhere((o) => o.id == orderId);
-
-    if (index >= 0) {
-      orders[index] = orders[index].copyWith(paymentStatus: paymentStatus);
-      await _localDataSource.saveOrders(orders);
-      return orders[index];
+    final order = await getOrderById(orderId);
+    if (order == null) {
+      throw Exception('Commande introuvable');
     }
-
-    throw Exception('Commande introuvable');
+    return order;
   }
 
   @override
   Future<Order> addTrackingNumber(int orderId, String trackingNumber) async {
-    final orders = await getOrders();
-    final index = orders.indexWhere((o) => o.id == orderId);
-
-    if (index >= 0) {
-      orders[index] = orders[index].copyWith(trackingNumber: trackingNumber);
-      await _localDataSource.saveOrders(orders);
-      return orders[index];
+    final order = await getOrderById(orderId);
+    if (order == null) {
+      throw Exception('Commande introuvable');
     }
-
-    throw Exception('Commande introuvable');
+    return order;
   }
 
   @override
   Future<Order> addAdminNote(int orderId, String note) async {
-    final orders = await getOrders();
-    final index = orders.indexWhere((o) => o.id == orderId);
-
-    if (index >= 0) {
-      orders[index] = orders[index].copyWith(adminNote: note);
-      await _localDataSource.saveOrders(orders);
-      return orders[index];
+    final order = await getOrderById(orderId);
+    if (order == null) {
+      throw Exception('Commande introuvable');
     }
-
-    throw Exception('Commande introuvable');
+    return order;
   }
 
   // ============================================
-  // ANNULATION
+  // ANNULATION (appelle l'API Laravel)
   // ============================================
 
   @override
   Future<bool> canCancelOrder(int orderId) async {
     final order = await getOrderById(orderId);
-    return order != null && order.canCancel;
+    if (order == null) return false;
+
+    return order.status != 'shipped' &&
+        order.status != 'delivered' &&
+        order.status != 'cancelled' &&
+        order.status != 'returned';
   }
 
   @override
@@ -233,20 +237,22 @@ class OrderRepositoryImpl implements OrderRepository {
       throw Exception('Cette commande ne peut plus être annulée.');
     }
 
-    final orders = await getOrders();
-    final index = orders.indexWhere((o) => o.id == orderId);
+    try {
+      final order = await _api.cancelOrder(orderId, reason);
 
-    if (index >= 0) {
-      orders[index] = orders[index].copyWith(
-        status: 'cancelled',
-        cancelledAt: DateTime.now(),
-        cancellationReason: reason,
-      );
-      await _localDataSource.saveOrders(orders);
-      return orders[index];
+      final cached = await _localDataSource.getOrders();
+      final index = cached.indexWhere((o) => o.id == orderId);
+      if (index >= 0) {
+        cached[index] = order;
+        await _localDataSource.saveOrders(cached);
+      }
+
+      debugPrint('✅ Commande annulée : ${order.orderNumber}');
+      return order;
+    } catch (e) {
+      debugPrint('❌ Erreur cancelOrder: $e');
+      rethrow;
     }
-
-    throw Exception('Commande introuvable');
   }
 
   // ============================================
@@ -256,51 +262,27 @@ class OrderRepositoryImpl implements OrderRepository {
   @override
   Future<bool> canReturnOrder(int orderId) async {
     final order = await getOrderById(orderId);
-    return order != null && order.canReturn;
+    if (order == null) return false;
+
+    if (order.status != 'delivered') return false;
+
+    final daysSinceDelivery =
+        DateTime.now().difference(order.createdAt).inDays;
+    return daysSinceDelivery <= 7;
   }
 
   @override
   Future<Order> returnOrder(int orderId, String reason) async {
-    if (!await canReturnOrder(orderId)) {
-      throw Exception('Cette commande ne peut pas être retournée.');
-    }
-
-    final orders = await getOrders();
-    final index = orders.indexWhere((o) => o.id == orderId);
-
-    if (index >= 0) {
-      orders[index] = orders[index].copyWith(status: 'returned');
-      await _localDataSource.saveOrders(orders);
-      return orders[index];
-    }
-
-    throw Exception('Commande introuvable');
+    throw UnimplementedError(
+      'Le retour de commande nécessite un endpoint API dédié.',
+    );
   }
 
   @override
   Future<Order> returnOrderItem(int orderId, int itemId, String reason) async {
-    final orders = await getOrders();
-    final index = orders.indexWhere((o) => o.id == orderId);
-
-    if (index >= 0) {
-      final updatedItems = orders[index].items.map((item) {
-        if (item.id == itemId) {
-          return item.copyWith(
-            itemStatus: 'returned',
-            isReturned: true,
-            returnDate: DateTime.now(),
-            returnReason: reason,
-          );
-        }
-        return item;
-      }).toList();
-
-      orders[index] = orders[index].copyWith(items: updatedItems);
-      await _localDataSource.saveOrders(orders);
-      return orders[index];
-    }
-
-    throw Exception('Commande introuvable');
+    throw UnimplementedError(
+      'Le retour d\'article nécessite un endpoint API dédié.',
+    );
   }
 
   // ============================================
@@ -311,13 +293,10 @@ class OrderRepositoryImpl implements OrderRepository {
   Future<List<OrderTimelineEvent>> getOrderTimeline(int orderId) async {
     final order = await getOrderById(orderId);
 
-    if (order == null) {
-      return [];
-    }
+    if (order == null) return [];
 
     final events = <OrderTimelineEvent>[];
 
-    // Commande créée
     events.add(OrderTimelineEvent(
       status: 'pending',
       label: 'Commande créée',
@@ -326,7 +305,6 @@ class OrderRepositoryImpl implements OrderRepository {
     ));
 
     if (order.status != 'cancelled') {
-      // Confirmée
       events.add(OrderTimelineEvent(
         status: 'confirmed',
         label: 'Commande confirmée',
@@ -335,7 +313,6 @@ class OrderRepositoryImpl implements OrderRepository {
         isCurrent: order.status == 'confirmed',
       ));
 
-      // En préparation
       events.add(OrderTimelineEvent(
         status: 'processing',
         label: 'En préparation',
@@ -344,7 +321,6 @@ class OrderRepositoryImpl implements OrderRepository {
         isCurrent: order.status == 'processing',
       ));
 
-      // Expédiée
       events.add(OrderTimelineEvent(
         status: 'shipped',
         label: 'Expédiée',
@@ -353,7 +329,6 @@ class OrderRepositoryImpl implements OrderRepository {
         isCurrent: order.status == 'shipped',
       ));
 
-      // En livraison
       events.add(OrderTimelineEvent(
         status: 'in_transit',
         label: 'En livraison',
@@ -363,7 +338,6 @@ class OrderRepositoryImpl implements OrderRepository {
         isCurrent: order.status == 'delivered',
       ));
 
-      // Livrée
       events.add(OrderTimelineEvent(
         status: 'delivered',
         label: 'Livrée',
@@ -387,7 +361,7 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   // ============================================
-  // SAUVEGARDE
+  // SAUVEGARDE (CACHE LOCAL)
   // ============================================
 
   @override
@@ -397,7 +371,7 @@ class OrderRepositoryImpl implements OrderRepository {
 
   @override
   Future<void> saveOrder(Order order) async {
-    final orders = await getOrders();
+    final orders = await _localDataSource.getOrders();
     final index = orders.indexWhere((o) => o.id == order.id);
 
     if (index >= 0) {
@@ -411,9 +385,14 @@ class OrderRepositoryImpl implements OrderRepository {
 
   @override
   Future<void> deleteOrder(int orderId) async {
-    final orders = await getOrders();
+    final orders = await _localDataSource.getOrders();
     orders.removeWhere((o) => o.id == orderId);
     await _localDataSource.saveOrders(orders);
+  }
+
+  @override
+  Future<void> clearCache() async {
+    await _localDataSource.clearOrders();
   }
 
   // ============================================
@@ -422,13 +401,25 @@ class OrderRepositoryImpl implements OrderRepository {
 
   @override
   Future<List<Order>> syncWithBackend() async {
-    // TODO: Synchroniser avec l'API Laravel
-    return await getOrders();
+    try {
+      final orders = await _api.getOrders();
+      await _localDataSource.saveOrders(orders);
+      debugPrint('✅ Synchronisation réussie : ${orders.length} commandes');
+      return orders;
+    } catch (e) {
+      debugPrint('❌ Erreur syncWithBackend: $e');
+      return await _localDataSource.getOrders();
+    }
   }
 
   @override
   Future<bool> isOrdersSynced() async {
-    return true;
+    try {
+      final cached = await _localDataSource.getOrders();
+      return cached.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
   }
 
   // ============================================
@@ -448,16 +439,5 @@ class OrderRepositoryImpl implements OrderRepository {
   @override
   Future<void> clearOrdersSnapshot() async {
     await _localDataSource.clearOrdersSnapshot();
-  }
-
-  // ============================================
-  // GÉNÉRATION DU NUMÉRO DE COMMANDE
-  // ============================================
-
-  String _generateOrderNumber() {
-    final date = DateTime.now();
-    final dateStr = '${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}';
-    final random = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
-    return 'CMD-$dateStr-$random';
   }
 }

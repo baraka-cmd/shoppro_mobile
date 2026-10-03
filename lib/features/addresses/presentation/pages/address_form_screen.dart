@@ -1,8 +1,9 @@
 // ============================================
 // ÉCRAN DE FORMULAIRE D'ADRESSE - VERSION PREMIUM
 // ============================================
-// Permet d'ajouter ou modifier une adresse
-// adaptée au contexte RDC. Design ShopPro.
+// Permet d'ajouter ou modifier une adresse.
+// Compatible avec l'API Laravel.
+// Design ShopPro.
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -31,16 +32,16 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   late final TextEditingController _fullNameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
-  late final TextEditingController _provinceController;
+  late final TextEditingController _addressLine1Controller;
+  late final TextEditingController _addressLine2Controller;
   late final TextEditingController _cityController;
-  late final TextEditingController _communeController;
-  late final TextEditingController _quartierController;
-  late final TextEditingController _avenueController;
+  late final TextEditingController _stateController;
+  late final TextEditingController _postalCodeController;
   late final TextEditingController _landmarkController;
-  late final TextEditingController _additionalInfoController;
   late final TextEditingController _deliveryInstructionsController;
 
   String _selectedType = 'home';
+  String _selectedCountry = 'RDC';
   bool _isDefault = false;
   bool _hasGps = false;
   double? _latitude;
@@ -66,13 +67,12 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     _fullNameController = TextEditingController();
     _phoneController = TextEditingController();
     _emailController = TextEditingController();
-    _provinceController = TextEditingController();
+    _addressLine1Controller = TextEditingController();
+    _addressLine2Controller = TextEditingController();
     _cityController = TextEditingController();
-    _communeController = TextEditingController();
-    _quartierController = TextEditingController();
-    _avenueController = TextEditingController();
+    _stateController = TextEditingController();
+    _postalCodeController = TextEditingController();
     _landmarkController = TextEditingController();
-    _additionalInfoController = TextEditingController();
     _deliveryInstructionsController = TextEditingController();
   }
 
@@ -82,16 +82,16 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       _fullNameController.text = widget.address!.fullName;
       _phoneController.text = widget.address!.phone;
       _emailController.text = widget.address!.email ?? '';
-      _provinceController.text = widget.address!.province;
+      _addressLine1Controller.text = widget.address!.addressLine1;
+      _addressLine2Controller.text = widget.address!.addressLine2 ?? '';
       _cityController.text = widget.address!.city;
-      _communeController.text = widget.address!.commune;
-      _quartierController.text = widget.address!.quartier ?? '';
-      _avenueController.text = widget.address!.avenue ?? '';
+      _stateController.text = widget.address!.state ?? '';
+      _postalCodeController.text = widget.address!.postalCode ?? '';
       _landmarkController.text = widget.address!.landmark ?? '';
-      _additionalInfoController.text = widget.address!.additionalInfo ?? '';
       _deliveryInstructionsController.text =
           widget.address!.deliveryInstructions ?? '';
       _selectedType = widget.address!.type;
+      _selectedCountry = widget.address!.country;
       _isDefault = widget.address!.isDefault;
       _hasGps = widget.address!.hasGps;
       _latitude = widget.address!.latitude;
@@ -105,19 +105,18 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     _fullNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _provinceController.dispose();
+    _addressLine1Controller.dispose();
+    _addressLine2Controller.dispose();
     _cityController.dispose();
-    _communeController.dispose();
-    _quartierController.dispose();
-    _avenueController.dispose();
+    _stateController.dispose();
+    _postalCodeController.dispose();
     _landmarkController.dispose();
-    _additionalInfoController.dispose();
     _deliveryInstructionsController.dispose();
     super.dispose();
   }
 
   // ============================================
-  // SAUVEGARDE
+  // SAUVEGARDE (API)
   // ============================================
 
   Future<void> _saveAddress() async {
@@ -135,46 +134,77 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     try {
       final provider = context.read<AddressProvider>();
 
-      final address = Address(
-        id: widget.address?.id ?? DateTime.now().millisecondsSinceEpoch,
-        label: _labelController.text.trim().isEmpty
-            ? _getTypeLabel(_selectedType)
-            : _labelController.text.trim(),
-        fullName: _fullNameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        email: _emailController.text.trim().isEmpty
-            ? null
-            : _emailController.text.trim(),
-        province: _provinceController.text.trim(),
-        city: _cityController.text.trim(),
-        commune: _communeController.text.trim(),
-        quartier: _quartierController.text.trim().isEmpty
-            ? null
-            : _quartierController.text.trim(),
-        avenue: _avenueController.text.trim().isEmpty
-            ? null
-            : _avenueController.text.trim(),
-        landmark: _landmarkController.text.trim().isEmpty
-            ? null
-            : _landmarkController.text.trim(),
-        additionalInfo: _additionalInfoController.text.trim().isEmpty
-            ? null
-            : _additionalInfoController.text.trim(),
-        country: 'RDC',
-        type: _selectedType,
-        isDefault: _isDefault,
-        latitude: _latitude,
-        longitude: _longitude,
-        deliveryInstructions: _deliveryInstructionsController.text.trim().isEmpty
-            ? null
-            : _deliveryInstructionsController.text.trim(),
-        createdAt: widget.address?.createdAt,
-        updatedAt: DateTime.now(),
-      );
+      // Construire l'adresse complète pour l'affichage :
+      // On combine landmark + quartier dans additionalInfo
+      // pour ne rien perdre
+      final String? additionalInfo = _landmarkController.text.trim().isEmpty
+          ? null
+          : _landmarkController.text.trim();
 
-      final success = _isEditing
-          ? await provider.updateAddress(address)
-          : await provider.addAddress(address);
+      bool success;
+      Address? created;
+
+      if (_isEditing) {
+        // ✅ MODIFICATION
+        success = await provider.updateAddress(
+          id: widget.address!.id,
+          fullName: _fullNameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          email: _emailController.text.trim().isEmpty
+              ? null
+              : _emailController.text.trim(),
+          addressLine1: _addressLine1Controller.text.trim(),
+          addressLine2: _addressLine2Controller.text.trim().isEmpty
+              ? null
+              : _addressLine2Controller.text.trim(),
+          city: _cityController.text.trim(),
+          state: _stateController.text.trim().isEmpty
+              ? null
+              : _stateController.text.trim(),
+          postalCode: _postalCodeController.text.trim().isEmpty
+              ? null
+              : _postalCodeController.text.trim(),
+          country: _selectedCountry,
+          type: _selectedType,
+          isDefault: _isDefault,
+          latitude: _latitude,
+          longitude: _longitude,
+          deliveryInstructions:
+              _deliveryInstructionsController.text.trim().isEmpty
+                  ? null
+                  : _deliveryInstructionsController.text.trim(),
+        );
+      } else {
+        // ✅ CRÉATION
+        created = await provider.addAddress(
+          fullName: _fullNameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          email: _emailController.text.trim().isEmpty
+              ? null
+              : _emailController.text.trim(),
+          addressLine1: _addressLine1Controller.text.trim(),
+          addressLine2: _addressLine2Controller.text.trim().isEmpty
+              ? null
+              : _addressLine2Controller.text.trim(),
+          city: _cityController.text.trim(),
+          state: _stateController.text.trim().isEmpty
+              ? null
+              : _stateController.text.trim(),
+          postalCode: _postalCodeController.text.trim().isEmpty
+              ? null
+              : _postalCodeController.text.trim(),
+          country: _selectedCountry,
+          type: _selectedType,
+          isDefault: _isDefault,
+          latitude: _latitude,
+          longitude: _longitude,
+          deliveryInstructions:
+              _deliveryInstructionsController.text.trim().isEmpty
+                  ? null
+                  : _deliveryInstructionsController.text.trim(),
+        );
+        success = created != null;
+      }
 
       if (!mounted) return;
 
@@ -193,27 +223,23 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(20),
             duration: const Duration(seconds: 2),
-            shape: RoundedRectangleBorder(
+            shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.all(Radius.circular(12)),
             ),
           ),
         );
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            Navigator.of(context).pop(true);
-          }
-        });
+        Navigator.of(context).pop(true);
       } else {
         setState(() {
-          _errorMessage = provider.errorMessage;
+          _errorMessage = provider.errorMessage ?? 'Erreur inconnue';
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isSaving = false;
-          _errorMessage = 'Erreur: $e';
+          _errorMessage = 'Erreur : $e';
         });
       }
     }
@@ -224,13 +250,12 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   // ============================================
 
   void _useGpsLocation() {
-    // Simuler la position GPS de Goma, RDC
     setState(() {
       _hasGps = true;
       _latitude = -1.6792;
       _longitude = 29.2236;
-      if (_provinceController.text.isEmpty) {
-        _provinceController.text = 'Nord-Kivu';
+      if (_stateController.text.isEmpty) {
+        _stateController.text = 'Nord-Kivu';
       }
       if (_cityController.text.isEmpty) {
         _cityController.text = 'Goma';
@@ -252,21 +277,6 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
         ),
       ),
     );
-  }
-
-  String _getTypeLabel(String type) {
-    switch (type) {
-      case 'home':
-        return 'Maison';
-      case 'work':
-        return 'Travail';
-      case 'shop':
-        return 'Boutique';
-      case 'parents':
-        return 'Famille';
-      default:
-        return 'Autre';
-    }
   }
 
   // ============================================
@@ -362,7 +372,6 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                   _buildTypeChip('home', 'Domicile', Icons.home_outlined),
                   _buildTypeChip('work', 'Travail', Icons.work_outline),
                   _buildTypeChip('shop', 'Boutique', Icons.store_outlined),
-                  _buildTypeChip('parents', 'Famille', Icons.family_restroom),
                   _buildTypeChip('other', 'Autre', Icons.location_on_outlined),
                 ],
               ),
@@ -408,19 +417,29 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
               const SizedBox(height: 15),
 
               // ============================================
-              // PROVINCE
+              // ADRESSE LIGNE 1
               // ============================================
               _buildTextField(
-                controller: _provinceController,
-                label: 'Province / Région *',
-                hint: 'Ex : Nord-Kivu',
-                icon: Icons.map_outlined,
+                controller: _addressLine1Controller,
+                label: 'Adresse *',
+                hint: 'Ex : 123, Avenue du Port',
+                icon: Icons.home_outlined,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'La province est obligatoire';
+                    return 'L\'adresse est obligatoire';
                   }
                   return null;
                 },
+              ),
+
+              // ============================================
+              // ADRESSE LIGNE 2
+              // ============================================
+              _buildTextField(
+                controller: _addressLine2Controller,
+                label: 'Complément (optionnel)',
+                hint: 'Ex : Appartement 5, 2ème étage',
+                icon: Icons.home_work_outlined,
               ),
 
               // ============================================
@@ -428,7 +447,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
               // ============================================
               _buildTextField(
                 controller: _cityController,
-                label: 'Ville / Territoire *',
+                label: 'Ville *',
                 hint: 'Ex : Goma',
                 icon: Icons.location_city_outlined,
                 validator: (value) {
@@ -440,39 +459,23 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
               ),
 
               // ============================================
-              // COMMUNE
+              // RÉGION / ÉTAT
               // ============================================
               _buildTextField(
-                controller: _communeController,
-                label: 'Commune / Zone *',
-                hint: 'Ex : Goma, Karisimbi',
-                icon: Icons.location_on_outlined,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'La commune est obligatoire';
-                  }
-                  return null;
-                },
+                controller: _stateController,
+                label: 'Province / Région (optionnel)',
+                hint: 'Ex : Nord-Kivu',
+                icon: Icons.map_outlined,
               ),
 
               // ============================================
-              // QUARTIER
+              // CODE POSTAL
               // ============================================
               _buildTextField(
-                controller: _quartierController,
-                label: 'Quartier (optionnel)',
-                hint: 'Ex : Katindo, Himbi...',
-                icon: Icons.home_work_outlined,
-              ),
-
-              // ============================================
-              // AVENUE
-              // ============================================
-              _buildTextField(
-                controller: _avenueController,
-                label: 'Avenue / Rue (optionnel)',
-                hint: 'Ex : Avenue du Port...',
-                icon: Icons.add_road,
+                controller: _postalCodeController,
+                label: 'Code postal (optionnel)',
+                hint: 'Ex : 00000',
+                icon: Icons.markunread_mailbox_outlined,
               ),
 
               // ============================================
@@ -514,7 +517,8 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                       Icon(
                         _hasGps ? Icons.gps_fixed : Icons.gps_not_fixed,
                         size: 18,
-                        color: _hasGps ? AppColors.success : AppColors.primary,
+                        color:
+                            _hasGps ? AppColors.success : AppColors.primary,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -525,7 +529,8 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                           fontFamily: 'Poppins',
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: _hasGps ? AppColors.success : AppColors.primary,
+                          color:
+                              _hasGps ? AppColors.success : AppColors.primary,
                         ),
                       ),
                     ],
@@ -534,17 +539,6 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
               ),
 
               const SizedBox(height: 15),
-
-              // ============================================
-              // INFORMATIONS COMPLÉMENTAIRES
-              // ============================================
-              _buildTextField(
-                controller: _additionalInfoController,
-                label: 'Informations complémentaires (optionnel)',
-                hint: 'Ex : Porte bleue, 2ème étage...',
-                icon: Icons.info_outline,
-                maxLines: 2,
-              ),
 
               // ============================================
               // INSTRUCTIONS DE LIVRAISON
@@ -623,7 +617,9 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                         ),
                       )
                     : Text(
-                        _isEditing ? 'MODIFIER L\'ADRESSE' : 'AJOUTER L\'ADRESSE',
+                        _isEditing
+                            ? 'MODIFIER L\'ADRESSE'
+                            : 'AJOUTER L\'ADRESSE',
                         style: const TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 14,
@@ -755,7 +751,8 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 2),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),

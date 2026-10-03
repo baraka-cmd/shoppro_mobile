@@ -169,4 +169,7 @@ class AppRoutes {
   static const String sellerOrders = '/seller/orders';
   static const String sellerStats = '/seller/stats';
   static const String sellerStocks = '/seller/stocks';
+
+
+  static const String allReviews = '/product/reviews';
 }

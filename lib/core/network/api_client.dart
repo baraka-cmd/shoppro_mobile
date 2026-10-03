@@ -51,7 +51,6 @@ class ApiClient {
 
   /// Gérer la requête (ajouter le token)
   Future<void> _handleRequest(RequestOptions options) async {
-    // Vérifier si le token est valide
     final isTokenValid = await _tokenService.isTokenValid();
 
     if (isTokenValid) {

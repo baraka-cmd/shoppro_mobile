@@ -128,6 +128,8 @@ import '../features/legal/presentation/pages/terms_conditions_screen.dart';
 
 
 import '../features/support/presentation/pages/support_screen.dart';
+
+import '../features/products/presentation/pages/all_reviews_screen.dart';
 // ============================================
 // CLASSE PRINCIPALE
 // ============================================
@@ -328,6 +330,18 @@ class RouteGenerator {
       case AppRoutes.search:
         return _buildRoute(settings: settings, page: const SearchScreen());
 
+
+      case AppRoutes.allReviews:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return _buildRoute(
+          settings: settings,
+          page: AllReviewsScreen(
+            productId: args?['product_id'] as int? ?? 0,
+            productName: args?['product_name'] as String? ?? '',
+            averageRating: (args?['average_rating'] as num?)?.toDouble() ?? 0,
+            totalReviews: args?['total_reviews'] as int? ?? 0,
+          ),
+        );
       // ============================================
 // 🆘 ROUTE AIDE & SUPPORT
 // ============================================

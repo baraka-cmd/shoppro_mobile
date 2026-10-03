@@ -76,6 +76,17 @@ class ProductProvider extends ChangeNotifier {
   List<dynamic> _productReviews = [];
   bool _isLoadingReviews = false;
 
+  // Pagination des avis
+int _reviewsPage = 1;
+bool _hasMoreReviews = true;
+bool _isLoadingMoreReviews = false;
+List<dynamic> _allProductReviews = [];
+
+int get reviewsPage => _reviewsPage;
+bool get hasMoreReviews => _hasMoreReviews;
+bool get isLoadingMoreReviews => _isLoadingMoreReviews;
+List<dynamic> get allProductReviews => _allProductReviews;
+
   // ============================================
   // GETTERS DE BASE
   // ============================================
@@ -504,6 +515,63 @@ class ProductProvider extends ChangeNotifier {
       return false;
     }
   }
+
+
+  /// Charger la première page des avis (écran "Tous les avis")
+Future<void> loadAllReviews(int productId) async {
+  _isLoadingReviews = true;
+  _reviewsPage = 1;
+  _hasMoreReviews = true;
+  _allProductReviews = [];
+  notifyListeners();
+
+  try {
+    _allProductReviews = await _productRepository.getProductReviews(
+      productId: productId,
+      page: 1,
+      perPage: 15,
+    );
+    _hasMoreReviews = _allProductReviews.length >= 15;
+  } catch (e) {
+    debugPrint('❌ Erreur loadAllReviews: $e');
+    _allProductReviews = [];
+  }
+
+  _isLoadingReviews = false;
+  notifyListeners();
+}
+
+/// Charger plus d'avis (pagination)
+Future<void> loadMoreReviews(int productId) async {
+  if (_isLoadingMoreReviews || !_hasMoreReviews) return;
+
+  _isLoadingMoreReviews = true;
+  notifyListeners();
+
+  try {
+    final nextPage = _reviewsPage + 1;
+    final newReviews = await _productRepository.getProductReviews(
+      productId: productId,
+      page: nextPage,
+      perPage: 15,
+    );
+
+    if (newReviews.isNotEmpty) {
+      _allProductReviews = [..._allProductReviews, ...newReviews];
+      _reviewsPage = nextPage;
+      _hasMoreReviews = newReviews.length >= 15;
+    } else {
+      _hasMoreReviews = false;
+    }
+  } catch (e) {
+    debugPrint('❌ Erreur loadMoreReviews: $e');
+  }
+
+  _isLoadingMoreReviews = false;
+  notifyListeners();
+}
+
+
 
   /// Réinitialiser le statut d'avis (à appeler après avoir affiché un message)
   void resetReviewStatus() {

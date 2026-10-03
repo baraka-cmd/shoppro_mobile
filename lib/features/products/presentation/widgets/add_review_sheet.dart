@@ -10,6 +10,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../core/constants/app_colors.dart';
 
@@ -102,23 +103,28 @@ class _AddReviewSheetState extends State<AddReviewSheet> {
   }
 
   /// Compresse une image à ~1 Mo max
-  /// Compresse une image (version SANS flutter_image_compress)
-/// Retourne simplement le fichier original en attendant la vraie compression
-Future<File?> _compressImage(File file) async {
-  try {
-    // Vérifier que le fichier existe
-    if (!await file.exists()) {
-      debugPrint('⚠️ Fichier introuvable: ${file.path}');
-      return null;
-    }
+  Future<File?> _compressImage(File file) async {
+    try {
+      final dir = await getTemporaryDirectory();
+      final targetPath =
+          '${dir.path}/review_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-    // Pas de compression pour l'instant — on retourne le fichier tel quel
-    return file;
-  } catch (e) {
-    debugPrint('❌ Erreur _compressImage: $e');
-    return file;
+      final result = await FlutterImageCompress.compressAndGetFile(
+        file.absolute.path,
+        targetPath,
+        quality: 75,
+        minWidth: 1080,
+        minHeight: 1080,
+      );
+
+      if (result == null) return null;
+      return File(result.path);
+    } catch (e) {
+      debugPrint('❌ Erreur compression: $e');
+      // En cas d'échec, on garde l'original
+      return file;
+    }
   }
-}
 
   void _removeImage(int index) {
     setState(() {

@@ -9,10 +9,10 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../domain/entities/address.dart';
-import '../models/address_model.dart';
 
 class AddressLocalDataSource {
-  static final AddressLocalDataSource _instance = AddressLocalDataSource._internal();
+  static final AddressLocalDataSource _instance =
+      AddressLocalDataSource._internal();
   factory AddressLocalDataSource() => _instance;
   AddressLocalDataSource._internal();
 
@@ -49,7 +49,7 @@ class AddressLocalDataSource {
       final List<dynamic> data = jsonDecode(addressesJson);
       return data
           .whereType<Map<String, dynamic>>()
-          .map((json) => AddressModel.fromJson(json))
+          .map((json) => Address.fromJson(json))
           .toList();
     } catch (e) {
       debugPrint('❌ Erreur getAddresses: $e');
@@ -110,7 +110,7 @@ class AddressLocalDataSource {
       final List<dynamic> data = jsonDecode(snapshotJson);
       final addresses = data
           .whereType<Map<String, dynamic>>()
-          .map((json) => AddressModel.fromJson(json))
+          .map((json) => Address.fromJson(json))
           .toList();
 
       await saveAddresses(addresses);

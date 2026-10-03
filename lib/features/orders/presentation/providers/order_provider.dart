@@ -3,11 +3,13 @@
 // ============================================
 // Gère l'état des commandes avec actions complètes,
 // filtres, annulation et retour.
+//
+// ⚠️ La création de commande passe par l'API Laravel.
+//    Les items sont envoyés directement dans la requête.
 // ============================================
 
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/order.dart';
-import '../../domain/entities/order_item.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../../data/repositories/order_repository_impl.dart';
 
@@ -50,17 +52,13 @@ class OrderProvider extends ChangeNotifier {
   bool get isEmpty => _orders.isEmpty;
   int get ordersCount => _orders.length;
 
-  /// ID de la commande en cours de mise à jour
   int get updatingOrderId => _updatingOrderId;
-
-  /// Filtre actuel
   String get currentFilter => _currentFilter;
 
   // ============================================
   // GETTERS FILTRÉS
   // ============================================
 
-  /// Commandes filtrées selon le filtre actuel
   List<Order> get filteredOrders {
     switch (_currentFilter) {
       case 'active':
@@ -74,7 +72,6 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  /// Commandes en cours
   List<Order> get activeOrders {
     return _orders
         .where((o) =>
@@ -84,30 +81,23 @@ class OrderProvider extends ChangeNotifier {
         .toList();
   }
 
-  /// Commandes livrées
   List<Order> get deliveredOrders {
     return _orders.where((o) => o.status == 'delivered').toList();
   }
 
-  /// Commandes annulées
   List<Order> get cancelledOrders {
     return _orders.where((o) => o.status == 'cancelled').toList();
   }
 
-  /// Nombre de commandes actives
   int get activeOrdersCount => activeOrders.length;
-
-  /// Nombre de commandes livrées
   int get deliveredOrdersCount => deliveredOrders.length;
-
-  /// Nombre de commandes annulées
   int get cancelledOrdersCount => cancelledOrders.length;
 
   // ============================================
   // CHARGEMENT
   // ============================================
 
-  /// Charger les commandes
+  /// Charger les commandes depuis l'API (avec fallback local)
   Future<void> loadOrders() async {
     _setStatus(OrderStatus.loading);
     _clearError();
@@ -129,43 +119,49 @@ class OrderProvider extends ChangeNotifier {
   }
 
   // ============================================
-  // CRÉATION
+  // CRÉATION (via API Laravel)
   // ============================================
 
-  /// Créer une commande
+  /// Créer une commande côté serveur.
+  ///
+  /// [shippingAddressId] : ID de l'adresse de livraison (obligatoire)
+  /// [items] : liste des articles (obligatoire)
+  ///           Format : [{ 'product_id': 1, 'quantity': 2, 'variant_id': null }]
+  /// [billingAddressId] : ID de l'adresse de facturation (optionnel)
+  /// [shippingMethod] : 'standard' | 'express' | 'pickup'
+  /// [paymentMethod] : 'cash_on_delivery' | 'mobile_money' | 'card'
+  /// [couponCode] : code promo (optionnel)
+  /// [customerNote] : note du client (optionnel)
   Future<Order?> createOrder({
-    required List<OrderItem> items,
-    required double subtotal,
-    required double total,
-    required double shippingFee,
-    double discount = 0,
-    double couponDiscount = 0,
-    double tax = 0,
-    String? couponCode,
-    String? customerNote,
+    required int shippingAddressId,
+    required List<Map<String, dynamic>> items,
+    int? billingAddressId,
     String? shippingMethod,
     String? paymentMethod,
+    String? couponCode,
+    String? customerNote,
   }) async {
     _setStatus(OrderStatus.creating);
     _clearError();
 
     try {
+      // 1. Sauvegarder un snapshot (undo)
       await _orderRepository.saveOrdersSnapshot();
+
+      // 2. Créer la commande côté serveur
       final order = await _orderRepository.createOrder(
+        shippingAddressId: shippingAddressId,
         items: items,
-        subtotal: subtotal,
-        total: total,
-        shippingFee: shippingFee,
-        discount: discount,
-        couponDiscount: couponDiscount,
-        tax: tax,
-        couponCode: couponCode,
-        customerNote: customerNote,
+        billingAddressId: billingAddressId,
         shippingMethod: shippingMethod,
         paymentMethod: paymentMethod,
+        couponCode: couponCode,
+        customerNote: customerNote,
       );
 
+      // 3. Recharger la liste complète
       _orders = await _orderRepository.getOrders();
+
       _setStatus(OrderStatus.loaded);
       notifyListeners();
       return order;
@@ -181,12 +177,10 @@ class OrderProvider extends ChangeNotifier {
   // ANNULATION
   // ============================================
 
-  /// Vérifier si une commande peut être annulée
   Future<bool> canCancelOrder(int orderId) async {
     return await _orderRepository.canCancelOrder(orderId);
   }
 
-  /// Annuler une commande
   Future<bool> cancelOrder(int orderId, String reason) async {
     _setStatus(OrderStatus.updating);
     _updatingOrderId = orderId;
@@ -212,12 +206,10 @@ class OrderProvider extends ChangeNotifier {
   // RETOUR
   // ============================================
 
-  /// Vérifier si une commande peut être retournée
   Future<bool> canReturnOrder(int orderId) async {
     return await _orderRepository.canReturnOrder(orderId);
   }
 
-  /// Retourner une commande
   Future<bool> returnOrder(int orderId, String reason) async {
     _setStatus(OrderStatus.updating);
     _updatingOrderId = orderId;
@@ -239,7 +231,6 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  /// Retourner un article spécifique
   Future<bool> returnOrderItem(int orderId, int itemId, String reason) async {
     _setStatus(OrderStatus.updating);
     _updatingOrderId = orderId;
@@ -265,13 +256,11 @@ class OrderProvider extends ChangeNotifier {
   // FILTRES
   // ============================================
 
-  /// Changer le filtre
   void setFilter(String filter) {
     _currentFilter = filter;
     notifyListeners();
   }
 
-  /// Effacer le filtre
   void clearFilter() {
     _currentFilter = 'all';
     notifyListeners();
@@ -281,7 +270,6 @@ class OrderProvider extends ChangeNotifier {
   // RECHERCHE
   // ============================================
 
-  /// Récupérer une commande par ID
   Order? getOrderById(int orderId) {
     for (final order in _orders) {
       if (order.id == orderId) {
@@ -291,7 +279,6 @@ class OrderProvider extends ChangeNotifier {
     return null;
   }
 
-  /// Récupérer une commande par numéro
   Order? getOrderByNumber(String orderNumber) {
     for (final order in _orders) {
       if (order.orderNumber.toLowerCase() == orderNumber.toLowerCase()) {
@@ -301,7 +288,6 @@ class OrderProvider extends ChangeNotifier {
     return null;
   }
 
-  /// Récupérer le timeline d'une commande
   Future<List<OrderTimelineEvent>> getOrderTimeline(int orderId) async {
     return await _orderRepository.getOrderTimeline(orderId);
   }
@@ -310,11 +296,10 @@ class OrderProvider extends ChangeNotifier {
   // ANNULATION (Undo)
   // ============================================
 
-  /// Annuler la dernière action
   Future<bool> undoLastAction() async {
     try {
       final restored = await _orderRepository.restoreOrdersSnapshot();
-      if (restored != null) {
+      if (restored.isNotEmpty) {
         _orders = restored;
         notifyListeners();
         return true;
@@ -330,7 +315,6 @@ class OrderProvider extends ChangeNotifier {
   // EFFACEMENT
   // ============================================
 
-  /// Effacer l'erreur
   void clearError() {
     _errorMessage = null;
     notifyListeners();
@@ -351,10 +335,6 @@ class OrderProvider extends ChangeNotifier {
   void _setError(String message) {
     _errorMessage = message.replaceFirst('Exception: ', '');
   }
-
-  // ============================================
-  // TOSTRING
-  // ============================================
 
   @override
   String toString() {

@@ -4,10 +4,12 @@
 // Définit le contrat que le repository doit
 // respecter. Gestion complète des commandes,
 // annulation, retour et timeline.
+//
+// ⚠️ L'implémentation utilise l'API Laravel
+//    comme source principale, avec un cache local.
 // ============================================
 
 import '../entities/order.dart';
-import '../entities/order_item.dart';
 
 abstract class OrderRepository {
   // ============================================
@@ -15,7 +17,8 @@ abstract class OrderRepository {
   // ============================================
 
   /// Récupérer toutes les commandes
-  Future<List<Order>> getOrders();
+  /// [status] : filtre optionnel ('pending', 'delivered', etc.)
+  Future<List<Order>> getOrders({String? status});
 
   /// Récupérer une commande par ID
   Future<Order?> getOrderById(int orderId);
@@ -54,19 +57,27 @@ abstract class OrderRepository {
   // CRÉATION
   // ============================================
 
-  /// Créer une nouvelle commande
+  /// Créer une nouvelle commande côté serveur.
+  ///
+  /// ⚠️ Les articles sont envoyés directement dans la requête.
+  ///    Le serveur Laravel ne dépend plus de son panier interne.
+  ///
+  /// [shippingAddressId] : ID de l'adresse de livraison (obligatoire)
+  /// [items] : liste des articles à commander (obligatoire)
+  ///           Format : [{ product_id, quantity, variant_id? }]
+  /// [billingAddressId] : ID de l'adresse de facturation (optionnel)
+  /// [shippingMethod] : 'standard' | 'express' | 'pickup'
+  /// [paymentMethod] : 'cash_on_delivery' | 'mobile_money' | 'card'
+  /// [couponCode] : code promo (optionnel)
+  /// [customerNote] : note du client (optionnel)
   Future<Order> createOrder({
-    required List<OrderItem> items,
-    required double subtotal,
-    required double total,
-    required double shippingFee,
-    double discount = 0,
-    double couponDiscount = 0,
-    double tax = 0,
-    String? couponCode,
-    String? customerNote,
+    required int shippingAddressId,
+    required List<Map<String, dynamic>> items,
+    int? billingAddressId,
     String? shippingMethod,
     String? paymentMethod,
+    String? couponCode,
+    String? customerNote,
   });
 
   // ============================================
@@ -116,7 +127,7 @@ abstract class OrderRepository {
   Future<List<OrderTimelineEvent>> getOrderTimeline(int orderId);
 
   // ============================================
-  // SAUVEGARDE
+  // SAUVEGARDE (CACHE LOCAL)
   // ============================================
 
   /// Sauvegarder les commandes localement
@@ -127,6 +138,9 @@ abstract class OrderRepository {
 
   /// Supprimer une commande
   Future<void> deleteOrder(int orderId);
+
+  /// Vider le cache local
+  Future<void> clearCache();
 
   // ============================================
   // SYNCHRONISATION
@@ -177,7 +191,8 @@ class OrderTimelineEvent {
 
   /// Formater la date
   String get formattedDate {
-    return '${date.day}/${date.month}/${date.year} à ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    return '${date.day}/${date.month}/${date.year} à '
+        '${date.hour}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   /// L'événement a-t-il un lieu ?

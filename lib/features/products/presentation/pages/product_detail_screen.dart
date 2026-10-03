@@ -598,7 +598,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   totalReviews: product.reviewsCount,
                   ratingDistribution: _buildRatingDistribution(),
                   reviews: _reviews,
-                  onSeeAllReviews: () {},
+                  onSeeAllReviews: () {
+                    Navigator.of(context).pushNamed(
+                      AppRoutes.allReviews,
+                      arguments: {
+                        'product_id': widget.productId,
+                        'product_name': product.name,
+                        'average_rating': product.averageRating,
+                        'total_reviews': product.reviewsCount,
+                      },
+                    );
+                  },
                   onAddReview: _handleAddReview,
                 ),
 

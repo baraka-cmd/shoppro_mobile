@@ -1,38 +1,67 @@
 // ============================================
 // IMPLÉMENTATION DU REPOSITORY DES ADRESSES - PREMIUM
 // ============================================
-// Gère la logique métier avec stockage local,
-// défaut intelligent et snapshot.
+// Source principale : API Laravel
+// Source secondaire : cache local (fallback offline)
+// Gère : lecture, création, modification,
+//        suppression, défaut, snapshot
 // ============================================
 
+import 'package:flutter/foundation.dart';
 import '../../domain/entities/address.dart';
 import '../../domain/repositories/address_repository.dart';
-import '../models/address_model.dart';
+import '../sources/address_api.dart';
 import '../sources/address_local_data_source.dart';
 
 class AddressRepositoryImpl implements AddressRepository {
+  final AddressApi _api;
   final AddressLocalDataSource _localDataSource;
 
-  AddressRepositoryImpl({AddressLocalDataSource? localDataSource})
-      : _localDataSource = localDataSource ?? AddressLocalDataSource();
+  AddressRepositoryImpl({
+    AddressApi? api,
+    AddressLocalDataSource? localDataSource,
+  })  : _api = api ?? AddressApi(),
+        _localDataSource = localDataSource ?? AddressLocalDataSource();
 
   // ============================================
-  // LECTURE
+  // LECTURE (API + fallback local)
   // ============================================
 
   @override
   Future<List<Address>> getAddresses() async {
-    final addresses = await _localDataSource.getAddresses();
-    addresses.sort((a, b) {
-      if (a.isDefault != b.isDefault) {
-        return a.isDefault ? -1 : 1;
-      }
-      // Trier par date de création (plus récent en premier)
-      final aDate = a.createdAt ?? DateTime(2000);
-      final bDate = b.createdAt ?? DateTime(2000);
-      return bDate.compareTo(aDate);
-    });
-    return addresses;
+    try {
+      // 1. Récupérer depuis l'API
+      final addresses = await _api.getAddresses();
+
+      // 2. Mettre à jour le cache local
+      await _localDataSource.saveAddresses(addresses);
+
+      // 3. Trier : défaut en premier, puis plus récent
+      addresses.sort((a, b) {
+        if (a.isDefault != b.isDefault) {
+          return a.isDefault ? -1 : 1;
+        }
+        final aDate = a.createdAt ?? DateTime(2000);
+        final bDate = b.createdAt ?? DateTime(2000);
+        return bDate.compareTo(aDate);
+      });
+
+      return addresses;
+    } catch (e) {
+      debugPrint('⚠️ API getAddresses échouée, fallback cache local: $e');
+
+      // Fallback : cache local
+      final cached = await _localDataSource.getAddresses();
+      cached.sort((a, b) {
+        if (a.isDefault != b.isDefault) {
+          return a.isDefault ? -1 : 1;
+        }
+        final aDate = a.createdAt ?? DateTime(2000);
+        final bDate = b.createdAt ?? DateTime(2000);
+        return bDate.compareTo(aDate);
+      });
+      return cached;
+    }
   }
 
   @override
@@ -43,13 +72,17 @@ class AddressRepositoryImpl implements AddressRepository {
 
   @override
   Future<Address?> getAddressById(int addressId) async {
-    final addresses = await getAddresses();
-    for (final address in addresses) {
-      if (address.id == addressId) {
-        return address;
+    try {
+      return await _api.getAddressById(addressId);
+    } catch (e) {
+      debugPrint('⚠️ API getAddressById échouée, fallback local: $e');
+
+      final addresses = await _localDataSource.getAddresses();
+      for (final address in addresses) {
+        if (address.id == addressId) return address;
       }
+      return null;
     }
-    return null;
   }
 
   @override
@@ -71,93 +104,153 @@ class AddressRepositoryImpl implements AddressRepository {
 
   @override
   Future<int> getAddressesCount() async {
-    return await _localDataSource.getAddressesCount();
+    final addresses = await getAddresses();
+    return addresses.length;
   }
 
   @override
   Future<bool> hasAddresses() async {
-    return await _localDataSource.hasAddresses();
-  }
-
-  // ============================================
-  // CRÉATION
-  // ============================================
-
-  @override
-  Future<List<Address>> addAddress(Address address) async {
     final addresses = await getAddresses();
-
-    // Si c'est la première adresse, la définir comme défaut
-    if (addresses.isEmpty) {
-      address = address.copyWith(isDefault: true);
-    }
-
-    // Si cette adresse est définie comme défaut, retirer le défaut des autres
-    if (address.isDefault) {
-      for (int i = 0; i < addresses.length; i++) {
-        addresses[i] = addresses[i].copyWith(isDefault: false);
-      }
-    }
-
-    addresses.add(address);
-    await _localDataSource.saveAddresses(addresses);
-    return addresses;
-  }
-
-  @override
-  Future<List<Address>> addAddresses(List<Address> newAddresses) async {
-    var addresses = await getAddresses();
-
-    for (var address in newAddresses) {
-      if (addresses.isEmpty) {
-        address = address.copyWith(isDefault: true);
-      }
-      addresses.add(address);
-    }
-
-    await _localDataSource.saveAddresses(addresses);
-    return addresses;
+    return addresses.isNotEmpty;
   }
 
   // ============================================
-  // MODIFICATION
+  // CRÉATION (API)
   // ============================================
 
   @override
-  Future<List<Address>> updateAddress(Address address) async {
-    final addresses = await getAddresses();
-    final index = addresses.indexWhere((a) => a.id == address.id);
-
-    if (index >= 0) {
-      if (address.isDefault) {
-        for (int i = 0; i < addresses.length; i++) {
-          addresses[i] = addresses[i].copyWith(isDefault: false);
-        }
-      }
-
-      addresses[index] = address;
-      await _localDataSource.saveAddresses(addresses);
-    }
-
-    return addresses;
-  }
-
-  @override
-  Future<List<Address>> setDefaultAddress(int addressId) async {
-    final addresses = await getAddresses();
-
-    for (int i = 0; i < addresses.length; i++) {
-      addresses[i] = addresses[i].copyWith(
-        isDefault: addresses[i].id == addressId,
+  Future<Address> createAddress({
+    required String fullName,
+    required String phone,
+    String? email,
+    required String addressLine1,
+    String? addressLine2,
+    required String city,
+    String? state,
+    String? postalCode,
+    String? country,
+    String type = 'home',
+    bool isDefault = false,
+    double? latitude,
+    double? longitude,
+    String? deliveryInstructions,
+  }) async {
+    try {
+      // 1. Créer côté serveur
+      final address = await _api.createAddress(
+        fullName: fullName,
+        phone: phone,
+        email: email,
+        addressLine1: addressLine1,
+        addressLine2: addressLine2,
+        city: city,
+        state: state,
+        postalCode: postalCode,
+        country: country,
+        type: type,
+        isDefault: isDefault,
+        latitude: latitude,
+        longitude: longitude,
+        deliveryInstructions: deliveryInstructions,
       );
-    }
 
-    await _localDataSource.saveAddresses(addresses);
-    return addresses;
+      // 2. Ajouter au cache local
+      final cached = await _localDataSource.getAddresses();
+      cached.add(address);
+      await _localDataSource.saveAddresses(cached);
+
+      debugPrint('✅ Adresse créée côté serveur : ${address.id}');
+      return address;
+    } catch (e) {
+      debugPrint('❌ Erreur createAddress: $e');
+      rethrow;
+    }
+  }
+
+  // ============================================
+  // MODIFICATION (API)
+  // ============================================
+
+  @override
+  Future<Address> updateAddress({
+    required int id,
+    String? fullName,
+    String? phone,
+    String? email,
+    String? addressLine1,
+    String? addressLine2,
+    String? city,
+    String? state,
+    String? postalCode,
+    String? country,
+    String? type,
+    bool? isDefault,
+    double? latitude,
+    double? longitude,
+    String? deliveryInstructions,
+  }) async {
+    try {
+      // 1. Mettre à jour côté serveur
+      final address = await _api.updateAddress(
+        id: id,
+        fullName: fullName,
+        phone: phone,
+        email: email,
+        addressLine1: addressLine1,
+        addressLine2: addressLine2,
+        city: city,
+        state: state,
+        postalCode: postalCode,
+        country: country,
+        type: type,
+        isDefault: isDefault,
+        latitude: latitude,
+        longitude: longitude,
+        deliveryInstructions: deliveryInstructions,
+      );
+
+      // 2. Mettre à jour le cache local
+      final cached = await _localDataSource.getAddresses();
+      final index = cached.indexWhere((a) => a.id == id);
+      if (index >= 0) {
+        cached[index] = address;
+        await _localDataSource.saveAddresses(cached);
+      }
+
+      debugPrint('✅ Adresse mise à jour : ${address.id}');
+      return address;
+    } catch (e) {
+      debugPrint('❌ Erreur updateAddress: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Address> setDefaultAddress(int addressId) async {
+    try {
+      // 1. Définir par défaut côté serveur
+      final address = await _api.setDefaultAddress(addressId);
+
+      // 2. Mettre à jour le cache local
+      final cached = await _localDataSource.getAddresses();
+      for (int i = 0; i < cached.length; i++) {
+        cached[i] = cached[i].copyWith(
+          isDefault: cached[i].id == addressId,
+        );
+      }
+      await _localDataSource.saveAddresses(cached);
+
+      debugPrint('✅ Adresse par défaut mise à jour : ${address.id}');
+      return address;
+    } catch (e) {
+      debugPrint('❌ Erreur setDefaultAddress: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<List<Address>> toggleAddressActive(int addressId) async {
+    // Local uniquement (l'API n'a pas d'endpoint toggle)
     final addresses = await getAddresses();
     final index = addresses.indexWhere((a) => a.id == addressId);
 
@@ -172,36 +265,31 @@ class AddressRepositoryImpl implements AddressRepository {
   }
 
   // ============================================
-  // SUPPRESSION
+  // SUPPRESSION (API)
   // ============================================
 
   @override
-  Future<List<Address>> removeAddress(int addressId) async {
-    final addresses = await getAddresses();
-    Address? removedAddress;
+  Future<void> deleteAddress(int addressId) async {
+    try {
+      // 1. Supprimer côté serveur
+      await _api.deleteAddress(addressId);
 
-    for (final address in addresses) {
-      if (address.id == addressId) {
-        removedAddress = address;
-        break;
-      }
+      // 2. Retirer du cache local
+      final cached = await _localDataSource.getAddresses();
+      cached.removeWhere((a) => a.id == addressId);
+      await _localDataSource.saveAddresses(cached);
+
+      debugPrint('✅ Adresse supprimée : $addressId');
+    } catch (e) {
+      debugPrint('❌ Erreur deleteAddress: $e');
+      rethrow;
     }
-
-    addresses.removeWhere((a) => a.id == addressId);
-
-    if (removedAddress != null &&
-        removedAddress.isDefault &&
-        addresses.isNotEmpty) {
-      addresses[0] = addresses[0].copyWith(isDefault: true);
-    }
-
-    await _localDataSource.saveAddresses(addresses);
-    return addresses;
   }
 
   @override
   Future<List<Address>> removeAddresses(List<int> addressIds) async {
-    var addresses = await getAddresses();
+    // Local uniquement (batch delete non supporté par l'API pour l'instant)
+    final addresses = await getAddresses();
     addresses.removeWhere((a) => addressIds.contains(a.id));
     await _localDataSource.saveAddresses(addresses);
     return addresses;
@@ -213,7 +301,7 @@ class AddressRepositoryImpl implements AddressRepository {
   }
 
   // ============================================
-  // SAUVEGARDE
+  // SAUVEGARDE (CACHE LOCAL)
   // ============================================
 
   @override
@@ -223,13 +311,25 @@ class AddressRepositoryImpl implements AddressRepository {
 
   @override
   Future<List<Address>> syncWithBackend() async {
-    // TODO: Synchroniser avec l'API Laravel
-    return await getAddresses();
+    try {
+      final addresses = await _api.getAddresses();
+      await _localDataSource.saveAddresses(addresses);
+      debugPrint('✅ Synchronisation réussie : ${addresses.length} adresses');
+      return addresses;
+    } catch (e) {
+      debugPrint('❌ Erreur syncWithBackend: $e');
+      return await _localDataSource.getAddresses();
+    }
   }
 
   @override
   Future<bool> isAddressesSynced() async {
-    return true;
+    try {
+      final cached = await _localDataSource.getAddresses();
+      return cached.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
   }
 
   // ============================================
