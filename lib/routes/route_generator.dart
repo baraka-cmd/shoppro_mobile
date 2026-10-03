@@ -130,6 +130,7 @@ import '../features/legal/presentation/pages/terms_conditions_screen.dart';
 import '../features/support/presentation/pages/support_screen.dart';
 
 import '../features/products/presentation/pages/all_reviews_screen.dart';
+import '../features/admin/presentation/pages/admin_user_create_screen.dart';
 // ============================================
 // CLASSE PRINCIPALE
 // ============================================
@@ -343,15 +344,20 @@ class RouteGenerator {
           ),
         );
       // ============================================
-// 🆘 ROUTE AIDE & SUPPORT
-// ============================================
-case AppRoutes.support:
-  return _buildRoute(
-    settings: settings,
-    page: const SupportScreen(),
-  );
-  
+      // 🆘 ROUTE AIDE & SUPPORT
       // ============================================
+      case AppRoutes.support:
+        return _buildRoute(
+          settings: settings,
+          page: const SupportScreen(),
+        );
+        
+      case AppRoutes.adminUserCreate:
+        return _buildRoute(
+          settings: settings,
+          page: const AdminUserCreateScreen(),
+        );
+            // ============================================
 // ⚖️ DOCUMENTS LÉGAUX
 // ============================================
 

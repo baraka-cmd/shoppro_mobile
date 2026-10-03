@@ -2,8 +2,14 @@
 // MODÈLE ORDER (DATA) - VERSION PREMIUM
 // ============================================
 // Gère la sérialisation/désérialisation JSON
-// avec parsing robuste et valeurs par défaut.
+// avec parsing robuste de :
+// - Items
+// - User (client)
+// - Shipping address
+// - Billing address
 // ============================================
+
+import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/order.dart';
 import '../../domain/entities/order_item.dart';
@@ -34,14 +40,41 @@ class OrderModel extends Order {
     super.cancelledAt,
     super.cancellationReason,
     required super.createdAt,
+    super.user,
+    super.shippingAddress,
+    super.billingAddress,
   });
 
-  /// Créer depuis JSON
+  // ============================================
+  // FROM JSON
+  // ============================================
+
   factory OrderModel.fromJson(Map<String, dynamic> json) {
+    // ✅ Parser les items
+    final items = _parseItems(json['items']);
+
+    // ✅ Parser l'utilisateur
+    final user = _parseUser(json['user']);
+
+    // ✅ Parser l'adresse de livraison
+    final shippingAddress = _parseAddress(json['shipping_address']);
+
+    // ✅ Parser l'adresse de facturation
+    final billingAddress = _parseAddress(json['billing_address']);
+
+    // ⚠️ DEBUG (à retirer plus tard)
+    debugPrint('═══════════════════════════════════════');
+    debugPrint('📦 Parsing Order #${json['id']}');
+    debugPrint('👤 User : ${user?.name ?? 'NULL'}');
+    debugPrint('📍 Shipping : ${shippingAddress?.city ?? 'NULL'}');
+    debugPrint('🏢 Billing : ${billingAddress?.city ?? 'NULL'}');
+    debugPrint('📦 Items : ${items.length}');
+    debugPrint('═══════════════════════════════════════');
+
     return OrderModel(
       id: _parseInt(json['id']),
       orderNumber: _parseString(json['order_number']),
-      items: _parseItems(json['items']),
+      items: items,
       subtotal: _parseDouble(json['subtotal']),
       discount: _parseDouble(json['discount']),
       couponDiscount: _parseDouble(json['coupon_discount']),
@@ -49,7 +82,8 @@ class OrderModel extends Order {
       tax: _parseDouble(json['tax']),
       total: _parseDouble(json['total']),
       status: _parseString(json['status'], defaultValue: 'pending'),
-      paymentStatus: _parseString(json['payment_status'], defaultValue: 'pending'),
+      paymentStatus:
+          _parseString(json['payment_status'], defaultValue: 'pending'),
       shippingMethod: _parseNullableString(json['shipping_method']),
       trackingNumber: _parseNullableString(json['tracking_number']),
       estimatedDeliveryDate: _parseDate(json['estimated_delivery_date']),
@@ -62,10 +96,18 @@ class OrderModel extends Order {
       cancelledAt: _parseDate(json['cancelled_at']),
       cancellationReason: _parseNullableString(json['cancellation_reason']),
       createdAt: _parseDate(json['created_at']) ?? DateTime.now(),
+
+      // ✅ NOUVEAU : user + adresses
+      user: user,
+      shippingAddress: shippingAddress,
+      billingAddress: billingAddress,
     );
   }
 
-  /// Convertir en JSON
+  // ============================================
+  // TO JSON
+  // ============================================
+
   @override
   Map<String, dynamic> toJson() {
     return {
@@ -95,10 +137,18 @@ class OrderModel extends Order {
       'cancelled_at': cancelledAt?.toIso8601String(),
       'cancellation_reason': cancellationReason,
       'created_at': createdAt.toIso8601String(),
+
+      // ✅ NOUVEAU
+      'user': user?.toJson(),
+      'shipping_address': shippingAddress?.toJson(),
+      'billing_address': billingAddress?.toJson(),
     };
   }
 
-  /// Copier depuis l'entité
+  // ============================================
+  // FROM ENTITY
+  // ============================================
+
   static OrderModel fromEntity(Order order) {
     return OrderModel(
       id: order.id,
@@ -126,6 +176,9 @@ class OrderModel extends Order {
       cancelledAt: order.cancelledAt,
       cancellationReason: order.cancellationReason,
       createdAt: order.createdAt,
+      user: order.user,
+      shippingAddress: order.shippingAddress,
+      billingAddress: order.billingAddress,
     );
   }
 
@@ -133,14 +186,49 @@ class OrderModel extends Order {
   // HELPERS DE PARSING
   // ============================================
 
+  /// Parser la liste des items.
   static List<OrderItem> _parseItems(dynamic itemsJson) {
     if (itemsJson is! List) return [];
 
     return itemsJson
-        .whereType<Map<String, dynamic>>()
-        .map((itemJson) => OrderItemModel.fromJson(itemJson))
+        .whereType<Map>()
+        .map((itemJson) => OrderItemModel.fromJson(
+              Map<String, dynamic>.from(itemJson),
+            ))
         .toList();
   }
+
+  /// Parser l'utilisateur.
+  static OrderUser? _parseUser(dynamic userJson) {
+    if (userJson == null) return null;
+    if (userJson is! Map) return null;
+
+    try {
+      return OrderUser.fromJson(Map<String, dynamic>.from(userJson));
+    } catch (e) {
+      debugPrint('❌ Erreur parse user: $e');
+      return null;
+    }
+  }
+
+  /// Parser une adresse (livraison ou facturation).
+  static OrderAddress? _parseAddress(dynamic addressJson) {
+    if (addressJson == null) return null;
+    if (addressJson is! Map) return null;
+
+    try {
+      return OrderAddress.fromJson(
+        Map<String, dynamic>.from(addressJson),
+      );
+    } catch (e) {
+      debugPrint('❌ Erreur parse address: $e');
+      return null;
+    }
+  }
+
+  // ============================================
+  // HELPERS DE CONVERSION
+  // ============================================
 
   static int _parseInt(dynamic value, {int defaultValue = 0}) {
     if (value == null) return defaultValue;

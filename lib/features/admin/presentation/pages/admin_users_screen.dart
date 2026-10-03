@@ -1,45 +1,35 @@
 // ============================================
-// PAGE : AdminUsersScreen
+// PAGE : AdminUsersScreen (MOBILE SENIOR)
 // ============================================
-// Écran de gestion des utilisateurs mobile.
-// Avec statistiques rapides et filtres fonctionnels.
+// Écran de gestion des utilisateurs.
+// - Statistiques rapides
+// - Filtres par rôle
+// - Cartes utilisateurs verticales
+// - FAB pour créer un utilisateur
+// - Pull-to-refresh
 // ============================================
 
-// ============================================
-// IMPORTS
-// ============================================
-
-// Flutter
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 // Core
 import '../../../../core/constants/app_colors.dart';
 import '../../../../routes/app_routes.dart';
 
-// Entities (même feature admin)
+// Entities
 import '../../domain/entities/admin_user.dart';
 
-// Providers (même feature admin)
+// Providers
 import '../providers/admin_user_provider.dart';
 
-// Widgets (même feature admin)
+// Widgets
 import '../widgets/admin_scaffold.dart';
 import '../widgets/admin_loading_state.dart';
 import '../widgets/admin_error_state.dart';
 import '../widgets/admin_empty_state.dart';
 import '../widgets/admin_confirm_dialog.dart';
 
-// ============================================
-// PAGE PRINCIPALE
-// ============================================
-
-/// Écran de gestion des utilisateurs mobile.
-///
-/// Affiche :
-/// - Statistiques rapides (total, admins, vendeurs, clients)
-/// - Filtres par rôle en chips
-/// - Cartes utilisateurs verticales
 class AdminUsersScreen extends StatefulWidget {
   const AdminUsersScreen({super.key});
 
@@ -47,21 +37,17 @@ class AdminUsersScreen extends StatefulWidget {
   State<AdminUsersScreen> createState() => _AdminUsersScreenState();
 }
 
-// ============================================
-// STATE
-// ============================================
-
 class _AdminUsersScreenState extends State<AdminUsersScreen> {
-  // ============================================
-  // INIT
-  // ============================================
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AdminUserProvider>().loadUsers();
+      _loadUsers();
     });
+  }
+
+  Future<void> _loadUsers() async {
+    await context.read<AdminUserProvider>().loadUsers();
   }
 
   // ============================================
@@ -83,8 +69,45 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         Navigator.of(context).pushNamed(AppRoutes.adminNotifications);
       },
       onLogout: () {},
-      child: _buildContent(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: _buildContent(),
+        floatingActionButton: _buildFAB(),
+      ),
     );
+  }
+
+  // ============================================
+  // FAB — AJOUTER UN UTILISATEUR
+  // ============================================
+
+  Widget _buildFAB() {
+    return FloatingActionButton.extended(
+      onPressed: _navigateToCreate,
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      elevation: 4,
+      icon: const Icon(Icons.person_add_alt_1, size: 20),
+      label: const Text(
+        'Ajouter',
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _navigateToCreate() async {
+    final result = await Navigator.of(context).pushNamed(
+      AppRoutes.adminUserCreate,
+    );
+
+    // Rafraîchir la liste si création réussie
+    if (result == true && mounted) {
+      await _loadUsers();
+    }
   }
 
   // ============================================
@@ -109,86 +132,91 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             padding: const EdgeInsets.all(16),
             child: AdminErrorState(
               message: provider.errorMessage ?? 'Erreur inconnue',
-              onRetry: provider.loadUsers,
+              onRetry: _loadUsers,
             ),
           );
         }
 
         return Column(
           children: [
-            // ============================================
-            // STATISTIQUES RAPIDES (barre horizontale)
-            // ============================================
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: AppColors.surface,
-              child: Row(
-                children: [
-                  _buildCompactStat(
-                    label: 'Total',
-                    value: provider.usersCount,
-                    color: AppColors.info,
-                  ),
-                  _buildCompactStat(
-                    label: 'Admins',
-                    value: provider.users.where((u) => u.isAdmin).length,
-                    color: const Color(0xFF8B5CF6),
-                  ),
-                  _buildCompactStat(
-                    label: 'Vendeurs',
-                    value: provider.users.where((u) => u.isSeller).length,
-                    color: AppColors.warning,
-                  ),
-                  _buildCompactStat(
-                    label: 'Clients',
-                    value: provider.users.where((u) => u.isClient).length,
-                    color: AppColors.success,
-                  ),
-                ],
-              ),
-            ),
+            // Stats rapides
+            _buildCompactStats(provider),
 
             const SizedBox(height: 6),
 
-            // ============================================
-            // FILTRES PAR RÔLE (CHIPS FONCTIONNELS)
-            // ============================================
+            // Filtres par rôle
             _buildRoleFilters(provider),
 
             const SizedBox(height: 6),
 
-            // ============================================
-            // LISTE DES UTILISATEURS EN CARTES
-            // ============================================
+            // Liste des utilisateurs
             Expanded(
               child: provider.isEmpty
                   ? AdminEmptyState(
                       icon: Icons.people_outline,
                       title: 'Aucun utilisateur',
-                      message: 'Les utilisateurs apparaîtront ici.',
+                      message: 'Cliquez sur "Ajouter" pour créer le premier.',
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: provider.users.length,
-                      itemBuilder: (context, index) {
-                        final user = provider.users[index];
-                        return _buildUserCard(user, provider);
-                      },
+                  : RefreshIndicator(
+                      onRefresh: _loadUsers,
+                      color: AppColors.primary,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: provider.users.length +
+                            (provider.hasMore ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          // Loader en bas si hasMore
+                          if (index == provider.users.length) {
+                            return _buildLoadMoreIndicator(provider);
+                          }
+                          final user = provider.users[index];
+                          return _buildUserCard(user, provider);
+                        },
+                      ),
                     ),
             ),
-
-            // ============================================
-            // PAGINATION SIMPLE
-            // ============================================
-            if (provider.users.isNotEmpty)
-              _buildPagination(provider),
           ],
         );
       },
     );
   }
 
-  /// Statistique compacte.
+  // ============================================
+  // STATS RAPIDES
+  // ============================================
+
+  Widget _buildCompactStats(AdminUserProvider provider) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      color: AppColors.surface,
+      child: Row(
+        children: [
+          _buildCompactStat(
+            label: 'Total',
+            value: provider.usersCount,
+            color: AppColors.info,
+          ),
+          _buildCompactStat(
+            label: 'Admins',
+            value: provider.users.where((u) => u.isAdmin).length,
+            color: const Color(0xFF8B5CF6),
+          ),
+          _buildCompactStat(
+            label: 'Vendeurs',
+            value: provider.users.where((u) => u.isSeller).length,
+            color: AppColors.warning,
+          ),
+          _buildCompactStat(
+            label: 'Clients',
+            value: provider.users.where((u) => u.isClient).length,
+            color: AppColors.success,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCompactStat({
     required String label,
     required int value,
@@ -223,7 +251,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   // ============================================
-  // FILTRES PAR RÔLE (FONCTIONNELS)
+  // FILTRES PAR RÔLE
   // ============================================
 
   Widget _buildRoleFilters(AdminUserProvider provider) {
@@ -234,7 +262,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       {'label': 'Clients', 'role': AdminUserRole.client},
     ];
 
-    return Container(
+    return SizedBox(
       height: 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
@@ -251,7 +279,6 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             borderRadius: BorderRadius.circular(20),
             child: InkWell(
               onTap: () {
-                // ✅ Filtrage fonctionnel
                 if (roleValue == null) {
                   provider.clearFilters();
                 } else {
@@ -268,7 +295,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     fontFamily: 'Poppins',
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: isSelected ? Colors.white : AppColors.textTertiary,
+                    color: isSelected
+                        ? Colors.white
+                        : AppColors.textTertiary,
                   ),
                 ),
               ),
@@ -283,7 +312,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   // CARTE UTILISATEUR
   // ============================================
 
-  Widget _buildUserCard(dynamic user, AdminUserProvider provider) {
+  Widget _buildUserCard(AdminUser user, AdminUserProvider provider) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -295,37 +324,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ============================================
           // LIGNE 1 : Avatar + Nom + Email
-          // ============================================
           Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    user.initials ?? '?',
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
+              _buildAvatar(user),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      user.fullName ?? 'Utilisateur',
+                      user.fullName,
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 14,
@@ -336,7 +345,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      user.email ?? '',
+                      user.email,
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 11,
@@ -354,9 +363,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
           const SizedBox(height: 10),
 
-          // ============================================
-          // LIGNE 2 : Badges en Wrap
-          // ============================================
+          // LIGNE 2 : Badges
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -365,13 +372,16 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               _buildRoleBadge(user.roles),
               _buildStatusBadge(user),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  '${user.totalOrders ?? 0} cmd',
+                  '${user.totalOrders} cmd',
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 10,
@@ -380,15 +390,18 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   ),
                 ),
               ),
-              if ((user.totalSpent ?? 0) > 0)
+              if (user.totalSpent > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.infoLight,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    user.totalSpentFormatted ?? '',
+                    user.totalSpentFormatted,
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 10,
@@ -401,15 +414,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           ),
 
           const SizedBox(height: 10),
-
-          // Séparateur
           Container(height: 1, color: AppColors.borderColor),
-
           const SizedBox(height: 8),
 
-          // ============================================
           // LIGNE 3 : Actions
-          // ============================================
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -433,7 +441,50 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
-  /// Petit bouton d'action.
+  // ============================================
+  // AVATAR (avec support URL)
+  // ============================================
+
+  Widget _buildAvatar(AdminUser user) {
+    final hasAvatar = user.avatar != null && user.avatar!.isNotEmpty;
+
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        shape: BoxShape.circle,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: hasAvatar
+          ? CachedNetworkImage(
+              imageUrl: user.avatar!,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => _buildInitials(user),
+              errorWidget: (_, __, ___) => _buildInitials(user),
+            )
+          : _buildInitials(user),
+    );
+  }
+
+  Widget _buildInitials(AdminUser user) {
+    return Center(
+      child: Text(
+        user.initials,
+        style: const TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // BOUTON D'ACTION
+  // ============================================
+
   Widget _buildActionButton({
     required String label,
     required IconData icon,
@@ -473,19 +524,18 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   // BADGES
   // ============================================
 
-  /// Badge de rôle.
-  Widget _buildRoleBadge(dynamic roles) {
+  Widget _buildRoleBadge(List<AdminUserRole> roles) {
     String label = 'Client';
     Color color = AppColors.successDark;
     Color bgColor = AppColors.successLight;
 
-    if (roles is List && roles.isNotEmpty) {
-      final roleCode = roles.first.code ?? roles.first.toString();
-      if (roleCode == 'admin') {
+    if (roles.isNotEmpty) {
+      final role = roles.first;
+      if (role == AdminUserRole.admin) {
         label = 'Admin';
         color = const Color(0xFF6B21A8);
         bgColor = const Color(0xFFF3E8FF);
-      } else if (roleCode == 'seller') {
+      } else if (role == AdminUserRole.seller) {
         label = 'Vendeur';
         color = AppColors.warningDark;
         bgColor = AppColors.warningLight;
@@ -512,21 +562,20 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
-  /// Badge de statut.
-  Widget _buildStatusBadge(dynamic user) {
+  Widget _buildStatusBadge(AdminUser user) {
     Color bgColor;
     Color textColor;
     String label;
 
-    if (user.isBanned == true) {
+    if (user.isBanned) {
       bgColor = AppColors.errorLight;
       textColor = AppColors.errorDark;
       label = 'Banni';
-    } else if (user.isSuspended == true) {
+    } else if (user.isSuspended) {
       bgColor = AppColors.warningLight;
       textColor = AppColors.warningDark;
       label = 'Suspendu';
-    } else if (user.isActive == false) {
+    } else if (!user.isActive) {
       bgColor = AppColors.statusInactiveBg;
       textColor = AppColors.statusInactiveText;
       label = 'Inactif';
@@ -557,39 +606,28 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   // ============================================
-  // PAGINATION
+  // LOAD MORE INDICATOR
   // ============================================
 
-  Widget _buildPagination(AdminUserProvider provider) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          top: BorderSide(color: AppColors.borderColor),
+  Widget _buildLoadMoreIndicator(AdminUserProvider provider) {
+    // Déclencher le chargement si pas déjà en cours
+    if (!provider.isLoadingMore) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        provider.loadMoreUsers();
+      });
+    }
+
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 20),
+      child: Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: AppColors.primary,
+          ),
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            onPressed: provider.currentPage > 1 ? provider.loadUsers : null,
-            icon: const Icon(Icons.chevron_left, size: 20),
-          ),
-          Text(
-            'Page ${provider.currentPage}',
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          IconButton(
-            onPressed: provider.hasMore ? provider.loadMoreUsers : null,
-            icon: const Icon(Icons.chevron_right, size: 20),
-          ),
-        ],
       ),
     );
   }
@@ -598,24 +636,49 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   // NAVIGATION ET ACTIONS
   // ============================================
 
-  void _navigateToDetail(dynamic user) {
+  void _navigateToDetail(AdminUser user) {
     Navigator.of(context).pushNamed(
       AppRoutes.adminUserDetail,
       arguments: {'user_id': user.id},
     );
   }
 
-  Future<void> _confirmBanUser(AdminUserProvider provider, dynamic user) async {
+  Future<void> _confirmBanUser(
+    AdminUserProvider provider,
+    AdminUser user,
+  ) async {
     final result = await AdminConfirmDialog.show(
       context: context,
       title: 'Bannir cet utilisateur ?',
-      message: 'L\'utilisateur ne pourra plus accéder à son compte.',
+      message:
+          'L\'utilisateur "${user.fullName}" ne pourra plus accéder à son compte.',
       type: AdminDialogType.danger,
       confirmLabel: 'Bannir',
     );
 
-    if (result == true) {
-      await provider.banUser(user.id);
+    if (result == true && mounted) {
+      final success = await provider.banUser(user.id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Utilisateur banni avec succès'
+                : 'Impossible de bannir l\'utilisateur',
+            style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+          ),
+          backgroundColor:
+              success ? AppColors.success : AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(20),
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
   }
 }

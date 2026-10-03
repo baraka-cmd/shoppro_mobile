@@ -1,8 +1,11 @@
 // ============================================
 // ENTITÉ ORDER (DOMAINE) - VERSION PREMIUM
 // ============================================
-// Représente une commande complète avec timeline,
-// statuts intelligents et formatage FCFA.
+// Représente une commande complète avec :
+// - Utilisateur (client)
+// - Adresses (livraison + facturation)
+// - Articles
+// - Timeline et statuts
 // Design ShopPro.
 // ============================================
 
@@ -33,6 +36,11 @@ class Order {
   final String? cancellationReason;
   final DateTime createdAt;
 
+  // ✅ NOUVEAUX CHAMPS
+  final OrderUser? user;
+  final OrderAddress? shippingAddress;
+  final OrderAddress? billingAddress;
+
   const Order({
     required this.id,
     required this.orderNumber,
@@ -57,187 +65,110 @@ class Order {
     this.cancelledAt,
     this.cancellationReason,
     required this.createdAt,
+    this.user,
+    this.shippingAddress,
+    this.billingAddress,
   });
 
   // ============================================
   // COMPTEURS
   // ============================================
 
-  /// Nombre total d'articles
   int get totalItems => items.length;
-
-  /// Quantité totale
   int get totalQuantity => items.fold(0, (sum, item) => sum + item.quantity);
-
-  /// La commande a-t-elle des articles ?
   bool get hasItems => items.isNotEmpty;
 
   // ============================================
   // FORMATAGE
   // ============================================
 
-  /// Total formaté
   String get formattedTotal => _formatPrice(total);
-
-  /// Sous-total formaté
   String get formattedSubtotal => _formatPrice(subtotal);
-
-  /// Remise formatée
   String get formattedDiscount => _formatPrice(discount + couponDiscount);
-
-  /// Livraison formatée
   String get formattedShippingFee {
     if (shippingFee == 0) return 'Gratuite';
     return _formatPrice(shippingFee);
   }
-
-  /// Taxes formatées
   String get formattedTax => _formatPrice(tax);
 
   // ============================================
   // STATUTS
   // ============================================
 
-  /// Statut formaté
   String get statusLabel {
     switch (status) {
-      case 'pending':
-        return 'En attente';
-      case 'confirmed':
-        return 'Confirmée';
-      case 'processing':
-        return 'En préparation';
-      case 'shipped':
-        return 'Expédiée';
-      case 'delivered':
-        return 'Livrée';
-      case 'cancelled':
-        return 'Annulée';
-      case 'refunded':
-        return 'Remboursée';
-      case 'returned':
-        return 'Retournée';
-      default:
-        return status;
+      case 'pending': return 'En attente';
+      case 'confirmed': return 'Confirmée';
+      case 'processing': return 'En préparation';
+      case 'shipped': return 'Expédiée';
+      case 'delivered': return 'Livrée';
+      case 'cancelled': return 'Annulée';
+      case 'refunded': return 'Remboursée';
+      case 'returned': return 'Retournée';
+      default: return status;
     }
   }
 
-  /// Couleur du statut (hex)
   int get statusColorHex {
     switch (status) {
-      case 'pending':
-        return 0xFFF4B942; // Gold
-      case 'confirmed':
-        return 0xFF3B82F6; // Bleu
-      case 'processing':
-        return 0xFF9C27B0; // Violet
-      case 'shipped':
-        return 0xFF3B82F6; // Bleu
-      case 'delivered':
-        return 0xFF087F5B; // Emerald
-      case 'cancelled':
-        return 0xFFFF6B6B; // Coral
-      case 'refunded':
-        return 0xFF68756F; // Gris
-      case 'returned':
-        return 0xFF68756F; // Gris
-      default:
-        return 0xFF68756F;
+      case 'pending': return 0xFFF4B942;
+      case 'confirmed': return 0xFF3B82F6;
+      case 'processing': return 0xFF9C27B0;
+      case 'shipped': return 0xFF3B82F6;
+      case 'delivered': return 0xFF087F5B;
+      case 'cancelled': return 0xFFFF6B6B;
+      case 'refunded': return 0xFF68756F;
+      case 'returned': return 0xFF68756F;
+      default: return 0xFF68756F;
     }
   }
 
-  /// La commande est-elle active (en cours) ?
-  bool get isActive {
-    return status == 'pending' ||
-        status == 'confirmed' ||
-        status == 'processing' ||
-        status == 'shipped';
-  }
-
-  /// La commande est-elle livrée ?
+  bool get isActive => status == 'pending' || status == 'confirmed' || status == 'processing' || status == 'shipped';
   bool get isDelivered => status == 'delivered';
-
-  /// La commande est-elle annulée ?
   bool get isCancelled => status == 'cancelled';
-
-  /// La commande peut-elle être annulée ?
-  bool get canCancel {
-    return status == 'pending' || status == 'confirmed';
-  }
-
-  /// La commande peut-elle être retournée ?
-  bool get canReturn {
-    return status == 'delivered';
-  }
-
-  /// La commande peut-elle être répétée ?
-  bool get canReorder {
-    return status == 'delivered' || status == 'cancelled';
-  }
+  bool get canCancel => status == 'pending' || status == 'confirmed';
+  bool get canReturn => status == 'delivered';
+  bool get canReorder => status == 'delivered' || status == 'cancelled';
 
   // ============================================
   // PAIEMENT
   // ============================================
 
-  /// Statut de paiement formaté
   String get paymentStatusLabel {
     switch (paymentStatus) {
-      case 'pending':
-        return 'En attente';
-      case 'paid':
-        return 'Payée';
-      case 'failed':
-        return 'Échouée';
-      case 'refunded':
-        return 'Remboursée';
-      case 'partially_refunded':
-        return 'Partiellement remboursée';
-      default:
-        return paymentStatus;
+      case 'pending': return 'En attente';
+      case 'paid': return 'Payée';
+      case 'failed': return 'Échouée';
+      case 'refunded': return 'Remboursée';
+      case 'partially_refunded': return 'Partiellement remboursée';
+      default: return paymentStatus;
     }
   }
 
-  /// Le paiement est-il effectué ?
   bool get isPaid => paymentStatus == 'paid';
 
   // ============================================
   // TIMELINE
   // ============================================
 
-  /// Étapes de la timeline
   List<String> get timelineSteps {
-    return [
-      'Commande confirmée',
-      'En préparation',
-      'Expédiée',
-      'En livraison',
-      'Livrée',
-    ];
+    return ['Commande confirmée', 'En préparation', 'Expédiée', 'En livraison', 'Livrée'];
   }
 
-  /// Index de l'étape actuelle
   int get currentTimelineIndex {
     switch (status) {
       case 'pending':
-      case 'confirmed':
-        return 0;
-      case 'processing':
-        return 1;
-      case 'shipped':
-        return 2;
-      case 'delivered':
-        return 4;
-      case 'cancelled':
-        return -1;
-      default:
-        return 0;
+      case 'confirmed': return 0;
+      case 'processing': return 1;
+      case 'shipped': return 2;
+      case 'delivered': return 4;
+      case 'cancelled': return -1;
+      default: return 0;
     }
   }
 
-  /// La livraison est-elle estimée ?
   bool get hasEstimatedDelivery => estimatedDeliveryDate != null;
 
-  /// Date de livraison estimée formatée
   String get formattedEstimatedDelivery {
     if (estimatedDeliveryDate == null) return 'Non définie';
     return _formatDate(estimatedDeliveryDate!);
@@ -247,30 +178,18 @@ class Order {
   // DATE
   // ============================================
 
-  /// Date formatée relative
   String get formattedDate {
     final now = DateTime.now();
     final difference = now.difference(createdAt);
 
-    if (difference.inDays > 365) {
-      return '${(difference.inDays / 365).floor()} an(s)';
-    }
-    if (difference.inDays > 30) {
-      return '${(difference.inDays / 30).floor()} mois';
-    }
-    if (difference.inDays > 0) {
-      return '${difference.inDays} jour(s)';
-    }
-    if (difference.inHours > 0) {
-      return '${difference.inHours} heure(s)';
-    }
-    if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} min';
-    }
+    if (difference.inDays > 365) return '${(difference.inDays / 365).floor()} an(s)';
+    if (difference.inDays > 30) return '${(difference.inDays / 30).floor()} mois';
+    if (difference.inDays > 0) return '${difference.inDays} jour(s)';
+    if (difference.inHours > 0) return '${difference.inHours} heure(s)';
+    if (difference.inMinutes > 0) return '${difference.inMinutes} min';
     return 'À l\'instant';
   }
 
-  /// Date complète formatée
   String get formattedFullDate {
     return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
   }
@@ -279,18 +198,8 @@ class Order {
   // VALIDATION
   // ============================================
 
-  /// La commande a-t-elle des données valides ?
-  bool get isValid {
-    return id > 0 &&
-        orderNumber.isNotEmpty &&
-        items.isNotEmpty &&
-        total >= 0;
-  }
-
-  /// La commande a-t-elle un prix incohérent ?
-  bool get hasPriceError {
-    return total < 0;
-  }
+  bool get isValid => id > 0 && orderNumber.isNotEmpty && items.isNotEmpty && total >= 0;
+  bool get hasPriceError => total < 0;
 
   // ============================================
   // FORMATAGE INTERNE
@@ -313,10 +222,9 @@ class Order {
   }
 
   // ============================================
-  // MÉTHODES
+  // COPYWITH
   // ============================================
 
-  /// Copier avec modifications
   Order copyWith({
     int? id,
     String? orderNumber,
@@ -341,6 +249,9 @@ class Order {
     DateTime? cancelledAt,
     String? cancellationReason,
     DateTime? createdAt,
+    OrderUser? user,
+    OrderAddress? shippingAddress,
+    OrderAddress? billingAddress,
   }) {
     return Order(
       id: id ?? this.id,
@@ -366,10 +277,16 @@ class Order {
       cancelledAt: cancelledAt ?? this.cancelledAt,
       cancellationReason: cancellationReason ?? this.cancellationReason,
       createdAt: createdAt ?? this.createdAt,
+      user: user ?? this.user,
+      shippingAddress: shippingAddress ?? this.shippingAddress,
+      billingAddress: billingAddress ?? this.billingAddress,
     );
   }
 
-  /// Convertir en JSON
+  // ============================================
+  // JSON
+  // ============================================
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -395,18 +312,27 @@ class Order {
       'cancelled_at': cancelledAt?.toIso8601String(),
       'cancellation_reason': cancellationReason,
       'created_at': createdAt.toIso8601String(),
+      'user': user?.toJson(),
+      'shipping_address': shippingAddress?.toJson(),
+      'billing_address': billingAddress?.toJson(),
     };
   }
 
-  /// Créer depuis JSON
   factory Order.fromJson(Map<String, dynamic> json) {
+    // ✅ Parser les items (2 formats : liste ou map)
+    final rawItems = json['items'];
+    List<OrderItem> items = [];
+    if (rawItems is List) {
+      items = rawItems
+          .whereType<Map>()
+          .map((itemJson) => OrderItem.fromJson(Map<String, dynamic>.from(itemJson)))
+          .toList();
+    }
+
     return Order(
-      id: json['id'] as int? ?? 0,
+      id: (json['id'] as num?)?.toInt() ?? 0,
       orderNumber: json['order_number'] as String? ?? '',
-      items: (json['items'] as List<dynamic>? ?? [])
-          .whereType<Map<String, dynamic>>()
-          .map((itemJson) => OrderItem.fromJson(itemJson))
-          .toList(),
+      items: items,
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
       discount: (json['discount'] as num?)?.toDouble() ?? 0,
       couponDiscount: (json['coupon_discount'] as num?)?.toDouble() ?? 0,
@@ -417,17 +343,57 @@ class Order {
       paymentStatus: json['payment_status'] as String? ?? 'pending',
       shippingMethod: json['shipping_method'] as String?,
       trackingNumber: json['tracking_number'] as String?,
-      estimatedDeliveryDate: DateTime.tryParse(json['estimated_delivery_date'] as String? ?? ''),
-      shippedAt: DateTime.tryParse(json['shipped_at'] as String? ?? ''),
-      deliveredAt: DateTime.tryParse(json['delivered_at'] as String? ?? ''),
+      estimatedDeliveryDate: _parseDate(json['estimated_delivery_date']),
+      shippedAt: _parseDate(json['shipped_at']),
+      deliveredAt: _parseDate(json['delivered_at']),
       couponCode: json['coupon_code'] as String?,
       customerNote: json['customer_note'] as String?,
       adminNote: json['admin_note'] as String?,
       currency: json['currency'] as String? ?? 'FCFA',
-      cancelledAt: DateTime.tryParse(json['cancelled_at'] as String? ?? ''),
+      cancelledAt: _parseDate(json['cancelled_at']),
       cancellationReason: json['cancellation_reason'] as String?,
-      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
+      createdAt: _parseDate(json['created_at']) ?? DateTime.now(),
+
+      // ✅ NOUVEAU : user + adresses
+      user: _parseUser(json['user']),
+      shippingAddress: _parseAddress(json['shipping_address']),
+      billingAddress: _parseAddress(json['billing_address']),
     );
+  }
+
+  // ============================================
+  // HELPERS DE PARSING
+  // ============================================
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  static OrderUser? _parseUser(dynamic value) {
+    if (value == null) return null;
+    if (value is Map) {
+      try {
+        return OrderUser.fromJson(Map<String, dynamic>.from(value));
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  static OrderAddress? _parseAddress(dynamic value) {
+    if (value == null) return null;
+    if (value is Map) {
+      try {
+        return OrderAddress.fromJson(Map<String, dynamic>.from(value));
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   }
 
   // ============================================
@@ -439,5 +405,152 @@ class Order {
     return 'Order(id: $id, number: $orderNumber, '
         'items: $totalItems, total: $formattedTotal, '
         'status: $statusLabel, payment: $paymentStatusLabel)';
+  }
+}
+
+// ============================================
+// ENTITÉ : OrderUser
+// ============================================
+// Représente l'utilisateur (client) d'une commande.
+// ============================================
+
+class OrderUser {
+  final int id;
+  final String name;
+  final String email;
+  final String? phone;
+  final String? avatar;
+
+  const OrderUser({
+    required this.id,
+    required this.name,
+    required this.email,
+    this.phone,
+    this.avatar,
+  });
+
+  /// Nom complet (name est déjà complet côté API)
+  String get fullName => name.isNotEmpty ? name : 'Client';
+
+  /// Initiales pour l'avatar (ex: "Jean Kamga" → "JK")
+  String get initials {
+    final parts = fullName.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return fullName.isNotEmpty ? fullName[0].toUpperCase() : '?';
+  }
+
+  /// A un avatar ?
+  bool get hasAvatar => avatar != null && avatar!.isNotEmpty;
+
+  /// A un téléphone ?
+  bool get hasPhone => phone != null && phone!.isNotEmpty;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'avatar': avatar,
+    };
+  }
+
+  factory OrderUser.fromJson(Map<String, dynamic> json) {
+    final profile = json['profile'] as Map<String, dynamic>? ?? {};
+
+    return OrderUser(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      name: json['name'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      phone: json['phone'] as String? ?? profile['phone'] as String?,
+      avatar: json['avatar'] as String? ?? profile['avatar'] as String?,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'OrderUser(id: $id, name: $name, email: $email)';
+  }
+}
+
+// ============================================
+// ENTITÉ : OrderAddress
+// ============================================
+// Représente une adresse liée à une commande.
+// ============================================
+
+class OrderAddress {
+  final int id;
+  final String fullName;
+  final String? phone;
+  final String addressLine1;
+  final String? addressLine2;
+  final String city;
+  final String? state;
+  final String? postalCode;
+  final String country;
+
+  const OrderAddress({
+    required this.id,
+    required this.fullName,
+    this.phone,
+    required this.addressLine1,
+    this.addressLine2,
+    required this.city,
+    this.state,
+    this.postalCode,
+    required this.country,
+  });
+
+  /// Adresse complète formatée
+  String get fullAddress {
+    final parts = <String>[];
+    if (addressLine1.isNotEmpty) parts.add(addressLine1);
+    if (addressLine2 != null && addressLine2!.isNotEmpty) parts.add(addressLine2!);
+    if (city.isNotEmpty) parts.add(city);
+    if (state != null && state!.isNotEmpty) parts.add(state!);
+    if (country.isNotEmpty) parts.add(country);
+    return parts.join(', ');
+  }
+
+  /// Adresse courte (ville + pays)
+  String get shortAddress => '$city, $country';
+
+  /// A un téléphone ?
+  bool get hasPhone => phone != null && phone!.isNotEmpty;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'full_name': fullName,
+      'phone': phone,
+      'address_line1': addressLine1,
+      'address_line2': addressLine2,
+      'city': city,
+      'state': state,
+      'postal_code': postalCode,
+      'country': country,
+    };
+  }
+
+  factory OrderAddress.fromJson(Map<String, dynamic> json) {
+    return OrderAddress(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      fullName: json['full_name'] as String? ?? '',
+      phone: json['phone'] as String?,
+      addressLine1: json['address_line1'] as String? ?? '',
+      addressLine2: json['address_line2'] as String?,
+      city: json['city'] as String? ?? '',
+      state: json['state'] as String?,
+      postalCode: json['postal_code'] as String?,
+      country: json['country'] as String? ?? '',
+    );
+  }
+
+  @override
+  String toString() {
+    return 'OrderAddress(id: $id, fullName: $fullName, city: $city)';
   }
 }

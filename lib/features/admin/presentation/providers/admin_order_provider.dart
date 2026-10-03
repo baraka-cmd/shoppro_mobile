@@ -10,6 +10,8 @@
 // - Changement de statut
 // - Gestion des paiements
 // - Statistiques
+// - Détails d'une commande (NOUVEAU)
+// - Historique d'une commande (NOUVEAU)
 // ============================================
 
 // ============================================
@@ -38,6 +40,7 @@ enum AdminOrderStatus2 {
   loading,
   loaded,
   loadingMore,
+  loadingDetail,
   updating,
   error,
 }
@@ -47,12 +50,6 @@ enum AdminOrderStatus2 {
 // ============================================
 
 /// Provider de gestion des commandes administrées.
-///
-/// Gère :
-/// - La liste paginée des commandes
-/// - Les changements de statut
-/// - La gestion des paiements
-/// - Les statistiques
 class AdminOrderProvider extends ChangeNotifier {
   // ============================================
   // DÉPENDANCES
@@ -70,6 +67,12 @@ class AdminOrderProvider extends ChangeNotifier {
   int _currentPage = 1;
   int _perPage = 20;
   bool _hasMore = true;
+
+  // 🆕 DÉTAIL D'UNE COMMANDE
+Order? _currentOrder;
+Map<String, dynamic>? _currentOrderJson;   // 👈 NOUVEAU — JSON brut
+List<Map<String, dynamic>> _currentOrderHistory = [];
+Map<String, dynamic>? _currentOrderTracking;
 
   // Filtres
   String? _filterStatus;
@@ -106,6 +109,7 @@ class AdminOrderProvider extends ChangeNotifier {
   bool get isLoading => _status == AdminOrderStatus2.loading;
   bool get isLoaded => _status == AdminOrderStatus2.loaded;
   bool get isLoadingMore => _status == AdminOrderStatus2.loadingMore;
+  bool get isLoadingDetail => _status == AdminOrderStatus2.loadingDetail;
   bool get isUpdating => _status == AdminOrderStatus2.updating;
   bool get hasError => _status == AdminOrderStatus2.error;
   int get ordersCount => _orders.length;
@@ -114,41 +118,45 @@ class AdminOrderProvider extends ChangeNotifier {
   int get selectedCount => _selectedIds.length;
   List<int> get selectedIds => List.unmodifiable(_selectedIds);
   Map<String, int> get statusCounts => Map.unmodifiable(_statusCounts);
-  Map<String, int> get paymentStatusCounts => Map.unmodifiable(_paymentStatusCounts);
+  Map<String, int> get paymentStatusCounts =>
+      Map.unmodifiable(_paymentStatusCounts);
   double get totalRevenue => _totalRevenue;
+
+  // 🆕 Getters détail
+  Order? get currentOrder => _currentOrder;
+  Map<String, dynamic>? get currentOrderJson => _currentOrderJson;   // 👈 NOUVEAU
+  List<Map<String, dynamic>> get currentOrderHistory =>
+      List.unmodifiable(_currentOrderHistory);
+  Map<String, dynamic>? get currentOrderTracking => _currentOrderTracking;
+  bool get hasCurrentOrder => _currentOrder != null;
 
   String? get filterStatus => _filterStatus;
   String? get filterPaymentStatus => _filterPaymentStatus;
 
-  /// Commandes en attente
+  // ============================================
+  // COMMANDES PAR STATUT
+  // ============================================
+
   List<Order> get pendingOrders =>
       _orders.where((o) => o.status == 'pending').toList();
-
-  /// Commandes confirmées
   List<Order> get confirmedOrders =>
       _orders.where((o) => o.status == 'confirmed').toList();
-
-  /// Commandes en traitement
   List<Order> get processingOrders =>
       _orders.where((o) => o.status == 'processing').toList();
-
-  /// Commandes expédiées
   List<Order> get shippedOrders =>
       _orders.where((o) => o.status == 'shipped').toList();
-
-  /// Commandes livrées
   List<Order> get deliveredOrders =>
       _orders.where((o) => o.status == 'delivered').toList();
-
-  /// Commandes annulées
   List<Order> get cancelledOrders =>
       _orders.where((o) => o.status == 'cancelled').toList();
+  List<Order> get returnedOrders =>
+      _orders.where((o) => o.status == 'returned').toList();
+  List<Order> get refundedOrders =>
+      _orders.where((o) => o.status == 'refunded').toList();
 
-  /// Nombre de commandes en attente
   int get pendingCount => pendingOrders.length;
-
-  /// Nombre de commandes livrées
   int get deliveredCount => deliveredOrders.length;
+  int get cancelledCount => cancelledOrders.length;
 
   // ============================================
   // ACTIONS PRINCIPALES
@@ -249,35 +257,131 @@ class AdminOrderProvider extends ChangeNotifier {
   }
 
   // ============================================
+  // 🆕 DÉTAIL D'UNE COMMANDE
+  // ============================================
+
+  /// Charge les détails complets d'une commande.
+  ///
+  /// Charge :
+  /// - La commande complète (avec items, adresses, paiements)
+  /// - L'historique des statuts
+  /// - Le suivi de livraison (si existant)
+  Future<void> loadOrderDetail(int orderId) async {
+  _status = AdminOrderStatus2.loadingDetail;
+  _errorMessage = null;
+  _currentOrder = null;
+  _currentOrderJson = null;
+  _currentOrderHistory = [];
+  _currentOrderTracking = null;
+  notifyListeners();
+
+  try {
+    // 1. Charger la commande
+    final order = await _repository.getOrderById(orderId);
+
+    if (order == null) {
+      _errorMessage = 'Commande introuvable.';
+      _status = AdminOrderStatus2.error;
+      notifyListeners();
+      return;
+    }
+
+    _currentOrder = order;
+    // ⚠️ Le JSON brut n'est pas retourné par getOrderById
+    // → On va devoir utiliser l'API directement OU enrichir le repo
+    // Pour l'instant, on utilise Order + les données qu'il a
+
+    // 2. Charger l'historique
+    try {
+      _currentOrderHistory = await _repository.getOrderStatusHistory(orderId);
+    } catch (e) {
+      debugPrint('⚠️ Historique non chargé: $e');
+      _currentOrderHistory = [];
+    }
+
+    // 3. Charger le tracking
+    try {
+      _currentOrderTracking = await _repository.getOrderTracking(orderId);
+    } catch (e) {
+      debugPrint('⚠️ Tracking non chargé: $e');
+      _currentOrderTracking = null;
+    }
+
+    _status = AdminOrderStatus2.loaded;
+  } catch (e) {
+    _errorMessage = e.toString();
+    _status = AdminOrderStatus2.error;
+    debugPrint('Erreur loadOrderDetail: $e');
+  }
+
+  notifyListeners();
+}
+
+  /// Récupère une commande depuis la liste locale (instantané).
+  ///
+  /// Utile pour afficher les données de base immédiatement
+  /// pendant que le détail complet se charge.
+  Order? getOrderById(int orderId) {
+    // 1. Vérifier si c'est la commande courante
+    if (_currentOrder?.id == orderId) {
+      return _currentOrder;
+    }
+
+    // 2. Chercher dans la liste
+    for (final order in _orders) {
+      if (order.id == orderId) {
+        return order;
+      }
+    }
+
+    return null;
+  }
+
+  /// Recharge uniquement l'historique d'une commande.
+  Future<void> reloadOrderHistory(int orderId) async {
+    try {
+      final history = await _repository.getOrderStatusHistory(orderId);
+      _currentOrderHistory = history;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Erreur reloadOrderHistory: $e');
+    }
+  }
+
+  /// Efface le détail courant.
+  void clearCurrentOrder() {
+  _currentOrder = null;
+  _currentOrderJson = null;
+  _currentOrderHistory = [];
+  _currentOrderTracking = null;
+  notifyListeners();
+}
+
+  // ============================================
   // RECHERCHE ET FILTRES
   // ============================================
 
-  /// Recherche des commandes.
   Future<void> search(String query) async {
     _searchQuery = query.trim().isEmpty ? null : query.trim();
     await loadOrders();
   }
 
-  /// Filtre par statut.
   Future<void> filterByStatus(String? status) async {
     _filterStatus = status;
     await loadOrders();
   }
 
-  /// Filtre par statut de paiement.
   Future<void> filterByPaymentStatus(String? status) async {
     _filterPaymentStatus = status;
     await loadOrders();
   }
 
-  /// Trie les résultats.
   Future<void> sort(String sortBy, {String direction = 'asc'}) async {
     _sortBy = sortBy;
     _sortDirection = direction;
     await loadOrders();
   }
 
-  /// Efface les filtres.
   Future<void> clearFilters() async {
     _filterStatus = null;
     _filterPaymentStatus = null;
@@ -288,10 +392,9 @@ class AdminOrderProvider extends ChangeNotifier {
   }
 
   // ============================================
-  // CHANGEMENT DE STATUT
+  // CHANGEMENT DE STATUT (avec rechargement détail)
   // ============================================
 
-  /// Confirme une commande.
   Future<bool> confirmOrder(int orderId) async {
     _status = AdminOrderStatus2.updating;
     notifyListeners();
@@ -299,7 +402,12 @@ class AdminOrderProvider extends ChangeNotifier {
     try {
       final success = await _repository.confirmOrder(orderId);
       if (success) {
-        _updateOrderStatus(orderId, 'confirmed');
+        // Recharger le détail si on est dessus
+        if (_currentOrder?.id == orderId) {
+          await loadOrderDetail(orderId);
+        }
+        // Recharger la liste
+        await refreshOrders();
       }
       _status = AdminOrderStatus2.loaded;
       notifyListeners();
@@ -307,29 +415,42 @@ class AdminOrderProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
       _status = AdminOrderStatus2.error;
-      debugPrint('Erreur confirmOrder: $e');
       notifyListeners();
       return false;
     }
   }
 
-  /// Marque comme en traitement.
   Future<bool> processOrder(int orderId) async {
+    _status = AdminOrderStatus2.updating;
+    notifyListeners();
+
     try {
       final success = await _repository.processOrder(orderId);
       if (success) {
-        _updateOrderStatus(orderId, 'processing');
+        if (_currentOrder?.id == orderId) {
+          await loadOrderDetail(orderId);
+        }
+        await refreshOrders();
       }
+      _status = AdminOrderStatus2.loaded;
+      notifyListeners();
       return success;
     } catch (e) {
       _errorMessage = e.toString();
+      _status = AdminOrderStatus2.error;
       notifyListeners();
       return false;
     }
   }
 
-  /// Expédie une commande.
-  Future<bool> shipOrder(int orderId, {String? trackingNumber, String? carrier}) async {
+  Future<bool> shipOrder(
+    int orderId, {
+    String? trackingNumber,
+    String? carrier,
+  }) async {
+    _status = AdminOrderStatus2.updating;
+    notifyListeners();
+
     try {
       final success = await _repository.shipOrder(
         orderId,
@@ -337,56 +458,109 @@ class AdminOrderProvider extends ChangeNotifier {
         carrier: carrier,
       );
       if (success) {
-        _updateOrderStatus(orderId, 'shipped');
+        if (_currentOrder?.id == orderId) {
+          await loadOrderDetail(orderId);
+        }
+        await refreshOrders();
       }
+      _status = AdminOrderStatus2.loaded;
+      notifyListeners();
       return success;
     } catch (e) {
       _errorMessage = e.toString();
+      _status = AdminOrderStatus2.error;
       notifyListeners();
       return false;
     }
   }
 
-  /// Livre une commande.
   Future<bool> deliverOrder(int orderId) async {
+    _status = AdminOrderStatus2.updating;
+    notifyListeners();
+
     try {
       final success = await _repository.deliverOrder(orderId);
       if (success) {
-        _updateOrderStatus(orderId, 'delivered');
+        if (_currentOrder?.id == orderId) {
+          await loadOrderDetail(orderId);
+        }
+        await refreshOrders();
       }
+      _status = AdminOrderStatus2.loaded;
+      notifyListeners();
       return success;
     } catch (e) {
       _errorMessage = e.toString();
+      _status = AdminOrderStatus2.error;
       notifyListeners();
       return false;
     }
   }
 
-  /// Annule une commande.
   Future<bool> cancelOrder(int orderId, {String? reason}) async {
+    _status = AdminOrderStatus2.updating;
+    notifyListeners();
+
     try {
       final success = await _repository.cancelOrder(orderId, reason: reason);
       if (success) {
-        _updateOrderStatus(orderId, 'cancelled');
+        if (_currentOrder?.id == orderId) {
+          await loadOrderDetail(orderId);
+        }
+        await refreshOrders();
       }
+      _status = AdminOrderStatus2.loaded;
+      notifyListeners();
       return success;
     } catch (e) {
       _errorMessage = e.toString();
+      _status = AdminOrderStatus2.error;
       notifyListeners();
       return false;
     }
   }
 
-  /// Rembourse une commande.
   Future<bool> refundOrder(int orderId) async {
+    _status = AdminOrderStatus2.updating;
+    notifyListeners();
+
     try {
       final success = await _repository.refundOrder(orderId);
       if (success) {
-        _updateOrderStatus(orderId, 'refunded');
+        if (_currentOrder?.id == orderId) {
+          await loadOrderDetail(orderId);
+        }
+        await refreshOrders();
       }
+      _status = AdminOrderStatus2.loaded;
+      notifyListeners();
       return success;
     } catch (e) {
       _errorMessage = e.toString();
+      _status = AdminOrderStatus2.error;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> returnOrder(int orderId, {String? reason}) async {
+    _status = AdminOrderStatus2.updating;
+    notifyListeners();
+
+    try {
+      final success = await _repository.returnOrder(orderId, reason: reason);
+      if (success) {
+        if (_currentOrder?.id == orderId) {
+          await loadOrderDetail(orderId);
+        }
+        await refreshOrders();
+      }
+      _status = AdminOrderStatus2.loaded;
+      notifyListeners();
+      return success;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _status = AdminOrderStatus2.error;
       notifyListeners();
       return false;
     }
@@ -396,10 +570,13 @@ class AdminOrderProvider extends ChangeNotifier {
   // PAIEMENT
   // ============================================
 
-  /// Marque le paiement comme reçu.
   Future<bool> markPaymentAsPaid(int orderId) async {
     try {
-      return await _repository.markPaymentAsPaid(orderId);
+      final success = await _repository.markPaymentAsPaid(orderId);
+      if (success && _currentOrder?.id == orderId) {
+        await loadOrderDetail(orderId);
+      }
+      return success;
     } catch (e) {
       _errorMessage = e.toString();
       notifyListeners();
@@ -407,10 +584,13 @@ class AdminOrderProvider extends ChangeNotifier {
     }
   }
 
-  /// Marque le paiement comme échoué.
   Future<bool> markPaymentAsFailed(int orderId) async {
     try {
-      return await _repository.markPaymentAsFailed(orderId);
+      final success = await _repository.markPaymentAsFailed(orderId);
+      if (success && _currentOrder?.id == orderId) {
+        await loadOrderDetail(orderId);
+      }
+      return success;
     } catch (e) {
       _errorMessage = e.toString();
       notifyListeners();
@@ -418,10 +598,13 @@ class AdminOrderProvider extends ChangeNotifier {
     }
   }
 
-  /// Marque le paiement comme remboursé.
   Future<bool> markPaymentAsRefunded(int orderId) async {
     try {
-      return await _repository.markPaymentAsRefunded(orderId);
+      final success = await _repository.markPaymentAsRefunded(orderId);
+      if (success && _currentOrder?.id == orderId) {
+        await loadOrderDetail(orderId);
+      }
+      return success;
     } catch (e) {
       _errorMessage = e.toString();
       notifyListeners();
@@ -433,10 +616,13 @@ class AdminOrderProvider extends ChangeNotifier {
   // NOTES ADMIN
   // ============================================
 
-  /// Ajoute une note admin.
   Future<bool> addAdminNote(int orderId, String note) async {
     try {
-      return await _repository.addAdminNote(orderId, note);
+      final success = await _repository.addAdminNote(orderId, note);
+      if (success && _currentOrder?.id == orderId) {
+        await loadOrderDetail(orderId);
+      }
+      return success;
     } catch (e) {
       _errorMessage = e.toString();
       notifyListeners();
@@ -444,7 +630,6 @@ class AdminOrderProvider extends ChangeNotifier {
     }
   }
 
-  /// Récupère les notes admin.
   Future<List<Map<String, dynamic>>> getAdminNotes(int orderId) async {
     try {
       return await _repository.getAdminNotes(orderId);
@@ -458,7 +643,6 @@ class AdminOrderProvider extends ChangeNotifier {
   // SÉLECTION
   // ============================================
 
-  /// Toggle la sélection.
   void toggleSelection(int id) {
     if (_selectedIds.contains(id)) {
       _selectedIds.remove(id);
@@ -468,41 +652,29 @@ class AdminOrderProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Sélectionne tout.
   void selectAll() {
     _selectedIds.clear();
     _selectedIds.addAll(_orders.map((o) => o.id));
     notifyListeners();
   }
 
-  /// Efface la sélection.
   void clearSelection() {
     _selectedIds.clear();
     notifyListeners();
   }
 
-  /// Vérifie la sélection.
   bool isSelected(int id) => _selectedIds.contains(id);
 
   // ============================================
   // HELPERS PRIVÉS
   // ============================================
 
-  /// Met à jour le statut d'une commande dans la liste.
-  void _updateOrderStatus(int orderId, String status) {
-    final index = _orders.indexWhere((o) => o.id == orderId);
-    if (index != -1) {
-      // Utiliser copyWith si disponible sur Order
-      // Sinon recharger la liste
-      notifyListeners();
-    }
-  }
-
   /// Charge les statistiques des commandes.
   Future<void> _loadStatistics() async {
     try {
       _statusCounts = await _repository.getOrdersCountByStatus();
-      _paymentStatusCounts = await _repository.getOrdersCountByPaymentStatus();
+      _paymentStatusCounts =
+          await _repository.getOrdersCountByPaymentStatus();
       _totalRevenue = await _repository.getTotalRevenue();
     } catch (e) {
       debugPrint('Erreur _loadStatistics: $e');
@@ -513,7 +685,6 @@ class AdminOrderProvider extends ChangeNotifier {
   // RÉINITIALISATION
   // ============================================
 
-  /// Réinitialise le provider.
   void reset() {
     _status = AdminOrderStatus2.initial;
     _orders = [];
@@ -527,6 +698,9 @@ class AdminOrderProvider extends ChangeNotifier {
     _statusCounts = {};
     _paymentStatusCounts = {};
     _totalRevenue = 0;
+    _currentOrder = null;
+    _currentOrderHistory = [];
+    _currentOrderTracking = null;
     notifyListeners();
   }
 
@@ -537,6 +711,7 @@ class AdminOrderProvider extends ChangeNotifier {
   @override
   String toString() {
     return 'AdminOrderProvider(status: $_status, orders: ${_orders.length}, '
-        'pending: $pendingCount, delivered: $deliveredCount, revenue: $_totalRevenue)';
+        'pending: $pendingCount, delivered: $deliveredCount, '
+        'revenue: $_totalRevenue, current: ${_currentOrder?.id ?? 'none'})';
   }
 }

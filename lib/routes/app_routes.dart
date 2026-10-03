@@ -172,4 +172,6 @@ class AppRoutes {
 
 
   static const String allReviews = '/product/reviews';
+
+  static const String adminUserCreate = '/admin/users/create';
 }

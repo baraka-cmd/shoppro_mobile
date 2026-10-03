@@ -1,42 +1,29 @@
 // ============================================
 // REPOSITORY IMPL : AdminUserRepositoryImpl
 // ============================================
-// Implémentation concrète du repository de gestion des utilisateurs.
-// Cette classe implémente l'interface [AdminUserRepository]
-// et orchestre les appels API.
-//
-// Responsabilités :
-// - Appels API via AdminUserApi
-// - Transformation des données
-// - Gestion des erreurs
+// Implémentation du repository de gestion des utilisateurs.
+// - CRUD complet
+// - Upload d'avatar (multipart/form-data)
+// - Gestion des rôles et statuts
+// - Actions en masse
 // ============================================
 
-// ============================================
-// IMPORTS
-// ============================================
-
-// Flutter
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
-// Entities (même feature admin)
+// Entities
 import '../../domain/entities/admin_user.dart';
 
-// Repositories interfaces (même feature admin)
+// Repositories interfaces
 import '../../domain/repositories/admin_user_repository.dart';
 
-// Models (même feature admin)
+// Models
 import '../models/admin_user_model.dart';
 
-// Sources (même feature admin)
+// Sources
 import '../sources/admin_user_api.dart';
 
-// ============================================
-// CLASSE PRINCIPALE
-// ============================================
-
-/// Implémentation du repository de gestion des utilisateurs.
-///
-/// Gère toutes les opérations CRUD et de gestion des utilisateurs.
 class AdminUserRepositoryImpl implements AdminUserRepository {
   // ============================================
   // DÉPENDANCES
@@ -270,38 +257,174 @@ class AdminUserRepositoryImpl implements AdminUserRepository {
   }
 
   @override
-Future<List<Map<String, dynamic>>> getNewUsersByDay({int days = 30}) async {
-  try {
-    // Utiliser getUsers avec tri par date de création
-    final users = await getUsers(
-      perPage: 100, // Récupérer jusqu'à 100 utilisateurs
-      sortBy: 'created_at',
-      sortDirection: 'desc',
-    );
+  Future<List<Map<String, dynamic>>> getNewUsersByDay({int days = 30}) async {
+    try {
+      final users = await getUsers(
+        perPage: 100,
+        sortBy: 'created_at',
+        sortDirection: 'desc',
+      );
 
-    final now = DateTime.now();
-    final startDate = now.subtract(Duration(days: days));
-    final byDay = <String, int>{};
+      final now = DateTime.now();
+      final startDate = now.subtract(Duration(days: days));
+      final byDay = <String, int>{};
 
-    for (final user in users) {
-      if (user.createdAt.isAfter(startDate)) {
-        final dayKey = user.createdAt.toIso8601String().split('T').first;
-        byDay[dayKey] = (byDay[dayKey] ?? 0) + 1;
+      for (final user in users) {
+        if (user.createdAt.isAfter(startDate)) {
+          final dayKey = user.createdAt.toIso8601String().split('T').first;
+          byDay[dayKey] = (byDay[dayKey] ?? 0) + 1;
+        }
       }
-    }
 
-    return byDay.entries
-        .map((e) => {'date': e.key, 'count': e.value})
-        .toList()
-      ..sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
-  } catch (e) {
-    debugPrint('Erreur getNewUsersByDay: $e');
-    rethrow;
+      return byDay.entries
+          .map((e) => {'date': e.key, 'count': e.value})
+          .toList()
+        ..sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
+    } catch (e) {
+      debugPrint('Erreur getNewUsersByDay: $e');
+      rethrow;
+    }
   }
-}
 
   // ============================================
-  // CRUD
+  // 🆕 CRÉATION AVEC AVATAR (FormData)
+  // ============================================
+
+  @override
+  Future<AdminUser> createUserSimple({
+    required String name,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+    required String role,
+    String? phone,
+    String? country,
+    String? city,
+    String? address,
+    bool isActive = true,
+    File? avatarFile,
+  }) async {
+    try {
+      // Construire le FormData
+      final formData = FormData();
+
+      formData.fields.addAll([
+        MapEntry('name', name),
+        MapEntry('email', email),
+        MapEntry('password', password),
+        MapEntry('password_confirmation', passwordConfirmation),
+        MapEntry('role', role),
+        MapEntry('is_active', isActive ? '1' : '0'),
+      ]);
+
+      if (phone != null && phone.isNotEmpty) {
+        formData.fields.add(MapEntry('phone', phone));
+      }
+      if (country != null && country.isNotEmpty) {
+        formData.fields.add(MapEntry('country', country));
+      }
+      if (city != null && city.isNotEmpty) {
+        formData.fields.add(MapEntry('city', city));
+      }
+      if (address != null && address.isNotEmpty) {
+        formData.fields.add(MapEntry('address', address));
+      }
+
+      // Ajouter l'avatar si présent
+      if (avatarFile != null) {
+        final fileName = avatarFile.path.split(Platform.pathSeparator).last;
+        formData.files.add(
+          MapEntry(
+            'avatar',
+            await MultipartFile.fromFile(
+              avatarFile.path,
+              filename: fileName,
+            ),
+          ),
+        );
+      }
+
+      final response = await _api.createUserMultipart(formData);
+      final data = response['data'];
+      return AdminUserModel.fromJson(Map<String, dynamic>.from(data as Map));
+    } catch (e) {
+      debugPrint('Erreur createUserSimple: $e');
+      rethrow;
+    }
+  }
+
+  // ============================================
+  // 🆕 MODIFICATION AVEC AVATAR (FormData)
+  // ============================================
+
+  @override
+  Future<AdminUser> updateUserSimple({
+    required int id,
+    String? name,
+    String? email,
+    String? password,
+    String? passwordConfirmation,
+    String? role,
+    String? phone,
+    String? country,
+    String? city,
+    String? address,
+    bool? isActive,
+    File? avatarFile,
+    bool removeAvatar = false,
+  }) async {
+    try {
+      final formData = FormData();
+
+      // ⚠️ Spoof PUT avec POST (Laravel n'accepte pas PUT + multipart facilement)
+      formData.fields.add(MapEntry('_method', 'PUT'));
+
+      if (name != null) formData.fields.add(MapEntry('name', name));
+      if (email != null) formData.fields.add(MapEntry('email', email));
+      if (password != null && password.isNotEmpty) {
+        formData.fields.add(MapEntry('password', password));
+        formData.fields.add(MapEntry(
+          'password_confirmation',
+          passwordConfirmation ?? password,
+        ));
+      }
+      if (role != null) formData.fields.add(MapEntry('role', role));
+      if (phone != null) formData.fields.add(MapEntry('phone', phone));
+      if (country != null) formData.fields.add(MapEntry('country', country));
+      if (city != null) formData.fields.add(MapEntry('city', city));
+      if (address != null) formData.fields.add(MapEntry('address', address));
+      if (isActive != null) {
+        formData.fields.add(MapEntry('is_active', isActive ? '1' : '0'));
+      }
+      if (removeAvatar) {
+        formData.fields.add(const MapEntry('remove_avatar', '1'));
+      }
+
+      // Ajouter l'avatar si présent
+      if (avatarFile != null) {
+        final fileName = avatarFile.path.split(Platform.pathSeparator).last;
+        formData.files.add(
+          MapEntry(
+            'avatar',
+            await MultipartFile.fromFile(
+              avatarFile.path,
+              filename: fileName,
+            ),
+          ),
+        );
+      }
+
+      final response = await _api.updateUserMultipart(id, formData);
+      final data = response['data'];
+      return AdminUserModel.fromJson(Map<String, dynamic>.from(data as Map));
+    } catch (e) {
+      debugPrint('Erreur updateUserSimple: $e');
+      rethrow;
+    }
+  }
+
+  // ============================================
+  // CRUD (VERSION JSON — sans avatar)
   // ============================================
 
   @override
@@ -471,13 +594,51 @@ Future<List<Map<String, dynamic>>> getNewUsersByDay({int days = 30}) async {
   }
 
   // ============================================
+  // 🆕 AVATAR (endpoints dédiés)
+  // ============================================
+
+  @override
+  Future<String> uploadAvatar(int id, File avatarFile) async {
+    try {
+      final formData = FormData();
+      final fileName = avatarFile.path.split(Platform.pathSeparator).last;
+
+      formData.files.add(
+        MapEntry(
+          'avatar',
+          await MultipartFile.fromFile(avatarFile.path, filename: fileName),
+        ),
+      );
+
+      final response = await _api.uploadAvatar(id, formData);
+      return response['data']['avatar'] as String? ?? '';
+    } catch (e) {
+      debugPrint('Erreur uploadAvatar: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<bool> deleteAvatar(int id) async {
+    try {
+      final response = await _api.deleteAvatar(id);
+      return response['success'] as bool? ?? true;
+    } catch (e) {
+      debugPrint('Erreur deleteAvatar: $e');
+      rethrow;
+    }
+  }
+
+  // ============================================
   // VÉRIFICATION EMAIL
   // ============================================
 
   @override
   Future<bool> verifyUserEmail(int id) async {
     try {
-      final response = await _api.updateUser(id, {'email_verified_at': DateTime.now().toIso8601String()});
+      final response = await _api.updateUser(id, {
+        'email_verified_at': DateTime.now().toIso8601String(),
+      });
       return response['success'] as bool? ?? true;
     } catch (e) {
       debugPrint('Erreur verifyUserEmail: $e');

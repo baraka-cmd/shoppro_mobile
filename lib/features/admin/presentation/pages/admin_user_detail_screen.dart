@@ -1,52 +1,31 @@
 // ============================================
-// PAGE : AdminUserDetailScreen
+// PAGE : AdminUserDetailScreen (MOBILE SENIOR)
 // ============================================
-// Écran de détail d'un utilisateur administré.
-// Design moderne avec profil et statistiques.
-//
-// Structure :
-// - Sidebar de navigation
-// - Header avec titre
-// - Carte de profil
-// - Statistiques d'activité
-// - Commandes de l'utilisateur
-// - Actions (activer, bannir, changer rôle)
+// Écran de détail d'un utilisateur - 100% dynamique.
+// - Charge les données depuis l'API
+// - Accordéons pour les sections
+// - Actions fonctionnelles (activer, bannir, changer rôle)
+// - Pull-to-refresh
+// - Bottom sheet pour les actions secondaires
 // ============================================
 
-// ============================================
-// IMPORTS
-// ============================================
-
-// Flutter
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 // Core
 import '../../../../core/constants/app_colors.dart';
 
-// Providers (même feature admin)
+// Providers
 import '../providers/admin_user_provider.dart';
 
-// Widgets (même feature admin)
-import '../widgets/admin_scaffold.dart';
-import '../../../../routes/app_routes.dart';
-import '../widgets/admin_loading_state.dart';
-import '../widgets/admin_error_state.dart';
+// Entities
+import '../../domain/entities/admin_user.dart';
+
+// Widgets
 import '../widgets/admin_confirm_dialog.dart';
 
-// ============================================
-// PAGE PRINCIPALE
-// ============================================
-
-/// Écran de détail d'un utilisateur.
-///
-/// Affiche :
-/// - Le profil complet
-/// - Les statistiques d'activité
-/// - L'historique des commandes
-/// - Les actions de gestion
 class AdminUserDetailScreen extends StatefulWidget {
-  /// ID de l'utilisateur
   final int userId;
 
   const AdminUserDetailScreen({super.key, required this.userId});
@@ -55,22 +34,47 @@ class AdminUserDetailScreen extends StatefulWidget {
   State<AdminUserDetailScreen> createState() => _AdminUserDetailScreenState();
 }
 
-// ============================================
-// STATE
-// ============================================
-
-class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
-  // ============================================
-  // INIT
-  // ============================================
+class _AdminUserDetailScreenState extends State<AdminUserDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entryController;
+  late final Animation<double> _fadeIn;
 
   @override
   void initState() {
     super.initState();
-    // Charger les détails de l'utilisateur
+
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+
+    _fadeIn = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOut,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // context.read<AdminUserProvider>().loadUserDetail(widget.userId);
+      _loadUserDetail();
     });
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUserDetail() async {
+    final provider = context.read<AdminUserProvider>();
+    await provider.loadUserDetail(widget.userId);
+    if (mounted) {
+      _entryController.forward();
+    }
+  }
+
+  Future<void> _reload() async {
+    final provider = context.read<AdminUserProvider>();
+    await provider.loadUserDetail(widget.userId);
   }
 
   // ============================================
@@ -78,67 +82,132 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
   // ============================================
 
   @override
-Widget build(BuildContext context) {
-  return AdminScaffold(
-    title: 'Marques',
-    subtitle: 'Gérez vos marques et partenaires',
-    currentRoute: AppRoutes.adminBrands,
-    onNavigate: (route) {
-      if (route.isNotEmpty) {
-        Navigator.of(context).pushNamed(route);
-      }
-    },
-    onNotificationsTap: () {
-      Navigator.of(context).pushNamed(AppRoutes.adminNotifications);
-    },
-    onLogout: () {
-      // Déconnexion
-    },
-    child: _buildContent(),
-  );
-}
+  Widget build(BuildContext context) {
+    return Consumer<AdminUserProvider>(
+      builder: (context, provider, _) {
+        final user = provider.currentUser;
+
+        return Scaffold(
+          backgroundColor: AppColors.cream,
+          appBar: _buildAppBar(provider, user),
+          body: _buildBody(provider, user),
+        );
+      },
+    );
+  }
+
   // ============================================
-  // CONTENU PRINCIPAL
+  // APPBAR
   // ============================================
 
-  Widget _buildContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ============================================
-        // PROFIL + STATISTIQUES (2 colonnes)
-        // ============================================
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  PreferredSizeWidget _buildAppBar(
+    AdminUserProvider provider,
+    AdminUser? user,
+  ) {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      scrolledUnderElevation: 1,
+      leading: IconButton(
+        icon: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 20,
+          color: AppColors.textPrimary,
+        ),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Détail utilisateur',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          if (user != null)
+            Text(
+              user.email,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                color: AppColors.textTertiary,
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          icon: provider.isUpdating
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                )
+              : const Icon(Icons.refresh, color: AppColors.textPrimary),
+          onPressed: provider.isUpdating ? null : _reload,
+        ),
+        const SizedBox(width: 4),
+      ],
+    );
+  }
+
+  // ============================================
+  // BODY
+  // ============================================
+
+  Widget _buildBody(AdminUserProvider provider, AdminUser? user) {
+    if (provider.isLoadingDetail && user == null) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    if (provider.hasError && user == null) {
+      return _buildErrorState(provider.errorMessage);
+    }
+
+    if (user == null) {
+      return _buildEmptyState();
+    }
+
+    return RefreshIndicator(
+      onRefresh: _reload,
+      color: AppColors.primary,
+      child: FadeTransition(
+        opacity: _fadeIn,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            // Profil (1/3)
-            Expanded(
-              flex: 1,
-              child: _buildProfileCard(),
-            ),
-            const SizedBox(width: 16),
-            // Statistiques (2/3)
-            Expanded(
-              flex: 2,
-              child: _buildStatsCard(),
-            ),
+            // 1. Carte profil
+            _buildProfileCard(user),
+
+            const SizedBox(height: 16),
+
+            // 2. Statistiques
+            _buildStatsSection(user),
+
+            const SizedBox(height: 16),
+
+            // 3. Informations détaillées
+            _buildInfoAccordion(user),
+
+            const SizedBox(height: 16),
+
+            // 4. Actions
+            _buildActionsSection(provider, user),
+
+            const SizedBox(height: 24),
           ],
         ),
-
-        const SizedBox(height: 16),
-
-        // ============================================
-        // COMMANDES RÉCENTES
-        // ============================================
-        _buildOrdersSection(),
-
-        const SizedBox(height: 16),
-
-        // ============================================
-        // ACTIONS
-        // ============================================
-        _buildActionsSection(),
-      ],
+      ),
     );
   }
 
@@ -146,118 +215,283 @@ Widget build(BuildContext context) {
   // SECTION : PROFIL
   // ============================================
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(AdminUser user) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: AppColors.cardShadow,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
           // Avatar
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-              boxShadow: AppColors.mediumShadow,
-            ),
-            child: const Center(
-              child: Text(
-                'JD',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Nom
-          const Text(
-            'Jean Dupont',
+          _buildAvatar(user),
+
+          const SizedBox(height: 14),
+
+          // Nom complet
+          Text(
+            user.fullName,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontFamily: 'Poppins',
-              fontSize: 18,
+              fontSize: 19,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
+
           // Email
-          const Text(
-            'jean@example.com',
+          Text(
+            user.email,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontFamily: 'Poppins',
               fontSize: 13,
-              fontWeight: FontWeight.w400,
               color: AppColors.textTertiary,
             ),
           ),
+          const SizedBox(height: 12),
+
+          // Badges (rôle + statut)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              _buildRoleBadge(user),
+              _buildStatusBadge(user),
+            ],
+          ),
+
+          // Téléphone
+          if (user.phone != null && user.phone!.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(height: 1, color: AppColors.borderColor),
+            const SizedBox(height: 16),
+            _buildProfileInfoRow(
+              Icons.phone_outlined,
+              user.phone!,
+            ),
+          ],
+
+          // Localisation
+          if ((user.city != null && user.city!.isNotEmpty) ||
+              (user.country != null && user.country!.isNotEmpty)) ...[
+            const SizedBox(height: 8),
+            _buildProfileInfoRow(
+              Icons.location_on_outlined,
+              [user.city, user.country]
+                  .where((e) => e != null && e.isNotEmpty)
+                  .join(', '),
+            ),
+          ],
+
+          // Adresse
+          if (user.address != null && user.address!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _buildProfileInfoRow(
+              Icons.home_outlined,
+              user.address!,
+            ),
+          ],
+
+          // Date de création
           const SizedBox(height: 8),
-          // Badge rôle
-          _buildRoleBadge(),
-          const SizedBox(height: 16),
-          // Séparateur
-          Container(height: 1, color: AppColors.borderColor),
-          const SizedBox(height: 16),
-          // Informations
-          _buildProfileInfoRow(Icons.phone_outlined, '+237 6 50 00 00 00'),
-          _buildProfileInfoRow(Icons.location_on_outlined, 'Douala, Cameroun'),
-          _buildProfileInfoRow(Icons.calendar_today, 'Membre depuis août 2026'),
+          _buildProfileInfoRow(
+            Icons.calendar_today_outlined,
+            'Membre depuis ${user.createdAtFormatted}',
+          ),
         ],
       ),
     );
   }
 
-  /// Badge de rôle.
-  Widget _buildRoleBadge() {
+  // ============================================
+  // AVATAR
+  // ============================================
+
+  Widget _buildAvatar(AdminUser user) {
+    final hasAvatar = user.avatar != null && user.avatar!.isNotEmpty;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      width: 88,
+      height: 88,
       decoration: BoxDecoration(
-        color: AppColors.successLight,
-        borderRadius: BorderRadius.circular(999),
+        color: AppColors.primary,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: const Text(
-        'Client',
-        style: TextStyle(
+      clipBehavior: Clip.antiAlias,
+      child: hasAvatar
+          ? CachedNetworkImage(
+              imageUrl: user.avatar!,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => _buildInitials(user),
+              errorWidget: (_, __, ___) => _buildInitials(user),
+            )
+          : _buildInitials(user),
+    );
+  }
+
+  Widget _buildInitials(AdminUser user) {
+    return Center(
+      child: Text(
+        user.initials,
+        style: const TextStyle(
           fontFamily: 'Poppins',
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: AppColors.successDark,
+          fontSize: 30,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
         ),
       ),
     );
   }
 
-  /// Ligne d'information du profil.
-  Widget _buildProfileInfoRow(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+  // ============================================
+  // BADGES
+  // ============================================
+
+  Widget _buildRoleBadge(AdminUser user) {
+    String label = 'Client';
+    Color color = AppColors.successDark;
+    Color bgColor = AppColors.successLight;
+    IconData icon = Icons.person_outline;
+
+    if (user.isAdmin) {
+      label = 'Administrateur';
+      color = const Color(0xFF6B21A8);
+      bgColor = const Color(0xFFF3E8FF);
+      icon = Icons.admin_panel_settings_outlined;
+    } else if (user.isSeller) {
+      label = 'Vendeur';
+      color = AppColors.warningDark;
+      bgColor = AppColors.warningLight;
+      icon = Icons.storefront_outlined;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppColors.textTertiary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                color: AppColors.textSecondary,
-              ),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatusBadge(AdminUser user) {
+    Color bgColor;
+    Color textColor;
+    String label;
+    IconData icon;
+
+    if (user.isBanned) {
+      bgColor = AppColors.errorLight;
+      textColor = AppColors.errorDark;
+      label = 'Banni';
+      icon = Icons.block;
+    } else if (user.isSuspended) {
+      bgColor = AppColors.warningLight;
+      textColor = AppColors.warningDark;
+      label = 'Suspendu';
+      icon = Icons.pause_circle_outline;
+    } else if (!user.isActive) {
+      bgColor = AppColors.statusInactiveBg;
+      textColor = AppColors.statusInactiveText;
+      label = 'Inactif';
+      icon = Icons.do_not_disturb_on_outlined;
+    } else {
+      bgColor = AppColors.successLight;
+      textColor = AppColors.successDark;
+      label = 'Actif';
+      icon = Icons.check_circle_outline;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: textColor),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================
+  // LIGNE D'INFO
+  // ============================================
+
+  Widget _buildProfileInfoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceAlt,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: AppColors.textSecondary),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -265,88 +499,78 @@ Widget build(BuildContext context) {
   // SECTION : STATISTIQUES
   // ============================================
 
-  Widget _buildStatsCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: AppColors.cardShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Statistiques d\'activité',
+  Widget _buildStatsSection(AdminUser user) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 10),
+          child: Text(
+            "Statistiques d'activité",
             style: TextStyle(
               fontFamily: 'Poppins',
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildStatItem(
-                icon: Icons.receipt_long_outlined,
-                label: 'Commandes',
-                value: '15',
-                color: AppColors.info,
-                bgColor: AppColors.infoLight,
-              ),
-              const SizedBox(width: 12),
-              _buildStatItem(
-                icon: Icons.payments_outlined,
-                label: 'Total dépensé',
-                value: '450 000 FCFA',
-                color: AppColors.success,
-                bgColor: AppColors.successLight,
-              ),
-              const SizedBox(width: 12),
-              _buildStatItem(
-                icon: Icons.star_outline,
-                label: 'Avis postés',
-                value: '8',
-                color: AppColors.warning,
-                bgColor: AppColors.warningLight,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildStatItem(
-                icon: Icons.favorite_outline,
-                label: 'Favoris',
-                value: '23',
-                color: const Color(0xFFEC4899),
-                bgColor: const Color(0xFFFCE7F3),
-              ),
-              const SizedBox(width: 12),
-              _buildStatItem(
-                icon: Icons.login,
-                label: 'Dernière connexion',
-                value: 'Il y a 2 jours',
-                color: AppColors.textTertiary,
-                bgColor: AppColors.surfaceAlt,
-              ),
-              const SizedBox(width: 12),
-              _buildStatItem(
-                icon: Icons.access_time,
-                label: 'Membre depuis',
-                value: '6 mois',
-                color: const Color(0xFF8B5CF6),
-                bgColor: const Color(0xFFF3E8FF),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+        GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 2.1,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            _buildStatItem(
+              icon: Icons.receipt_long_outlined,
+              label: 'Commandes',
+              value: '${user.totalOrders}',
+              color: AppColors.info,
+              bgColor: AppColors.infoLight,
+            ),
+            _buildStatItem(
+              icon: Icons.payments_outlined,
+              label: 'Total dépensé',
+              value: user.totalSpentFormatted,
+              color: AppColors.success,
+              bgColor: AppColors.successLight,
+            ),
+            _buildStatItem(
+              icon: Icons.star_outline,
+              label: 'Avis postés',
+              value: '${user.reviewsCount}',
+              color: AppColors.warning,
+              bgColor: AppColors.warningLight,
+            ),
+            _buildStatItem(
+              icon: Icons.favorite_outline,
+              label: 'Favoris',
+              value: '${user.favoritesCount}',
+              color: const Color(0xFFEC4899),
+              bgColor: const Color(0xFFFCE7F3),
+            ),
+            _buildStatItem(
+              icon: Icons.login,
+              label: 'Dern. connexion',
+              value: user.lastLoginFormatted,
+              color: AppColors.textTertiary,
+              bgColor: AppColors.surfaceAlt,
+            ),
+            _buildStatItem(
+              icon: Icons.access_time,
+              label: 'Membre depuis',
+              value: user.createdAtFormatted,
+              color: const Color(0xFF8B5CF6),
+              bgColor: const Color(0xFFF3E8FF),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  /// Item de statistique.
   Widget _buildStatItem({
     required IconData icon,
     required String label,
@@ -354,168 +578,58 @@ Widget build(BuildContext context) {
     required Color color,
     required Color bgColor,
   }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceAlt,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 18, color: color),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.textTertiary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================================
-  // SECTION : COMMANDES RÉCENTES
-  // ============================================
-
-  Widget _buildOrdersSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: AppColors.cardShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Commandes récentes',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'Voir tout',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.info,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Commandes de démonstration
-          ...List.generate(3, (index) => _buildOrderRow(index)),
-        ],
-      ),
-    );
-  }
-
-  /// Ligne de commande.
-  Widget _buildOrderRow(int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(8),
+              color: bgColor,
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.receipt_long_outlined,
-              size: 18,
-              color: AppColors.textTertiary,
-            ),
+            child: Icon(icon, size: 18, color: color),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'CMD-2026-${(index + 1).toString().padLeft(4, '0')}',
+                  value,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  '31 août 2026',
+                  label,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.textLight,
+                    fontSize: 10,
+                    color: AppColors.textTertiary,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
-            ),
-          ),
-          _buildOrderStatusBadge(index),
-          const SizedBox(width: 10),
-          Text(
-            '${25000 + (index * 5000)} FCFA',
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -523,43 +637,84 @@ Widget build(BuildContext context) {
     );
   }
 
-  /// Badge de statut de commande.
-  Widget _buildOrderStatusBadge(int index) {
-    Color bgColor;
-    Color textColor;
-    String label;
+  // ============================================
+  // SECTION : INFORMATIONS DÉTAILLÉES
+  // ============================================
 
-    switch (index) {
-      case 0:
-        bgColor = AppColors.statusDeliveredBg;
-        textColor = AppColors.statusDeliveredText;
-        label = 'Livrée';
-        break;
-      case 1:
-        bgColor = AppColors.infoLight;
-        textColor = AppColors.infoDark;
-        label = 'Expédiée';
-        break;
-      default:
-        bgColor = AppColors.statusPendingBg;
-        textColor = AppColors.statusPendingText;
-        label = 'En attente';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(999),
+  Widget _buildInfoAccordion(AdminUser user) {
+    return _buildAccordion(
+      title: 'Informations détaillées',
+      icon: Icons.info_outline,
+      color: AppColors.info,
+      initiallyExpanded: true,
+      child: Column(
+        children: [
+          _buildInfoRow('ID', '${user.id}'),
+          _buildInfoRow('Nom complet', user.fullName),
+          _buildInfoRow('Email', user.email),
+          if (user.firstName != null)
+            _buildInfoRow('Prénom', user.firstName!),
+          if (user.lastName != null)
+            _buildInfoRow('Nom', user.lastName!),
+          if (user.phone != null && user.phone!.isNotEmpty)
+            _buildInfoRow('Téléphone', user.phone!),
+          if (user.country != null && user.country!.isNotEmpty)
+            _buildInfoRow('Pays', user.country!),
+          if (user.city != null && user.city!.isNotEmpty)
+            _buildInfoRow('Ville', user.city!),
+          if (user.address != null && user.address!.isNotEmpty)
+            _buildInfoRow('Adresse', user.address!),
+          _buildInfoRow('Langue', user.language.toUpperCase()),
+          _buildInfoRow('Devise', user.currency),
+          _buildInfoRow(
+            'Email vérifié',
+            user.isVerified ? 'Oui' : 'Non',
+            valueColor: user.isVerified
+                ? AppColors.success
+                : AppColors.warning,
+          ),
+          _buildInfoRow(
+            'Dernière activité',
+            user.lastActivityFormatted,
+          ),
+        ],
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: textColor,
-        ),
+    );
+  }
+
+  Widget _buildInfoRow(
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                color: AppColors.textTertiary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -568,75 +723,173 @@ Widget build(BuildContext context) {
   // SECTION : ACTIONS
   // ============================================
 
-  Widget _buildActionsSection() {
-    return Row(
+  Widget _buildActionsSection(
+    AdminUserProvider provider,
+    AdminUser user,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: _buildActionButton(
-            label: 'Activer',
-            icon: Icons.check_circle_outline,
-            color: AppColors.success,
-            onTap: () => _confirmAction('Activer cet utilisateur ?'),
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 10),
+          child: Text(
+            'Actions de gestion',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildActionButton(
-            label: 'Changer rôle',
-            icon: Icons.swap_horiz,
-            color: AppColors.info,
-            onTap: () => _showRoleDialog(),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildActionButton(
-            label: 'Suspendre',
-            icon: Icons.pause_circle_outline,
-            color: AppColors.warning,
-            onTap: () => _confirmAction('Suspendre cet utilisateur ?'),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildActionButton(
-            label: 'Bannir',
-            icon: Icons.block,
-            color: AppColors.error,
-            onTap: () => _confirmBan(),
-          ),
+        GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 3.0,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          children: _buildAvailableActions(provider, user),
         ),
       ],
     );
   }
 
-  /// Bouton d'action.
+  List<Widget> _buildAvailableActions(
+    AdminUserProvider provider,
+    AdminUser user,
+  ) {
+    final actions = <Widget>[];
+
+    // Activer (si inactif ou suspendu)
+    if (!user.isActive || user.isSuspended) {
+      actions.add(_buildActionButton(
+        label: 'Activer',
+        icon: Icons.check_circle_outline_rounded,
+        color: AppColors.success,
+        onTap: provider.isUpdating
+            ? null
+            : () => _executeAction(
+                  provider,
+                  'activate',
+                  user,
+                ),
+      ));
+    }
+
+    // Désactiver (si actif)
+    if (user.isActive && !user.isBanned) {
+      actions.add(_buildActionButton(
+        label: 'Désactiver',
+        icon: Icons.do_not_disturb_on_outlined,
+        color: AppColors.warning,
+        onTap: provider.isUpdating
+            ? null
+            : () => _executeAction(
+                  provider,
+                  'deactivate',
+                  user,
+                ),
+      ));
+    }
+
+    // Suspendre (si actif et non suspendu)
+    if (user.isActive && !user.isSuspended && !user.isBanned) {
+      actions.add(_buildActionButton(
+        label: 'Suspendre',
+        icon: Icons.pause_circle_outline_rounded,
+        color: AppColors.warning,
+        onTap: provider.isUpdating
+            ? null
+            : () => _executeAction(
+                  provider,
+                  'suspend',
+                  user,
+                ),
+      ));
+    }
+
+    // Lever la suspension
+    if (user.isSuspended) {
+      actions.add(_buildActionButton(
+        label: 'Lever susp.',
+        icon: Icons.play_circle_outline,
+        color: AppColors.info,
+        onTap: provider.isUpdating
+            ? null
+            : () => _executeAction(
+                  provider,
+                  'unsuspend',
+                  user,
+                ),
+      ));
+    }
+
+    // Changer rôle
+    actions.add(_buildActionButton(
+      label: 'Changer rôle',
+      icon: Icons.swap_horiz_rounded,
+      color: AppColors.info,
+      onTap: provider.isUpdating
+          ? null
+          : () => _showRoleDialog(provider, user),
+    ));
+
+    // Bannir (si pas déjà banni)
+    if (!user.isBanned) {
+      actions.add(_buildActionButton(
+        label: 'Bannir',
+        icon: Icons.block_rounded,
+        color: AppColors.error,
+        onTap: provider.isUpdating
+            ? null
+            : () => _executeAction(
+                  provider,
+                  'ban',
+                  user,
+                ),
+      ));
+    }
+
+    return actions;
+  }
+
   Widget _buildActionButton({
     required String label,
     required IconData icon,
     required Color color,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
+    final enabled = onTap != null;
+
     return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(8),
+      color: enabled ? color : AppColors.surfaceAlt,
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: Colors.white),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+              Icon(
+                icon,
+                size: 17,
+                color: enabled ? Colors.white : AppColors.textLight,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: enabled ? Colors.white : AppColors.textLight,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -647,80 +900,259 @@ Widget build(BuildContext context) {
   }
 
   // ============================================
-  // DIALOGS ET CONFIRMATIONS
+  // ACCORDÉON GÉNÉRIQUE
   // ============================================
 
-  Future<void> _confirmAction(String message) async {
-    final result = await AdminConfirmDialog.show(
-      context: context,
-      title: message,
-      message: 'Cette action sera enregistrée.',
-      type: AdminDialogType.confirm,
-      confirmLabel: 'Confirmer',
-    );
-
-    if (result == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Action effectuée'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
+  Widget _buildAccordion({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required Widget child,
+    bool initiallyExpanded = false,
+  }) {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        dividerColor: Colors.transparent,
+        splashColor: Colors.transparent,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-      );
-    }
-  }
-
-  Future<void> _confirmBan() async {
-    final result = await AdminConfirmDialog.show(
-      context: context,
-      title: 'Bannir cet utilisateur ?',
-      message: 'L\'utilisateur ne pourra plus accéder à son compte.',
-      type: AdminDialogType.danger,
-      confirmLabel: 'Bannir',
-    );
-
-    if (result == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Utilisateur banni'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  Future<void> _showRoleDialog() async {
-    final role = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return Dialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: ExpansionTile(
+            initiallyExpanded: initiallyExpanded,
+            tilePadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
+            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            title: Text(
+              title,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            iconColor: color,
+            collapsedIconColor: AppColors.textTertiary,
+            children: [child],
           ),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            width: 400,
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // EXÉCUTION DES ACTIONS
+  // ============================================
+
+  Future<void> _executeAction(
+    AdminUserProvider provider,
+    String type,
+    AdminUser user,
+  ) async {
+    final confirmed = await _confirmAction(type, user);
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    bool success = false;
+    String successMessage = '';
+    String errorMessage = '';
+
+    switch (type) {
+      case 'activate':
+        success = await provider.activateUser(user.id);
+        successMessage = 'Utilisateur activé';
+        errorMessage = 'Impossible d\'activer';
+        break;
+      case 'deactivate':
+        success = await provider.deactivateUser(user.id);
+        successMessage = 'Utilisateur désactivé';
+        errorMessage = 'Impossible de désactiver';
+        break;
+      case 'suspend':
+        success = await provider.suspendUser(user.id);
+        successMessage = 'Utilisateur suspendu';
+        errorMessage = 'Impossible de suspendre';
+        break;
+      case 'unsuspend':
+        success = await provider.unsuspendUser(user.id);
+        successMessage = 'Suspension levée';
+        errorMessage = 'Impossible de lever la suspension';
+        break;
+      case 'ban':
+        success = await provider.banUser(user.id);
+        successMessage = 'Utilisateur banni';
+        errorMessage = 'Impossible de bannir';
+        break;
+    }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? successMessage : errorMessage,
+          style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
+        ),
+        backgroundColor: success ? AppColors.success : AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 2),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  Future<bool?> _confirmAction(String type, AdminUser user) async {
+    String title;
+    String message;
+    AdminDialogType dialogType;
+    String confirmLabel;
+
+    switch (type) {
+      case 'activate':
+        title = 'Activer cet utilisateur ?';
+        message = '${user.fullName} pourra se connecter.';
+        dialogType = AdminDialogType.confirm;
+        confirmLabel = 'Activer';
+        break;
+      case 'deactivate':
+        title = 'Désactiver cet utilisateur ?';
+        message = '${user.fullName} ne pourra plus se connecter.';
+        dialogType = AdminDialogType.danger;
+        confirmLabel = 'Désactiver';
+        break;
+      case 'suspend':
+        title = 'Suspendre cet utilisateur ?';
+        message = '${user.fullName} sera suspendu pour 7 jours.';
+        dialogType = AdminDialogType.danger;
+        confirmLabel = 'Suspendre';
+        break;
+      case 'unsuspend':
+        title = 'Lever la suspension ?';
+        message = '${user.fullName} pourra se reconnecter.';
+        dialogType = AdminDialogType.confirm;
+        confirmLabel = 'Lever';
+        break;
+      case 'ban':
+        title = 'Bannir cet utilisateur ?';
+        message =
+            '${user.fullName} ne pourra plus accéder à son compte. Action irréversible.';
+        dialogType = AdminDialogType.danger;
+        confirmLabel = 'Bannir';
+        break;
+      default:
+        return false;
+    }
+
+    return await AdminConfirmDialog.show(
+      context: context,
+      title: title,
+      message: message,
+      type: dialogType,
+      confirmLabel: confirmLabel,
+    );
+  }
+
+  // ============================================
+  // DIAlOG : CHANGER LE RÔLE
+  // ============================================
+
+  Future<void> _showRoleDialog(
+    AdminUserProvider provider,
+    AdminUser user,
+  ) async {
+    final role = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (dialogContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.borderColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
                 const Text(
                   'Changer le rôle',
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  'Rôle actuel : ${user.roles.first.displayName}',
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
                 const SizedBox(height: 16),
-                _buildRoleOption(dialogContext, 'Client', Icons.person_outline, 'client'),
+                _buildRoleOption(
+                  dialogContext,
+                  'Client',
+                  Icons.person_outline_rounded,
+                  'client',
+                  user.isClient,
+                ),
                 const SizedBox(height: 8),
-                _buildRoleOption(dialogContext, 'Vendeur', Icons.storefront_outlined, 'seller'),
+                _buildRoleOption(
+                  dialogContext,
+                  'Vendeur',
+                  Icons.storefront_outlined,
+                  'seller',
+                  user.isSeller,
+                ),
                 const SizedBox(height: 8),
-                _buildRoleOption(dialogContext, 'Admin', Icons.admin_panel_settings_outlined, 'admin'),
+                _buildRoleOption(
+                  dialogContext,
+                  'Admin',
+                  Icons.admin_panel_settings_outlined,
+                  'admin',
+                  user.isAdmin,
+                ),
               ],
             ),
           ),
@@ -728,42 +1160,196 @@ Widget build(BuildContext context) {
       },
     );
 
-    if (role != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Rôle changé en $role'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
+    if (role == null || !mounted) return;
+
+    // Convertir en AdminUserRole
+    final newRole = AdminUserRole.fromCode(role);
+
+    // Si c'est le même rôle → rien
+    if (user.roles.contains(newRole)) return;
+
+    // Exécuter le changement
+    final success = await provider.changeUserRole(user.id, newRole);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Rôle changé en ${newRole.displayName}' : 'Impossible de changer le rôle',
+          style: const TextStyle(fontFamily: 'Poppins', fontSize: 13),
         ),
-      );
-    }
+        backgroundColor: success ? AppColors.success : AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 2),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+    );
   }
 
-  /// Option de rôle.
-  Widget _buildRoleOption(BuildContext dialogContext, String label, IconData icon, String role) {
+  Widget _buildRoleOption(
+    BuildContext dialogContext,
+    String label,
+    IconData icon,
+    String role,
+    bool isSelected,
+  ) {
     return Material(
-      color: AppColors.surfaceAlt,
-      borderRadius: BorderRadius.circular(8),
+      color: isSelected
+          ? AppColors.primary.withValues(alpha: 0.1)
+          : AppColors.surfaceAlt,
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: () => Navigator.of(dialogContext).pop(role),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected ? AppColors.primary : Colors.transparent,
+              width: 1.5,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: AppColors.primary),
-              const SizedBox(width: 10),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
                 ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                const Icon(
+                  Icons.check_circle,
+                  size: 20,
+                  color: AppColors.primary,
+                )
+              else
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: AppColors.textTertiary,
+                ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================
+  // ÉTATS ALTERNATIFS
+  // ============================================
+
+  Widget _buildErrorState(String? message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(30),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 60, color: AppColors.error),
+            const SizedBox(height: 16),
+            const Text(
+              'Erreur de chargement',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message ?? 'Impossible de charger l\'utilisateur.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _reload,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text(
+                'RÉESSAYER',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(30),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.person_off_outlined,
+              size: 60,
+              color: AppColors.textLight,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Utilisateur introuvable',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
         ),
       ),
     );
