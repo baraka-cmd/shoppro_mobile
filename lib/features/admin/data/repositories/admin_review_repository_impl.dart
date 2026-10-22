@@ -2,42 +2,26 @@
 // REPOSITORY IMPL : AdminReviewRepositoryImpl
 // ============================================
 // Implémentation concrète du repository de gestion des avis.
-// Cette classe implémente l'interface [AdminReviewRepository]
-// et orchestre les appels API pour la modération.
-//
-// Responsabilités :
 // - Appels API via AdminReviewApi
-// - Transformation des données
-// - Modération des avis
-// - Gestion des erreurs
+// - Modération
+// - Regroupement par produit (NOUVEAU)
+// - Statistiques par produit (NOUVEAU)
 // ============================================
 
-// ============================================
-// IMPORTS
-// ============================================
-
-// Flutter
 import 'package:flutter/material.dart';
 
-// Entities (même feature admin)
+// Entities
 import '../../domain/entities/admin_review.dart';
 
-// Repositories interfaces (même feature admin)
+// Repositories interfaces
 import '../../domain/repositories/admin_review_repository.dart';
 
-// Models (même feature admin)
+// Models
 import '../models/admin_review_model.dart';
 
-// Sources (même feature admin)
+// Sources
 import '../sources/admin_review_api.dart';
 
-// ============================================
-// CLASSE PRINCIPALE
-// ============================================
-
-/// Implémentation du repository de gestion des avis.
-///
-/// Gère toutes les opérations de modération des avis clients.
 class AdminReviewRepositoryImpl implements AdminReviewRepository {
   // ============================================
   // DÉPENDANCES
@@ -49,7 +33,8 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
   // CONSTRUCTEUR
   // ============================================
 
-  AdminReviewRepositoryImpl({AdminReviewApi? api}) : _api = api ?? AdminReviewApi();
+  AdminReviewRepositoryImpl({AdminReviewApi? api})
+      : _api = api ?? AdminReviewApi();
 
   // ============================================
   // LISTE ET RECHERCHE
@@ -63,6 +48,9 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
     int? rating,
     int? productId,
     int? userId,
+    String? searchQuery,
+    bool? withPhotos,
+    bool? verified,
     String? sortBy,
     String? sortDirection,
   }) async {
@@ -74,17 +62,14 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
         rating: rating,
         productId: productId,
         userId: userId,
+        searchQuery: searchQuery,
+        withPhotos: withPhotos,
+        verified: verified,
         sortBy: sortBy,
         sortDirection: sortDirection,
       );
 
-      final data = response['data'];
-      if (data is List) {
-        return data
-            .map((e) => AdminReviewModel.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      }
-      return [];
+      return _parseReviewsList(response);
     } catch (e) {
       debugPrint('Erreur getReviews: $e');
       rethrow;
@@ -95,13 +80,7 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
   Future<List<AdminReview>> searchReviews(String query, {int limit = 20}) async {
     try {
       final response = await _api.searchReviews(query, limit: limit);
-      final data = response['data'];
-      if (data is List) {
-        return data
-            .map((e) => AdminReviewModel.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      }
-      return [];
+      return _parseReviewsList(response);
     } catch (e) {
       debugPrint('Erreur searchReviews: $e');
       rethrow;
@@ -115,13 +94,7 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
   }) async {
     try {
       final response = await _api.getPendingReviews(page: page, perPage: perPage);
-      final data = response['data'];
-      if (data is List) {
-        return data
-            .map((e) => AdminReviewModel.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      }
-      return [];
+      return _parseReviewsList(response);
     } catch (e) {
       debugPrint('Erreur getPendingReviews: $e');
       rethrow;
@@ -135,13 +108,7 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
   }) async {
     try {
       final response = await _api.getApprovedReviews(page: page, perPage: perPage);
-      final data = response['data'];
-      if (data is List) {
-        return data
-            .map((e) => AdminReviewModel.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      }
-      return [];
+      return _parseReviewsList(response);
     } catch (e) {
       debugPrint('Erreur getApprovedReviews: $e');
       rethrow;
@@ -155,13 +122,7 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
   }) async {
     try {
       final response = await _api.getRejectedReviews(page: page, perPage: perPage);
-      final data = response['data'];
-      if (data is List) {
-        return data
-            .map((e) => AdminReviewModel.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      }
-      return [];
+      return _parseReviewsList(response);
     } catch (e) {
       debugPrint('Erreur getRejectedReviews: $e');
       rethrow;
@@ -175,13 +136,7 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
   }) async {
     try {
       final response = await _api.getSpamReviews(page: page, perPage: perPage);
-      final data = response['data'];
-      if (data is List) {
-        return data
-            .map((e) => AdminReviewModel.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      }
-      return [];
+      return _parseReviewsList(response);
     } catch (e) {
       debugPrint('Erreur getSpamReviews: $e');
       rethrow;
@@ -195,14 +150,12 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
     int perPage = 20,
   }) async {
     try {
-      final response = await _api.getReviewsByProduct(productId, page: page, perPage: perPage);
-      final data = response['data'];
-      if (data is List) {
-        return data
-            .map((e) => AdminReviewModel.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      }
-      return [];
+      final response = await _api.getReviewsByProduct(
+        productId,
+        page: page,
+        perPage: perPage,
+      );
+      return _parseReviewsList(response);
     } catch (e) {
       debugPrint('Erreur getReviewsByProduct: $e');
       rethrow;
@@ -213,13 +166,7 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
   Future<List<AdminReview>> getReviewsByUser(int userId) async {
     try {
       final response = await _api.getReviewsByUser(userId);
-      final data = response['data'];
-      if (data is List) {
-        return data
-            .map((e) => AdminReviewModel.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      }
-      return [];
+      return _parseReviewsList(response);
     } catch (e) {
       debugPrint('Erreur getReviewsByUser: $e');
       rethrow;
@@ -229,6 +176,91 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
   @override
   Future<List<AdminReview>> getReviewsByRating(int rating) async {
     return getReviews(rating: rating);
+  }
+
+  // ============================================
+  // ✅ NOUVEAU — GROUPEMENT PAR PRODUIT
+  // ============================================
+
+  @override
+  Future<List<Map<String, dynamic>>> getReviewsGroupedByProduct() async {
+    try {
+      final response = await _api.getReviews(
+        groupBy: 'product',
+        perPage: 1000,
+      );
+
+      final data = response['data'];
+
+      if (data is! List) {
+        debugPrint('⚠️ getReviewsGroupedByProduct: data non-List');
+        return [];
+      }
+
+      final groups = <Map<String, dynamic>>[];
+
+      for (final item in data) {
+        if (item is! Map) continue;
+
+        final group = Map<String, dynamic>.from(item);
+
+        // Parser les avis du groupe
+        final rawReviews = group['reviews'];
+        final reviews = <AdminReview>[];
+
+        if (rawReviews is List) {
+          for (final rawReview in rawReviews) {
+            if (rawReview is Map) {
+              try {
+                reviews.add(
+                  AdminReviewModel.fromJson(
+                    Map<String, dynamic>.from(rawReview),
+                  ),
+                );
+              } catch (e) {
+                debugPrint('⚠️ Erreur parse review dans group: $e');
+              }
+            }
+          }
+        }
+
+        groups.add({
+          'product': group['product'] ?? {},
+          'stats': group['stats'] ?? {},
+          'reviews': reviews,
+        });
+      }
+
+      debugPrint('✅ getReviewsGroupedByProduct: ${groups.length} produits');
+      return groups;
+    } catch (e) {
+      debugPrint('Erreur getReviewsGroupedByProduct: $e');
+      rethrow;
+    }
+  }
+
+  // ============================================
+  // ✅ NOUVEAU — STATISTIQUES PAR PRODUIT
+  // ============================================
+
+  @override
+  Future<List<Map<String, dynamic>>> getStatsByProduct() async {
+    try {
+      final response = await _api.getStatsByProduct();
+      final data = response['data'];
+
+      if (data is List) {
+        return data
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+
+      return [];
+    } catch (e) {
+      debugPrint('Erreur getStatsByProduct: $e');
+      rethrow;
+    }
   }
 
   // ============================================
@@ -387,7 +419,8 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
       final data = response['data'];
       if (data is Map) {
         return Map<String, int>.from(
-          data.map((key, value) => MapEntry(key.toString(), (value as num).toInt())),
+          data.map((key, value) =>
+              MapEntry(key.toString(), (value as num).toInt())),
         );
       }
       return {};
@@ -404,7 +437,10 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
       final data = response['data'];
       if (data is Map) {
         return Map<int, int>.from(
-          data.map((key, value) => MapEntry(int.tryParse(key.toString()) ?? 0, (value as num).toInt())),
+          data.map((key, value) => MapEntry(
+                int.tryParse(key.toString()) ?? 0,
+                (value as num).toInt(),
+              )),
         );
       }
       return {};
@@ -431,17 +467,29 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
 
   @override
   Future<List<AdminReview>> getMostHelpfulReviews({int limit = 10}) async {
-    return getReviews(sortBy: 'helpful_count', sortDirection: 'desc', perPage: limit);
+    return getReviews(
+      sortBy: 'helpful_count',
+      sortDirection: 'desc',
+      perPage: limit,
+    );
   }
 
   @override
   Future<List<AdminReview>> getMostViewedReviews({int limit = 10}) async {
-    return getReviews(sortBy: 'views_count', sortDirection: 'desc', perPage: limit);
+    return getReviews(
+      sortBy: 'views_count',
+      sortDirection: 'desc',
+      perPage: limit,
+    );
   }
 
   @override
   Future<List<AdminReview>> getRecentReviews({int limit = 10}) async {
-    return getReviews(sortBy: 'created_at', sortDirection: 'desc', perPage: limit);
+    return getReviews(
+      sortBy: 'created_at',
+      sortDirection: 'desc',
+      perPage: limit,
+    );
   }
 
   // ============================================
@@ -553,5 +601,30 @@ class AdminReviewRepositoryImpl implements AdminReviewRepository {
   Future<int> getTotalPages({int perPage = 20}) async {
     final total = await getTotalReviewsCount();
     return (total / perPage).ceil();
+  }
+
+  // ============================================
+  // HELPERS PRIVÉS
+  // ============================================
+
+  /// Parse une réponse API contenant une liste d'avis.
+  List<AdminReview> _parseReviewsList(Map<String, dynamic> response) {
+    final data = response['data'];
+    if (data is List) {
+      final reviews = <AdminReview>[];
+      for (final item in data) {
+        if (item is Map) {
+          try {
+            reviews.add(
+              AdminReviewModel.fromJson(Map<String, dynamic>.from(item)),
+            );
+          } catch (e) {
+            debugPrint('⚠️ Erreur parse review: $e');
+          }
+        }
+      }
+      return reviews;
+    }
+    return [];
   }
 }

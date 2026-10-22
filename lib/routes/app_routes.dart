@@ -162,16 +162,29 @@ class AppRoutes {
   static const String adminSettings = '/admin/settings';
 
   // ============================================
-  // 🏪 ROUTES VENDEUR
-  // ============================================
-  static const String sellerDashboard = '/seller/dashboard';
-  static const String sellerProducts = '/seller/products';
-  static const String sellerOrders = '/seller/orders';
-  static const String sellerStats = '/seller/stats';
-  static const String sellerStocks = '/seller/stocks';
+// 🏪 VENDEUR
+// ============================================
+static const String sellerDashboard = '/seller/dashboard';
+static const String sellerProducts = '/seller/products';
+static const String sellerProductDetail = '/seller/products/detail';   // 👈 NOUVEAU
+static const String sellerProductForm = '/seller/products/form';
 
+
+static const String sellerPayouts = '/seller/payouts';
+
+  // 🏪 VENDEUR - COMMANDES
+static const String sellerOrders = '/seller/orders';
+static const String sellerOrderDetail = '/seller/orders/detail';
+  // 🏪 VENDEUR - AVIS
+static const String sellerReviews = '/seller/reviews';
+static const String sellerStocks = '/seller/stocks';
+static const String sellerStats = '/seller/stats';
+static const String sellerProfile = '/seller/profile';
+static const String sellerNotifications = '/seller/notifications';
 
   static const String allReviews = '/product/reviews';
 
   static const String adminUserCreate = '/admin/users/create';
+
+  static const String adminReviewDetail = '/admin/reviews/detail';
 }

@@ -131,6 +131,29 @@ import '../features/support/presentation/pages/support_screen.dart';
 
 import '../features/products/presentation/pages/all_reviews_screen.dart';
 import '../features/admin/presentation/pages/admin_user_create_screen.dart';
+import '../features/admin/presentation/pages/admin_review_detail_screen.dart';
+
+import '../features/seller/presentation/pages/seller_dashboard_screen.dart';
+import '../features/seller/presentation/pages/seller_coming_soon_screen.dart';
+// Dans lib/routes/route_generator.dart
+import '../features/seller/presentation/pages/seller_products_screen.dart';
+
+import '../features/seller/presentation/pages/seller_products_screen.dart';
+import '../features/seller/presentation/pages/seller_product_form_screen.dart';
+import '../features/seller/domain/entities/seller_product.dart';
+import '../features/seller/presentation/pages/seller_product_detail_screen.dart';
+
+import '../features/seller/presentation/pages/seller_orders_screen.dart';
+import '../features/seller/presentation/pages/seller_order_detail_screen.dart';
+import '../features/seller/presentation/pages/seller_reviews_screen.dart';
+import '../features/seller/presentation/pages/seller_stocks_screen.dart';
+import '../features/seller/presentation/pages/seller_stats_screen.dart';
+import '../features/seller/presentation/pages/seller_profile_screen.dart';
+
+import '../features/seller/presentation/pages/seller_notifications_screen.dart';
+import '../features/seller/presentation/pages/seller_payouts_screen.dart';
+
+
 // ============================================
 // CLASSE PRINCIPALE
 // ============================================
@@ -357,6 +380,15 @@ class RouteGenerator {
           settings: settings,
           page: const AdminUserCreateScreen(),
         );
+
+        case AppRoutes.adminReviewDetail:
+          final args = settings.arguments as Map<String, dynamic>?;
+          return _buildRoute(
+            settings: settings,
+            page: AdminReviewDetailScreen(
+              reviewId: args?['review_id'] as int? ?? 0,
+            ),
+          );
             // ============================================
 // ⚖️ DOCUMENTS LÉGAUX
 // ============================================
@@ -528,31 +560,60 @@ case AppRoutes.about:
       // ============================================
       case AppRoutes.adminSettings:
         return _buildRoute(settings: settings, page: const AdminSettingsScreen());
-
-      // ============================================
+      
       // 🏪 ROUTE VENDEUR - DASHBOARD
       // ============================================
       case AppRoutes.sellerDashboard:
-        return _buildRoute(settings: settings, page: const SplashScreen());
+        return _buildRoute(
+          settings: settings,
+          page: const SellerDashboardScreen(),
+        );
 
-      // ============================================
-      // 🏪 ROUTE VENDEUR - PRODUITS
-      // ============================================
       case AppRoutes.sellerProducts:
-        return _buildRoute(settings: settings, page: const SplashScreen());
+        return _buildRoute(
+          settings: settings,
+          page: const SellerProductsScreen(),
+        );
 
-      // ============================================
-      // 🏪 ROUTE VENDEUR - COMMANDES
-      // ============================================
+      case AppRoutes.sellerProductForm:
+        final product = arguments?['product'] as SellerProduct?;
+        return _buildRoute(
+          settings: settings,
+          page: SellerProductFormScreen(product: product),
+        );
+
       case AppRoutes.sellerOrders:
-        return _buildRoute(settings: settings, page: const SplashScreen());
+        return _buildRoute(
+          settings: settings,
+          page: const SellerOrdersScreen(),
+        );
 
+      case AppRoutes.sellerOrderDetail:
+        return _buildRoute(
+          settings: settings,
+          page: SellerOrderDetailScreen(
+            orderId: arguments?['order_id'] as int? ?? 0,
+          ),
+        );
       // ============================================
-      // 🏪 ROUTE VENDEUR - STATISTIQUES
+      // 🏪 VENDEUR — STATISTIQUES
       // ============================================
       case AppRoutes.sellerStats:
-        return _buildRoute(settings: settings, page: const SplashScreen());
+        return _buildRoute(
+          settings: settings,
+          page: const SellerStatsScreen(),
+        );
 
+      // ============================================
+      // 🏪 VENDEUR — STOCKS
+      // ============================================
+      case AppRoutes.sellerStocks:
+        return _buildRoute(
+          settings: settings,
+          page: const SellerStocksScreen(),
+        );
+
+      
       // ============================================
       // ROUTE PAR DÉFAUT
       // ============================================

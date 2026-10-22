@@ -1,46 +1,19 @@
 // ============================================
-// API SOURCE : AdminReviewApi
+// API SOURCE : AdminReviewApi (ENRICHIE)
 // ============================================
-// Source de données distante pour la gestion des avis clients.
-// Cette classe gère tous les appels HTTP vers l'API Laravel
-// concernant la modération des avis.
-//
-// Responsabilités :
-// - Appels API de modération avec Dio
-// - Gestion des filtres et pagination
-// - Réponse aux avis
-// - Actions en masse
+// Source de données distante pour la gestion des avis.
+// - Liste paginée + filtres
+// - Regroupement par produit
+// - Photos
+// - Modération
+// - Statistiques par produit
 // ============================================
 
-// ============================================
-// IMPORTS
-// ============================================
-
-// Packages externes
 import 'package:dio/dio.dart';
-
-// Core
 import '../../../../core/network/api_client.dart';
 
-// ============================================
-// CLASSE PRINCIPALE
-// ============================================
-
-/// Source de données API pour la gestion des avis.
-///
-/// Utilise le client Dio configuré dans [ApiClient]
-/// pour effectuer les requêtes HTTP vers l'API Laravel.
 class AdminReviewApi {
-  // ============================================
-  // DÉPENDANCES
-  // ============================================
-
-  /// Client HTTP Dio
   final Dio _dio;
-
-  // ============================================
-  // CONSTRUCTEUR
-  // ============================================
 
   AdminReviewApi({Dio? dio}) : _dio = dio ?? ApiClient().dio;
 
@@ -50,17 +23,17 @@ class AdminReviewApi {
 
   /// Récupère la liste paginée des avis.
   ///
-  /// Endpoint : GET /admin/reviews
-  ///
-  /// Paramètres :
-  /// - [page] : Numéro de page
-  /// - [perPage] : Nombre d'éléments par page
-  /// - [status] : Filtrer par statut
-  /// - [rating] : Filtrer par note
-  /// - [productId] : Filtrer par produit
-  /// - [userId] : Filtrer par utilisateur
-  /// - [sortBy] : Champ de tri
-  /// - [sortDirection] : Direction du tri
+  /// Params :
+  /// - [status] : pending | approved | rejected | spam
+  /// - [rating] : 1-5
+  /// - [productId] : filtrer par produit
+  /// - [userId] : filtrer par utilisateur
+  /// - [searchQuery] : recherche
+  /// - [withPhotos] : true pour n'avoir que les avis avec photos
+  /// - [verified] : true pour n'avoir que les avis vérifiés
+  /// - [groupBy] : 'product' pour grouper par produit
+  /// - [sortBy] : created_at | rating | helpful_count
+  /// - [sortDirection] : asc | desc
   Future<Map<String, dynamic>> getReviews({
     int page = 1,
     int perPage = 20,
@@ -68,6 +41,10 @@ class AdminReviewApi {
     int? rating,
     int? productId,
     int? userId,
+    String? searchQuery,
+    bool? withPhotos,
+    bool? verified,
+    String? groupBy,
     String? sortBy,
     String? sortDirection,
   }) async {
@@ -81,6 +58,10 @@ class AdminReviewApi {
           if (rating != null) 'rating': rating,
           if (productId != null) 'product_id': productId,
           if (userId != null) 'user_id': userId,
+          if (searchQuery != null && searchQuery.isNotEmpty) 'search': searchQuery,
+          if (withPhotos == true) 'with_photos': '1',
+          if (verified == true) 'verified': '1',
+          if (groupBy != null) 'group_by': groupBy,
           if (sortBy != null) 'sort_by': sortBy,
           if (sortDirection != null) 'sort_direction': sortDirection,
         },
@@ -92,15 +73,14 @@ class AdminReviewApi {
   }
 
   /// Recherche des avis.
-  ///
-  /// Endpoint : GET /admin/reviews/search
   Future<Map<String, dynamic>> searchReviews(String query, {int limit = 20}) async {
     try {
       final response = await _dio.get(
-        '/admin/reviews/search',
+        '/admin/reviews',
         queryParameters: {
-          'q': query,
-          'limit': limit,
+          'search': query,
+          'per_page': limit,
+          'page': 1,
         },
       );
       return _parseResponse(response);
@@ -109,16 +89,30 @@ class AdminReviewApi {
     }
   }
 
-  /// Récupère les avis en attente.
-  ///
-  /// Endpoint : GET /admin/reviews/pending
-  Future<Map<String, dynamic>> getPendingReviews({
+  Future<Map<String, dynamic>> getPendingReviews({int page = 1, int perPage = 20}) async {
+    return _getByStatus('pending', page: page, perPage: perPage);
+  }
+
+  Future<Map<String, dynamic>> getApprovedReviews({int page = 1, int perPage = 20}) async {
+    return _getByStatus('approved', page: page, perPage: perPage);
+  }
+
+  Future<Map<String, dynamic>> getRejectedReviews({int page = 1, int perPage = 20}) async {
+    return _getByStatus('rejected', page: page, perPage: perPage);
+  }
+
+  Future<Map<String, dynamic>> getSpamReviews({int page = 1, int perPage = 20}) async {
+    return _getByStatus('spam', page: page, perPage: perPage);
+  }
+
+  Future<Map<String, dynamic>> _getByStatus(
+    String status, {
     int page = 1,
     int perPage = 20,
   }) async {
     try {
       final response = await _dio.get(
-        '/admin/reviews/pending',
+        '/admin/reviews/$status',
         queryParameters: {'page': page, 'per_page': perPage},
       );
       return _parseResponse(response);
@@ -127,63 +121,7 @@ class AdminReviewApi {
     }
   }
 
-  /// Récupère les avis approuvés.
-  ///
-  /// Endpoint : GET /admin/reviews/approved
-  Future<Map<String, dynamic>> getApprovedReviews({
-    int page = 1,
-    int perPage = 20,
-  }) async {
-    try {
-      final response = await _dio.get(
-        '/admin/reviews/approved',
-        queryParameters: {'page': page, 'per_page': perPage},
-      );
-      return _parseResponse(response);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  /// Récupère les avis rejetés.
-  ///
-  /// Endpoint : GET /admin/reviews/rejected
-  Future<Map<String, dynamic>> getRejectedReviews({
-    int page = 1,
-    int perPage = 20,
-  }) async {
-    try {
-      final response = await _dio.get(
-        '/admin/reviews/rejected',
-        queryParameters: {'page': page, 'per_page': perPage},
-      );
-      return _parseResponse(response);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  /// Récupère les avis spam.
-  ///
-  /// Endpoint : GET /admin/reviews/spam
-  Future<Map<String, dynamic>> getSpamReviews({
-    int page = 1,
-    int perPage = 20,
-  }) async {
-    try {
-      final response = await _dio.get(
-        '/admin/reviews/spam',
-        queryParameters: {'page': page, 'per_page': perPage},
-      );
-      return _parseResponse(response);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  /// Récupère les avis d'un produit.
-  ///
-  /// Endpoint : GET /admin/reviews/by-product/{productId}
+  /// Avis d'un produit.
   Future<Map<String, dynamic>> getReviewsByProduct(
     int productId, {
     int page = 1,
@@ -200,9 +138,7 @@ class AdminReviewApi {
     }
   }
 
-  /// Récupère les avis d'un utilisateur.
-  ///
-  /// Endpoint : GET /admin/reviews/by-user/{userId}
+  /// Avis d'un utilisateur.
   Future<Map<String, dynamic>> getReviewsByUser(int userId) async {
     try {
       final response = await _dio.get('/admin/reviews/by-user/$userId');
@@ -216,9 +152,6 @@ class AdminReviewApi {
   // DÉTAILS
   // ============================================
 
-  /// Récupère les détails d'un avis.
-  ///
-  /// Endpoint : GET /admin/reviews/{id}
   Future<Map<String, dynamic>> getReviewById(int id) async {
     try {
       final response = await _dio.get('/admin/reviews/$id');
@@ -232,9 +165,6 @@ class AdminReviewApi {
   // MODÉRATION
   // ============================================
 
-  /// Approuve un avis.
-  ///
-  /// Endpoint : POST /admin/reviews/{id}/approve
   Future<Map<String, dynamic>> approveReview(int id) async {
     try {
       final response = await _dio.post('/admin/reviews/$id/approve');
@@ -244,9 +174,6 @@ class AdminReviewApi {
     }
   }
 
-  /// Rejette un avis.
-  ///
-  /// Endpoint : POST /admin/reviews/{id}/reject
   Future<Map<String, dynamic>> rejectReview(int id, {String? reason}) async {
     try {
       final response = await _dio.post(
@@ -259,9 +186,6 @@ class AdminReviewApi {
     }
   }
 
-  /// Marque un avis comme spam.
-  ///
-  /// Endpoint : POST /admin/reviews/{id}/mark-spam
   Future<Map<String, dynamic>> markReviewAsSpam(int id) async {
     try {
       final response = await _dio.post('/admin/reviews/$id/mark-spam');
@@ -271,9 +195,6 @@ class AdminReviewApi {
     }
   }
 
-  /// Remet un avis en attente.
-  ///
-  /// Endpoint : POST /admin/reviews/{id}/reset
   Future<Map<String, dynamic>> resetReviewStatus(int id) async {
     try {
       final response = await _dio.post('/admin/reviews/$id/reset');
@@ -287,39 +208,30 @@ class AdminReviewApi {
   // RÉPONSE ADMIN
   // ============================================
 
-  /// Répond à un avis.
-///
-/// Endpoint : POST /admin/reviews/{id}/respond
-Future<Map<String, dynamic>> respondToReview(int reviewId, String reviewResponse) async {
-  try {
-    final apiResponse = await _dio.post(
-      '/admin/reviews/$reviewId/respond',
-      data: {'response': reviewResponse},
-    );
-    return _parseResponse(apiResponse);
-  } on DioException catch (e) {
-    throw _handleError(e);
+  Future<Map<String, dynamic>> respondToReview(int reviewId, String reviewResponse) async {
+    try {
+      final response = await _dio.post(
+        '/admin/reviews/$reviewId/respond',
+        data: {'response': reviewResponse},
+      );
+      return _parseResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
   }
-}
 
-/// Modifie la réponse admin.
-///
-/// Endpoint : PUT /admin/reviews/{id}/respond
-Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResponse) async {
-  try {
-    final apiResponse = await _dio.put(
-      '/admin/reviews/$reviewId/respond',
-      data: {'response': reviewResponse},
-    );
-    return _parseResponse(apiResponse);
-  } on DioException catch (e) {
-    throw _handleError(e);
+  Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResponse) async {
+    try {
+      final response = await _dio.put(
+        '/admin/reviews/$reviewId/respond',
+        data: {'response': reviewResponse},
+      );
+      return _parseResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
   }
-}
 
-  /// Supprime la réponse admin.
-  ///
-  /// Endpoint : DELETE /admin/reviews/{id}/respond
   Future<Map<String, dynamic>> deleteAdminResponse(int reviewId) async {
     try {
       final response = await _dio.delete('/admin/reviews/$reviewId/respond');
@@ -333,9 +245,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
   // RECOMMANDATION
   // ============================================
 
-  /// Marque un avis comme recommandé.
-  ///
-  /// Endpoint : POST /admin/reviews/{id}/recommend
   Future<Map<String, dynamic>> markAsRecommended(int id) async {
     try {
       final response = await _dio.post('/admin/reviews/$id/recommend');
@@ -345,9 +254,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
     }
   }
 
-  /// Retire la recommandation.
-  ///
-  /// Endpoint : DELETE /admin/reviews/{id}/recommend
   Future<Map<String, dynamic>> unmarkAsRecommended(int id) async {
     try {
       final response = await _dio.delete('/admin/reviews/$id/recommend');
@@ -361,9 +267,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
   // SUPPRESSION
   // ============================================
 
-  /// Supprime un avis (soft delete).
-  ///
-  /// Endpoint : DELETE /admin/reviews/{id}
   Future<Map<String, dynamic>> deleteReview(int id) async {
     try {
       final response = await _dio.delete('/admin/reviews/$id');
@@ -373,9 +276,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
     }
   }
 
-  /// Restaure un avis supprimé.
-  ///
-  /// Endpoint : POST /admin/reviews/{id}/restore
   Future<Map<String, dynamic>> restoreReview(int id) async {
     try {
       final response = await _dio.post('/admin/reviews/$id/restore');
@@ -389,9 +289,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
   // STATISTIQUES
   // ============================================
 
-  /// Récupère le nombre total d'avis.
-  ///
-  /// Endpoint : GET /admin/reviews/stats/count
   Future<Map<String, dynamic>> getTotalReviewsCount() async {
     try {
       final response = await _dio.get('/admin/reviews/stats/count');
@@ -401,9 +298,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
     }
   }
 
-  /// Récupère le nombre d'avis par statut.
-  ///
-  /// Endpoint : GET /admin/reviews/stats/by-status
   Future<Map<String, dynamic>> getReviewsCountByStatus() async {
     try {
       final response = await _dio.get('/admin/reviews/stats/by-status');
@@ -413,9 +307,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
     }
   }
 
-  /// Récupère le nombre d'avis par note.
-  ///
-  /// Endpoint : GET /admin/reviews/stats/by-rating
   Future<Map<String, dynamic>> getReviewsCountByRating() async {
     try {
       final response = await _dio.get('/admin/reviews/stats/by-rating');
@@ -425,12 +316,19 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
     }
   }
 
-  /// Récupère la note moyenne.
-  ///
-  /// Endpoint : GET /admin/reviews/stats/average-rating
   Future<Map<String, dynamic>> getAverageRating() async {
     try {
       final response = await _dio.get('/admin/reviews/stats/average-rating');
+      return _parseResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// ✅ NOUVEAU — Statistiques par produit.
+  Future<Map<String, dynamic>> getStatsByProduct() async {
+    try {
+      final response = await _dio.get('/admin/reviews/stats/by-product');
       return _parseResponse(response);
     } on DioException catch (e) {
       throw _handleError(e);
@@ -441,9 +339,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
   // ACTIONS EN MASSE
   // ============================================
 
-  /// Approuve plusieurs avis.
-  ///
-  /// Endpoint : POST /admin/reviews/bulk-approve
   Future<Map<String, dynamic>> bulkApproveReviews(List<int> reviewIds) async {
     try {
       final response = await _dio.post(
@@ -456,9 +351,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
     }
   }
 
-  /// Rejette plusieurs avis.
-  ///
-  /// Endpoint : POST /admin/reviews/bulk-reject
   Future<Map<String, dynamic>> bulkRejectReviews(List<int> reviewIds) async {
     try {
       final response = await _dio.post(
@@ -471,9 +363,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
     }
   }
 
-  /// Supprime plusieurs avis.
-  ///
-  /// Endpoint : POST /admin/reviews/bulk-delete
   Future<Map<String, dynamic>> bulkDeleteReviews(List<int> reviewIds) async {
     try {
       final response = await _dio.post(
@@ -490,7 +379,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
   // HELPERS PRIVÉS
   // ============================================
 
-  /// Parse la réponse HTTP.
   Map<String, dynamic> _parseResponse(Response response) {
     final data = response.data;
     if (data is Map<String, dynamic>) return data;
@@ -498,7 +386,6 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
     return {'data': data};
   }
 
-  /// Gère les erreurs Dio avec messages clairs.
   Exception _handleError(DioException e) {
     switch (e.response?.statusCode) {
       case 401:
@@ -508,8 +395,17 @@ Future<Map<String, dynamic>> updateAdminResponse(int reviewId, String reviewResp
       case 404:
         return Exception('Avis introuvable.');
       case 422:
-        final errors = e.response?.data?['errors'];
-        return Exception('Erreur de validation: $errors');
+        final data = e.response?.data;
+        if (data is Map && data['errors'] is Map) {
+          final errors = data['errors'] as Map;
+          if (errors.isNotEmpty) {
+            final first = errors.values.first;
+            if (first is List && first.isNotEmpty) {
+              return Exception(first.first.toString());
+            }
+          }
+        }
+        return Exception('Erreur de validation.');
       case 500:
         return Exception('Erreur serveur.');
       default:

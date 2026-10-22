@@ -1,31 +1,24 @@
 // ============================================
-// PROVIDER : AdminReviewProvider
+// PROVIDER : AdminReviewProvider (COMPLET)
 // ============================================
 // Provider de gestion d'état pour la modération des avis.
-// Utilise ChangeNotifier pour notifier les widgets des changements.
-//
-// Responsabilités :
-// - Chargement des avis paginés
-// - Modération (approuver, rejeter, spam)
-// - Réponse aux avis
-// - Statistiques des avis
-// - Actions en masse
+// - Liste paginée + filtres
+// - Regroupement par produit
+// - Filtre avec photos
+// - Statistiques par produit
+// - Détail d'un avis
+// - Modération
 // ============================================
 
-// ============================================
-// IMPORTS
-// ============================================
-
-// Flutter
 import 'package:flutter/material.dart';
 
-// Entities (même feature admin)
+// Entities
 import '../../domain/entities/admin_review.dart';
 
-// Repositories (même feature admin)
+// Repositories
 import '../../domain/repositories/admin_review_repository.dart';
 
-// Repositories Impl (même feature admin)
+// Repositories Impl
 import '../../data/repositories/admin_review_repository_impl.dart';
 import '../../data/models/admin_review_model.dart';
 
@@ -33,7 +26,6 @@ import '../../data/models/admin_review_model.dart';
 // ENUM D'ÉTAT
 // ============================================
 
-/// États possibles du provider avis
 enum AdminReviewStatus2 {
   initial,
   loading,
@@ -44,16 +36,9 @@ enum AdminReviewStatus2 {
 }
 
 // ============================================
-// CLASSE PRINCIPALE
+// PROVIDER
 // ============================================
 
-/// Provider de gestion des avis administrés.
-///
-/// Gère :
-/// - La liste paginée des avis
-/// - La modération des avis
-/// - Les réponses admin
-/// - Les statistiques
 class AdminReviewProvider extends ChangeNotifier {
   // ============================================
   // DÉPENDANCES
@@ -72,10 +57,17 @@ class AdminReviewProvider extends ChangeNotifier {
   int _perPage = 20;
   bool _hasMore = true;
 
+  // Regroupement par produit
+  bool _isGroupedByProduct = false;
+  List<Map<String, dynamic>> _groupedByProduct = [];
+  List<Map<String, dynamic>> _statsByProduct = [];
+
   // Filtres
   AdminReviewStatus? _filterStatus;
   int? _filterRating;
   int? _filterProductId;
+  bool _filterWithPhotos = false;
+  bool _filterVerified = false;
   String _sortBy = 'created_at';
   String _sortDirection = 'desc';
 
@@ -95,7 +87,7 @@ class AdminReviewProvider extends ChangeNotifier {
       : _repository = repository ?? AdminReviewRepositoryImpl();
 
   // ============================================
-  // GETTERS
+  // GETTERS — ÉTAT
   // ============================================
 
   AdminReviewStatus2 get status => _status;
@@ -111,116 +103,108 @@ class AdminReviewProvider extends ChangeNotifier {
   bool get hasError => _status == AdminReviewStatus2.error;
   int get reviewsCount => _reviews.length;
   bool get isEmpty => _reviews.isEmpty;
+
+  // ============================================
+  // GETTERS — SÉLECTION
+  // ============================================
+
   bool get hasSelection => _selectedIds.isNotEmpty;
   int get selectedCount => _selectedIds.length;
   List<int> get selectedIds => List.unmodifiable(_selectedIds);
+
+  // ============================================
+  // GETTERS — STATISTIQUES
+  // ============================================
+
   Map<String, int> get statusCounts => Map.unmodifiable(_statusCounts);
   Map<int, int> get ratingCounts => Map.unmodifiable(_ratingCounts);
   double get averageRating => _averageRating;
-  AdminReviewStatus? get filterStatus => _filterStatus;
 
-  /// Avis en attente de modération
+  // ============================================
+  // GETTERS — FILTRES
+  // ============================================
+
+  AdminReviewStatus? get filterStatus => _filterStatus;
+  int? get filterRating => _filterRating;
+  int? get filterProductId => _filterProductId;
+  bool get filterWithPhotos => _filterWithPhotos;
+  bool get filterVerified => _filterVerified;
+
+  // ============================================
+  // GETTERS — REGROUPEMENT
+  // ============================================
+
+  bool get isGroupedByProduct => _isGroupedByProduct;
+  List<Map<String, dynamic>> get groupedByProduct =>
+      List.unmodifiable(_groupedByProduct);
+  List<Map<String, dynamic>> get statsByProduct =>
+      List.unmodifiable(_statsByProduct);
+  bool get hasGroups => _groupedByProduct.isNotEmpty;
+  int get groupsCount => _groupedByProduct.length;
+
+  // ============================================
+  // GETTERS CALCULÉS
+  // ============================================
+
   List<AdminReview> get pendingReviews =>
       _reviews.where((r) => r.isPending).toList();
-
-  /// Avis approuvés
   List<AdminReview> get approvedReviews =>
       _reviews.where((r) => r.isApproved).toList();
-
-  /// Avis rejetés
   List<AdminReview> get rejectedReviews =>
       _reviews.where((r) => r.isRejected).toList();
-
-  /// Avis spam
   List<AdminReview> get spamReviews =>
       _reviews.where((r) => r.isSpam).toList();
-
-  /// Nombre d'avis en attente
-  int get pendingCount => pendingReviews.length;
-
-  /// Nombre d'avis approuvés
-  int get approvedCount => approvedReviews.length;
-
-  /// Avis avec réponse admin
+  List<AdminReview> get withPhotosReviews =>
+      _reviews.where((r) => r.hasImages).toList();
+  List<AdminReview> get verifiedReviews =>
+      _reviews.where((r) => r.isVerifiedPurchase).toList();
   List<AdminReview> get respondedReviews =>
       _reviews.where((r) => r.hasAdminResponse).toList();
 
-  /// Avis vérifiés (achat vérifié)
-  List<AdminReview> get verifiedReviews =>
-      _reviews.where((r) => r.isVerifiedPurchase).toList();
+  int get pendingCount => pendingReviews.length;
+  int get approvedCount => approvedReviews.length;
+  int get rejectedCount => rejectedReviews.length;
+  int get spamCount => spamReviews.length;
+  int get withPhotosCount => withPhotosReviews.length;
+  int get verifiedCount => verifiedReviews.length;
 
   // ============================================
-  // ACTIONS PRINCIPALES
+  // CHARGEMENT
   // ============================================
 
-  /// Charge la première page des avis.
   Future<void> loadReviews() async {
-  _status = AdminReviewStatus2.loading;
-  _errorMessage = null;
-  _currentPage = 1;
-  notifyListeners();
+    _status = AdminReviewStatus2.loading;
+    _errorMessage = null;
+    _currentPage = 1;
+    _isGroupedByProduct = false;
+    notifyListeners();
 
-  try {
-    final reviews = await _repository.getReviews(
-      page: _currentPage,
-      perPage: _perPage,
-      status: _filterStatus,
-      rating: _filterRating,
-      productId: _filterProductId,
-      sortBy: _sortBy,
-      sortDirection: _sortDirection,
-    );
+    try {
+      final reviews = await _repository.getReviews(
+        page: _currentPage,
+        perPage: _perPage,
+        status: _filterStatus,
+        rating: _filterRating,
+        productId: _filterProductId,
+        withPhotos: _filterWithPhotos ? true : null,
+        verified: _filterVerified ? true : null,
+        sortBy: _sortBy,
+        sortDirection: _sortDirection,
+      );
 
-    // ✅ CONVERSION : Si reviews est List<AdminReviewModel>, convertir
-    _reviews = reviews.map((review) {
-      if (review is AdminReviewModel) {
-        return AdminReview(
-          id: review.id,
-          title: review.title,
-          content: review.content,
-          createdAt: review.createdAt,
-          updatedAt: review.updatedAt,
-          rating: review.rating,
-          qualityRating: review.qualityRating,
-          priceRating: review.priceRating,
-          shippingRating: review.shippingRating,
-          averageRating: review.averageRating,
-          userId: review.userId,
-          userName: review.userName,
-          userAvatar: review.userAvatar,
-          productId: review.productId,
-          productName: review.productName,
-          productImage: review.productImage,
-          orderId: review.orderId,
-          orderNumber: review.orderNumber,
-          isVerifiedPurchase: review.isVerifiedPurchase,
-          status: review.status,
-          adminResponse: review.adminResponse,
-          adminResponseAt: review.adminResponseAt,
-          approvedAt: review.approvedAt,
-          isRecommended: review.isRecommended,
-          helpfulCount: review.helpfulCount,
-          notHelpfulCount: review.notHelpfulCount,
-          viewsCount: review.viewsCount,
-          imagesCount: review.imagesCount,
-        );
-      }
-      return review;
-    }).toList();
+      _reviews = reviews.map(_normalizeReview).toList();
+      _hasMore = reviews.length >= _perPage;
+      _status = AdminReviewStatus2.loaded;
+      await _loadStatistics();
+    } catch (e) {
+      _errorMessage = e.toString();
+      _status = AdminReviewStatus2.error;
+      debugPrint('Erreur loadReviews: $e');
+    }
 
-    _hasMore = reviews.length >= _perPage;
-    _status = AdminReviewStatus2.loaded;
-    await _loadStatistics();
-  } catch (e) {
-    _errorMessage = e.toString();
-    _status = AdminReviewStatus2.error;
-    debugPrint('Erreur loadReviews: $e');
+    notifyListeners();
   }
 
-  notifyListeners();
-}
-
-  /// Charge la page suivante.
   Future<void> loadMoreReviews() async {
     if (_status == AdminReviewStatus2.loadingMore || !_hasMore) return;
 
@@ -235,6 +219,8 @@ class AdminReviewProvider extends ChangeNotifier {
         status: _filterStatus,
         rating: _filterRating,
         productId: _filterProductId,
+        withPhotos: _filterWithPhotos ? true : null,
+        verified: _filterVerified ? true : null,
         sortBy: _sortBy,
         sortDirection: _sortDirection,
       );
@@ -242,7 +228,7 @@ class AdminReviewProvider extends ChangeNotifier {
       if (reviews.isEmpty) {
         _hasMore = false;
       } else {
-        _reviews = [..._reviews, ...reviews];
+        _reviews = [..._reviews, ...reviews.map(_normalizeReview)];
         _currentPage = nextPage;
         _hasMore = reviews.length >= _perPage;
       }
@@ -257,7 +243,6 @@ class AdminReviewProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Rafraîchit sans loader.
   Future<void> refreshReviews() async {
     try {
       final reviews = await _repository.getReviews(
@@ -266,11 +251,13 @@ class AdminReviewProvider extends ChangeNotifier {
         status: _filterStatus,
         rating: _filterRating,
         productId: _filterProductId,
+        withPhotos: _filterWithPhotos ? true : null,
+        verified: _filterVerified ? true : null,
         sortBy: _sortBy,
         sortDirection: _sortDirection,
       );
 
-      _reviews = reviews;
+      _reviews = reviews.map(_normalizeReview).toList();
       _currentPage = 1;
       _hasMore = reviews.length >= _perPage;
       _status = AdminReviewStatus2.loaded;
@@ -284,39 +271,132 @@ class AdminReviewProvider extends ChangeNotifier {
   }
 
   // ============================================
+  // DÉTAIL D'UN AVIS
+  // ============================================
+
+  /// Récupère les détails d'un avis par son ID.
+  /// - Cherche d'abord dans la liste locale
+  /// - Sinon, appelle l'API
+  /// - Ajoute au cache local si trouvé
+  Future<AdminReview?> getReviewById(int id) async {
+    try {
+      // 1. Chercher dans la liste locale
+      for (final review in _reviews) {
+        if (review.id == id) {
+          return review;
+        }
+      }
+
+      // 2. Charger depuis l'API
+      final review = await _repository.getReviewById(id);
+
+      if (review != null) {
+        final normalized = _normalizeReview(review);
+        if (!_reviews.any((r) => r.id == normalized.id)) {
+          _reviews = [normalized, ..._reviews];
+        }
+        return normalized;
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('Erreur getReviewById: $e');
+      return null;
+    }
+  }
+
+  // ============================================
+  // REGROUPEMENT PAR PRODUIT
+  // ============================================
+
+  Future<void> loadReviewsGroupedByProduct() async {
+    _status = AdminReviewStatus2.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _groupedByProduct = await _repository.getReviewsGroupedByProduct();
+      _isGroupedByProduct = true;
+      _status = AdminReviewStatus2.loaded;
+      debugPrint('✅ ${_groupedByProduct.length} produits groupés');
+    } catch (e) {
+      _errorMessage = e.toString();
+      _status = AdminReviewStatus2.error;
+      debugPrint('Erreur loadReviewsGroupedByProduct: $e');
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> loadStatsByProduct() async {
+    try {
+      _statsByProduct = await _repository.getStatsByProduct();
+      debugPrint('✅ ${_statsByProduct.length} stats produits chargées');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Erreur loadStatsByProduct: $e');
+    }
+  }
+
+  Future<void> toggleGroupedByProduct() async {
+    if (_isGroupedByProduct) {
+      _isGroupedByProduct = false;
+      _groupedByProduct = [];
+      await loadReviews();
+    } else {
+      await loadReviewsGroupedByProduct();
+    }
+  }
+
+  Future<void> showReviewsOfProduct(int productId) async {
+    _filterProductId = productId;
+    _isGroupedByProduct = false;
+    await loadReviews();
+  }
+
+  // ============================================
   // FILTRES
   // ============================================
 
-  /// Filtre par statut.
   Future<void> filterByStatus(AdminReviewStatus? status) async {
     _filterStatus = status;
     await loadReviews();
   }
 
-  /// Filtre par note.
   Future<void> filterByRating(int? rating) async {
     _filterRating = rating;
     await loadReviews();
   }
 
-  /// Filtre par produit.
   Future<void> filterByProduct(int? productId) async {
     _filterProductId = productId;
     await loadReviews();
   }
 
-  /// Trie les résultats.
+  /// Active/désactive le filtre "avec photos".
+  Future<void> filterByPhotos(bool enabled) async {
+    _filterWithPhotos = enabled;
+    await loadReviews();
+  }
+
+  /// Active/désactive le filtre "vérifiés".
+  Future<void> filterByVerified(bool enabled) async {
+    _filterVerified = enabled;
+    await loadReviews();
+  }
+
   Future<void> sort(String sortBy, {String direction = 'asc'}) async {
     _sortBy = sortBy;
     _sortDirection = direction;
     await loadReviews();
   }
 
-  /// Efface les filtres.
   Future<void> clearFilters() async {
     _filterStatus = null;
     _filterRating = null;
     _filterProductId = null;
+    _filterWithPhotos = false;
+    _filterVerified = false;
     _sortBy = 'created_at';
     _sortDirection = 'desc';
     await loadReviews();
@@ -326,7 +406,6 @@ class AdminReviewProvider extends ChangeNotifier {
   // MODÉRATION
   // ============================================
 
-  /// Approuve un avis.
   Future<bool> approveReview(int id) async {
     _status = AdminReviewStatus2.updating;
     notifyListeners();
@@ -342,13 +421,11 @@ class AdminReviewProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
       _status = AdminReviewStatus2.error;
-      debugPrint('Erreur approveReview: $e');
       notifyListeners();
       return false;
     }
   }
 
-  /// Rejette un avis.
   Future<bool> rejectReview(int id, {String? reason}) async {
     _status = AdminReviewStatus2.updating;
     notifyListeners();
@@ -364,13 +441,11 @@ class AdminReviewProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
       _status = AdminReviewStatus2.error;
-      debugPrint('Erreur rejectReview: $e');
       notifyListeners();
       return false;
     }
   }
 
-  /// Marque un avis comme spam.
   Future<bool> markAsSpam(int id) async {
     try {
       final success = await _repository.markReviewAsSpam(id);
@@ -385,7 +460,6 @@ class AdminReviewProvider extends ChangeNotifier {
     }
   }
 
-  /// Remet un avis en attente.
   Future<bool> resetToPending(int id) async {
     try {
       final success = await _repository.resetReviewStatus(id);
@@ -404,7 +478,6 @@ class AdminReviewProvider extends ChangeNotifier {
   // RÉPONSE ADMIN
   // ============================================
 
-  /// Répond à un avis.
   Future<bool> respondToReview(int reviewId, String response) async {
     try {
       final success = await _repository.respondToReview(reviewId, response);
@@ -426,7 +499,29 @@ class AdminReviewProvider extends ChangeNotifier {
     }
   }
 
-  /// Supprime la réponse admin.
+  /// Modifie la réponse admin existante.
+  Future<bool> updateAdminResponse(int reviewId, String response) async {
+    try {
+      final success =
+          await _repository.updateAdminResponse(reviewId, response);
+      if (success) {
+        final index = _reviews.indexWhere((r) => r.id == reviewId);
+        if (index != -1) {
+          _reviews[index] = _reviews[index].copyWith(
+            adminResponse: response,
+            adminResponseAt: DateTime.now(),
+          );
+          notifyListeners();
+        }
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> deleteAdminResponse(int reviewId) async {
     try {
       final success = await _repository.deleteAdminResponse(reviewId);
@@ -452,7 +547,6 @@ class AdminReviewProvider extends ChangeNotifier {
   // RECOMMANDATION
   // ============================================
 
-  /// Toggle la recommandation d'un avis.
   Future<bool> toggleRecommended(int id) async {
     final review = _reviews.firstWhere((r) => r.id == id,
         orElse: () => throw Exception('Avis introuvable'));
@@ -483,7 +577,6 @@ class AdminReviewProvider extends ChangeNotifier {
   // SUPPRESSION
   // ============================================
 
-  /// Supprime un avis.
   Future<bool> deleteReview(int id) async {
     try {
       final success = await _repository.deleteReview(id);
@@ -504,7 +597,6 @@ class AdminReviewProvider extends ChangeNotifier {
   // SÉLECTION
   // ============================================
 
-  /// Toggle la sélection.
   void toggleSelection(int id) {
     if (_selectedIds.contains(id)) {
       _selectedIds.remove(id);
@@ -514,27 +606,23 @@ class AdminReviewProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Sélectionne tout.
   void selectAll() {
     _selectedIds.clear();
     _selectedIds.addAll(_reviews.map((r) => r.id));
     notifyListeners();
   }
 
-  /// Efface la sélection.
   void clearSelection() {
     _selectedIds.clear();
     notifyListeners();
   }
 
-  /// Vérifie la sélection.
   bool isSelected(int id) => _selectedIds.contains(id);
 
   // ============================================
   // ACTIONS EN MASSE
   // ============================================
 
-  /// Approuve les avis sélectionnés.
   Future<int> bulkApproveSelected() async {
     final count = await _repository.bulkApproveReviews(selectedIds);
     _selectedIds.clear();
@@ -542,7 +630,6 @@ class AdminReviewProvider extends ChangeNotifier {
     return count;
   }
 
-  /// Rejette les avis sélectionnés.
   Future<int> bulkRejectSelected() async {
     final count = await _repository.bulkRejectReviews(selectedIds);
     _selectedIds.clear();
@@ -550,7 +637,6 @@ class AdminReviewProvider extends ChangeNotifier {
     return count;
   }
 
-  /// Supprime les avis sélectionnés.
   Future<int> bulkDeleteSelected() async {
     final count = await _repository.bulkDeleteReviews(selectedIds);
     _selectedIds.clear();
@@ -558,7 +644,6 @@ class AdminReviewProvider extends ChangeNotifier {
     return count;
   }
 
-  /// Marque comme spam les avis sélectionnés.
   Future<int> bulkMarkSpamSelected() async {
     final count = await _repository.bulkMarkAsSpam(selectedIds);
     _selectedIds.clear();
@@ -570,13 +655,50 @@ class AdminReviewProvider extends ChangeNotifier {
   // HELPERS PRIVÉS
   // ============================================
 
+  /// Normalise un avis (conversion AdminReviewModel → AdminReview).
+  AdminReview _normalizeReview(AdminReview review) {
+    if (review is AdminReviewModel) {
+      return AdminReview(
+        id: review.id,
+        title: review.title,
+        content: review.content,
+        createdAt: review.createdAt,
+        updatedAt: review.updatedAt,
+        rating: review.rating,
+        qualityRating: review.qualityRating,
+        priceRating: review.priceRating,
+        shippingRating: review.shippingRating,
+        userId: review.userId,
+        userName: review.userName,
+        userEmail: review.userEmail,
+        userAvatar: review.userAvatar,
+        productId: review.productId,
+        productName: review.productName,
+        productSku: review.productSku,
+        productImage: review.productImage,
+        status: review.status,
+        adminResponse: review.adminResponse,
+        adminResponseAt: review.adminResponseAt,
+        approvedAt: review.approvedAt,
+        isRecommended: review.isRecommended,
+        isVerifiedPurchase: review.isVerifiedPurchase,
+        helpfulCount: review.helpfulCount,
+        notHelpfulCount: review.notHelpfulCount,
+        viewsCount: review.viewsCount,
+        images: review.images,
+      );
+    }
+    return review;
+  }
+
   /// Met à jour le statut d'un avis dans la liste.
   void _updateReviewStatus(int id, AdminReviewStatus status) {
     final index = _reviews.indexWhere((r) => r.id == id);
     if (index != -1) {
       _reviews[index] = _reviews[index].copyWith(
         status: status,
-        approvedAt: status == AdminReviewStatus.approved ? DateTime.now() : null,
+        approvedAt:
+            status == AdminReviewStatus.approved ? DateTime.now() : null,
       );
       notifyListeners();
     }
@@ -597,7 +719,6 @@ class AdminReviewProvider extends ChangeNotifier {
   // RÉINITIALISATION
   // ============================================
 
-  /// Réinitialise le provider.
   void reset() {
     _status = AdminReviewStatus2.initial;
     _reviews = [];
@@ -607,10 +728,20 @@ class AdminReviewProvider extends ChangeNotifier {
     _filterStatus = null;
     _filterRating = null;
     _filterProductId = null;
+    _filterWithPhotos = false;
+    _filterVerified = false;
     _selectedIds.clear();
     _statusCounts = {};
     _ratingCounts = {};
     _averageRating = 0;
+    _isGroupedByProduct = false;
+    _groupedByProduct = [];
+    _statsByProduct = [];
+    notifyListeners();
+  }
+
+  void clearError() {
+    _errorMessage = null;
     notifyListeners();
   }
 
@@ -621,6 +752,7 @@ class AdminReviewProvider extends ChangeNotifier {
   @override
   String toString() {
     return 'AdminReviewProvider(status: $_status, reviews: ${_reviews.length}, '
-        'pending: $pendingCount, approved: $approvedCount, avg: ${_averageRating.toStringAsFixed(1)})';
+        'pending: $pendingCount, approved: $approvedCount, '
+        'withPhotos: $withPhotosCount, grouped: $_isGroupedByProduct)';
   }
 }

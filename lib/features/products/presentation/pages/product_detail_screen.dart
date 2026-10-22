@@ -4,6 +4,12 @@
 // Assemble galerie immersive, infos, variantes,
 // quantité, specs, avis (avec photos), produits
 // similaires et CTA sticky avec animations.
+//
+// ✅ Mode vendeur (isSellerPreview = true) :
+//   - Cache le bouton Favoris, Partager
+//   - Cache la bottom bar (Ajouter au panier)
+//   - Cache le bouton "Ajouter un avis"
+//   - Ne stocke pas le produit dans les "récemment vus"
 // ============================================
 
 import 'package:flutter/material.dart';
@@ -31,9 +37,15 @@ import '../../../favorites/domain/entities/favorite.dart';
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
 
+  /// Si `true`, l'écran est affiché en mode "aperçu vendeur".
+  /// - Cache les actions client (favoris, panier, ajout d'avis)
+  /// - Le vendeur voit exactement la même chose que le client
+  final bool isSellerPreview;
+
   const ProductDetailScreen({
     super.key,
     required this.productId,
+    this.isSellerPreview = false,
   });
 
   @override
@@ -48,7 +60,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   String? _errorMessage;
   Product? _product;
 
-  // 👈 NOUVEAU : liste des avis convertis pour l'UI
+  // Liste des avis convertis pour l'UI
   List<ReviewCardData> _reviews = [];
 
   @override
@@ -90,23 +102,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _isLoading = false;
       });
 
-      // Vérifier si le produit est déjà en favori
-      final favoriteProvider = context.read<FavoriteProvider>();
-      final isFav = await favoriteProvider.isFavorite(widget.productId);
+      // ✅ Vérifier si le produit est déjà en favori (uniquement côté client)
+      if (!widget.isSellerPreview) {
+        final favoriteProvider = context.read<FavoriteProvider>();
+        final isFav = await favoriteProvider.isFavorite(widget.productId);
 
-      if (mounted) {
-        setState(() {
-          _isFavorite = isFav;
-        });
+        if (mounted) {
+          setState(() {
+            _isFavorite = isFav;
+          });
+        }
       }
 
-      // Ajouter aux récemment consultés
-      await provider.addToRecentlyViewed(widget.productId);
+      // ✅ Ajouter aux récemment consultés (uniquement côté client)
+      if (!widget.isSellerPreview) {
+        await provider.addToRecentlyViewed(widget.productId);
+      }
 
-      // Charger les produits similaires
+      // Charger les produits similaires (utile pour les deux)
       await provider.loadSimilarProducts(widget.productId);
 
-      // 👈 NOUVEAU : charger les avis depuis l'API
+      // Charger les avis depuis l'API
       await _loadReviews();
     } catch (e) {
       setState(() {
@@ -117,7 +133,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   // ============================================
-  // CHARGEMENT DES AVIS (NOUVEAU)
+  // CHARGEMENT DES AVIS
   // ============================================
 
   Future<void> _loadReviews() async {
@@ -145,7 +161,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       try {
         final map = Map<String, dynamic>.from(item);
 
-        // Récupération du user (plusieurs formats possibles)
         String userName = 'Utilisateur';
         String? userAvatar;
 
@@ -157,7 +172,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           userName = map['user_name'].toString();
         }
 
-        // Récupération des images (liste d'URLs)
         final images = <String>[];
         if (map['images'] is List) {
           for (final img in map['images']) {
@@ -216,7 +230,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   // ============================================
-  // AJOUTER UN AVIS (NOUVEAU)
+  // AJOUTER UN AVIS
   // ============================================
 
   Future<void> _handleAddReview() async {
@@ -226,7 +240,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     final provider = context.read<ProductProvider>();
 
-    // Afficher un loader
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -248,11 +261,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     if (!mounted) return;
 
-    // Fermer le loader
     Navigator.of(context).pop();
 
     if (success) {
-      // Recharger les avis
       await _loadReviews();
 
       if (!mounted) return;
@@ -273,7 +284,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
       );
 
-      // Reset du statut
       provider.resetReviewStatus();
     } else {
       final error = provider.reviewError ?? 'Erreur lors de l\'envoi';
@@ -311,9 +321,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           : _errorMessage != null
               ? _buildErrorState()
               : _buildProductDetails(),
-      bottomNavigationBar: _product != null && !_isLoading
-          ? _buildBottomBar()
-          : null,
+      // ✅ Masquer la bottom bar en mode aperçu vendeur
+      bottomNavigationBar:
+          _product != null && !_isLoading && !widget.isSellerPreview
+              ? _buildBottomBar()
+              : null,
     );
   }
 
@@ -479,12 +491,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ),
                   ),
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => _toggleFavorite(product),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
+                  // ✅ Masquer les actions client (favoris + partage) en mode vendeur
+                  if (!widget.isSellerPreview)
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => _toggleFavorite(product),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 5,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              _isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              size: 18,
+                              color: _isFavorite
+                                  ? AppColors.error
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
@@ -497,40 +536,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                             ],
                           ),
-                          child: Icon(
-                            _isFavorite
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            size: 18,
-                            color: _isFavorite
-                                ? AppColors.error
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 5,
+                          child: Center(
+                            child: ShareButton(
+                              product: product,
+                              showLabel: false,
                             ),
-                          ],
-                        ),
-                        child: Center(
-                          child: ShareButton(
-                            product: product,
-                            showLabel: false,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -592,7 +606,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 const Divider(height: 1),
                 const SizedBox(height: 15),
 
-                // 👈 SECTION AVIS : utilise _reviews (vrais avis API) + _handleAddReview
+                // SECTION AVIS
                 ReviewsSection(
                   averageRating: product.averageRating,
                   totalReviews: product.reviewsCount,
@@ -609,7 +623,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       },
                     );
                   },
-                  onAddReview: _handleAddReview,
+                  // ✅ Masquer "Ajouter un avis" en mode aperçu vendeur
+                  onAddReview:
+                      widget.isSellerPreview ? null : _handleAddReview,
                 ),
 
                 const SizedBox(height: 20),
@@ -678,8 +694,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             child: ProductCard(
                               product: similarProduct,
                               onTap: (p) {
+                                // ✅ En mode aperçu, rester dans la même instance
                                 Navigator.of(context).pushReplacementNamed(
-                                  AppRoutes.productDetail,
+                                  widget.isSellerPreview
+                                      ? AppRoutes.sellerProductDetail
+                                      : AppRoutes.productDetail,
                                   arguments: {'product_id': p.id},
                                 );
                               },
@@ -696,14 +715,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
           const SizedBox(height: 25),
 
-          RecentlyViewedSection(
-            onProductTap: (product) {
-              Navigator.of(context).pushReplacementNamed(
-                AppRoutes.productDetail,
-                arguments: {'product_id': product.id},
-              );
-            },
-          ),
+          // ✅ Récemment vus : uniquement côté client
+          if (!widget.isSellerPreview)
+            RecentlyViewedSection(
+              onProductTap: (product) {
+                Navigator.of(context).pushReplacementNamed(
+                  AppRoutes.productDetail,
+                  arguments: {'product_id': product.id},
+                );
+              },
+            ),
 
           const SizedBox(height: 100),
         ],
@@ -712,7 +733,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   // ============================================
-  // DISTRIBUTION DES NOTES (calculée depuis _reviews)
+  // DISTRIBUTION DES NOTES
   // ============================================
 
   Map<int, int> _buildRatingDistribution() {
@@ -727,7 +748,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   // ============================================
-  // BOTTOM BAR STICKY
+  // BOTTOM BAR STICKY (uniquement côté client)
   // ============================================
 
   Widget _buildBottomBar() {
