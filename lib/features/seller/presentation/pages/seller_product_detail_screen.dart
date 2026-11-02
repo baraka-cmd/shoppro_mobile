@@ -35,6 +35,10 @@ import '../../../../routes/app_routes.dart';
 
 // Domain
 import '../../domain/entities/seller_product.dart';
+import '../../../products/domain/entities/product.dart';
+import '../../../products/domain/entities/category.dart';
+import '../../../products/domain/entities/brand.dart';
+import '../../../products/domain/entities/product_image.dart';
 
 // Products (client)
 import '../../../products/presentation/pages/product_detail_screen.dart';
@@ -322,6 +326,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
               child: ProductDetailScreen(
                 productId: widget.productId,
                 isSellerPreview: true,
+                initialProduct: _toClientProduct(_product!),
               ),
             ),
           ],
@@ -338,6 +343,70 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  Product _toClientProduct(SellerProduct product) {
+    final category = product.category;
+    final brand = product.brand;
+    return Product(
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      shortDescription: product.shortDescription,
+      description: product.description,
+      price: product.price,
+      discountPrice: product.discountPrice,
+      currentPrice: product.currentPrice,
+      discountPercentage: product.discountPercentage,
+      stock: product.stock,
+      isInStock: product.isInStock,
+      stockStatus: product.stockStatus,
+      minStock: product.minStock,
+      sku: product.sku,
+      barcode: product.barcode,
+      category: category == null
+          ? null
+          : Category(id: category.id, name: category.name, slug: category.slug, image: category.image),
+      brand: brand == null
+          ? null
+          : Brand(id: brand.id, name: brand.name, slug: brand.slug, logo: brand.logo),
+      images: product.images
+          .map((image) => ProductImage(
+                id: image.id,
+                url: product.resolveImageUrl(image.url),
+                thumbnail: image.thumbnail == null
+                    ? null
+                    : product.resolveImageUrl(image.thumbnail!),
+                isPrimary: image.isPrimary,
+                position: image.position,
+                caption: image.altText,
+                width: image.width,
+                height: image.height,
+              ))
+          .toList(),
+      mainImage: product.mainImage == null
+          ? null
+          : product.resolveImageUrl(product.mainImage!),
+      mainImageThumbnail: product.mainImageThumbnail == null
+          ? null
+          : product.resolveImageUrl(product.mainImageThumbnail!),
+      viewsCount: product.viewsCount,
+      salesCount: product.salesCount,
+      favoritesCount: product.favoritesCount,
+      averageRating: product.averageRating,
+      reviewsCount: product.reviewsCount,
+      isFeatured: product.isFeatured,
+      isNew: product.isNew,
+      isBestseller: product.isBestseller,
+      isOnSale: product.isOnSale,
+      isActive: product.isActive,
+      isAvailable: product.isAvailable,
+      availableFrom: product.availableFrom,
+      availableUntil: product.availableUntil,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      subcategoryId: product.subcategoryId,
     );
   }
 

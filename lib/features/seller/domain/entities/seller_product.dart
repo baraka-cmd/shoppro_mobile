@@ -1,6 +1,8 @@
 // ============================================
 // ENTITÉ : SellerProduct
 // ============================================
+
+import '../../../../core/constants/api_constants.dart';
 // Représente un produit côté vendeur.
 // Cette entité est une vue "vendeur" du produit,
 // qui inclut des champs supplémentaires (statut, actions possibles)
@@ -204,14 +206,43 @@ class SellerProduct {
   /// URL complète de l'image principale.
   String get fullMainImageUrl {
     if (mainImage == null || mainImage!.isEmpty) return '';
-    if (mainImage!.startsWith('http')) return mainImage!;
-    return 'http://127.0.0.1:8001/storage/$mainImage';
+    return resolveImageUrl(mainImage!);
+  }
+
+  /// Aligne les URLs locales générées par Laravel sur l'origine de l'API
+  /// configurée dans l'application (APP_URL peut contenir un ancien port).
+  String resolveImageUrl(String rawUrl) {
+    final value = rawUrl.trim();
+    if (value.isEmpty) return '';
+
+    final apiUri = Uri.parse(ApiConstants.baseUrl);
+    final imageUri = Uri.tryParse(value);
+    if (imageUri != null && imageUri.hasScheme) {
+      if (imageUri.host == 'localhost' ||
+          imageUri.host == '127.0.0.1' ||
+          imageUri.host == '0.0.0.0') {
+        return apiUri
+            .replace(
+              path: imageUri.path,
+              query: imageUri.hasQuery ? imageUri.query : null,
+            )
+            .toString();
+      }
+      return value;
+    }
+
+    final path = value.startsWith('/')
+        ? value
+        : value.startsWith('storage/')
+            ? '/$value'
+            : '/storage/$value';
+    return apiUri.replace(path: path).toString();
   }
 
   /// Toutes les URLs des images (pour la galerie).
   List<String> get allImageUrls {
     if (images.isNotEmpty) {
-      return images.map((img) => img.url).toList();
+      return images.map((img) => resolveImageUrl(img.url)).toList();
     }
     if (fullMainImageUrl.isNotEmpty) return [fullMainImageUrl];
     return [];
@@ -223,7 +254,7 @@ class SellerProduct {
       return fullMainImageUrl;
     }
     if (images.isNotEmpty) {
-      return images.first.url;
+      return resolveImageUrl(images.first.url);
     }
     return null;
   }

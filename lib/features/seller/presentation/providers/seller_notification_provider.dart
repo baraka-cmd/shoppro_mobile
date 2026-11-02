@@ -274,7 +274,9 @@ class SellerNotificationProvider extends ChangeNotifier {
           isRead: true,
           readAt: DateTime.now(),
         );
-        _notifications = newList;
+        _notifications = _filter == SellerNotificationFilter.unread
+            ? newList.where((notification) => notification.id != notificationId).toList()
+            : newList;
       }
 
       // Mettre à jour les stats

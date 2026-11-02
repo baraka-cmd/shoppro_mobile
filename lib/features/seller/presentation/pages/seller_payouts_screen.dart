@@ -89,7 +89,7 @@ class _SellerPayoutsScreenState extends State<SellerPayoutsScreen> {
   @override
   Widget build(BuildContext context) {
     return SellerScaffold(
-      currentIndex: 3,
+      currentIndex: 6,
       title: 'Mes gains',
       subtitle: 'Gérez vos versements',
       showBackButton: false,

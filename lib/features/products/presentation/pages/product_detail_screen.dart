@@ -36,6 +36,10 @@ import '../../../favorites/domain/entities/favorite.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
+  /// Produit déjà chargé par l’API vendeur. Les brouillons ne sont pas
+  /// présents dans le catalogue public et ne peuvent donc pas être résolus
+  /// depuis le cache client.
+  final Product? initialProduct;
 
   /// Si `true`, l'écran est affiché en mode "aperçu vendeur".
   /// - Cache les actions client (favoris, panier, ajout d'avis)
@@ -45,6 +49,7 @@ class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({
     super.key,
     required this.productId,
+    this.initialProduct,
     this.isSellerPreview = false,
   });
 
@@ -82,11 +87,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     try {
       final provider = context.read<ProductProvider>();
 
-      Product? product;
-      try {
-        product = provider.products.firstWhere((p) => p.id == widget.productId);
-      } catch (e) {
-        product = null;
+      Product? product = widget.initialProduct;
+      if (product == null) {
+        try {
+          product = provider.products.firstWhere((p) => p.id == widget.productId);
+        } catch (_) {
+          product = null;
+        }
       }
 
       if (product == null) {
@@ -119,11 +126,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         await provider.addToRecentlyViewed(widget.productId);
       }
 
-      // Charger les produits similaires (utile pour les deux)
-      await provider.loadSimilarProducts(widget.productId);
-
-      // Charger les avis depuis l'API
-      await _loadReviews();
+      // Les brouillons vendeurs ne sont pas dans l'API publique.
+      if (!widget.isSellerPreview) {
+        await provider.loadSimilarProducts(widget.productId);
+        await _loadReviews();
+      }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');

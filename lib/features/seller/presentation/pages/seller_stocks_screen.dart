@@ -96,7 +96,7 @@ class _SellerStocksScreenState extends State<SellerStocksScreen> {
   @override
   Widget build(BuildContext context) {
     return SellerScaffold(
-      currentIndex: 1,
+      currentIndex: 3,
       title: 'Mes stocks',
       subtitle: _buildSubtitle(),
       showBackButton: false,

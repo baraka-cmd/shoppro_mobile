@@ -6,7 +6,7 @@
 // Responsabilités :
 //   - AppBar vendeur (badge "Vendeur" + notifications + profil)
 //   - Drawer vendeur (menu complet)
-//   - BottomNavigationBar vendeur (5 onglets)
+//   - Navigation vendeur horizontale avec toutes les sections utiles
 //   - Gestion cohérente du SafeArea
 //
 // Design :
@@ -207,7 +207,7 @@ class _SellerScaffoldState extends State<SellerScaffold> {
         ),
         tooltip: 'Notifications',
         onPressed: () {
-          Navigator.of(context).pushNamed(AppRoutes.adminNotifications);
+          Navigator.of(context).pushNamed(AppRoutes.sellerNotifications);
         },
       ),
     ];
@@ -263,14 +263,29 @@ class _SellerScaffoldState extends State<SellerScaffold> {
                   _buildDrawerItem(
                     icon: Icons.bar_chart_outlined,
                     title: 'Statistiques',
+                    isActive: widget.currentIndex == 4,
+                    onTap: () => _handleDrawerNavigation(4),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.inventory_2_outlined,
+                    title: 'Gestion du stock',
                     isActive: widget.currentIndex == 3,
                     onTap: () => _handleDrawerNavigation(3),
                   ),
                   _buildDrawerItem(
-                    icon: Icons.person_outline,
-                    title: 'Mon profil',
-                    isActive: widget.currentIndex == 4,
-                    onTap: () => _handleDrawerNavigation(4),
+                    icon: Icons.rate_review_outlined,
+                    title: 'Avis clients',
+                    isActive: widget.currentIndex == 5,
+                    onTap: () => _handleDrawerNavigation(5),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.notifications_outlined,
+                    title: 'Notifications',
+                    isActive: widget.currentIndex == 7,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamed(AppRoutes.sellerNotifications);
+                    },
                   ),
 
                   const Padding(
@@ -281,17 +296,19 @@ class _SellerScaffoldState extends State<SellerScaffold> {
                   _buildDrawerItem(
                     icon: Icons.storefront_outlined,
                     title: 'Ma boutique',
+                    isActive: widget.currentIndex == 8,
                     onTap: () {
                       Navigator.of(context).pop();
-                      Navigator.of(context).pushNamed(AppRoutes.sellerProfile);
+                      _handleTabNavigation(8);
                     },
                   ),
                   _buildDrawerItem(
                     icon: Icons.payments_outlined,
                     title: 'Mes gains',
+                    isActive: widget.currentIndex == 6,
                     onTap: () {
                       Navigator.of(context).pop();
-                      Navigator.of(context).pushNamed(AppRoutes.sellerPayouts);
+                      _handleTabNavigation(6);
                     },
                   ),
                   _buildDrawerItem(
@@ -483,7 +500,9 @@ class _SellerScaffoldState extends State<SellerScaffold> {
         top: false,
         child: SizedBox(
           height: 62,
-          child: Row(
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             children: [
               _buildNavItem(
                 index: 0,
@@ -505,15 +524,39 @@ class _SellerScaffoldState extends State<SellerScaffold> {
               ),
               _buildNavItem(
                 index: 3,
+                icon: Icons.inventory_2_outlined,
+                activeIcon: Icons.inventory_2,
+                label: 'Stock',
+              ),
+              _buildNavItem(
+                index: 4,
                 icon: Icons.bar_chart_outlined,
                 activeIcon: Icons.bar_chart,
                 label: 'Stats',
               ),
               _buildNavItem(
-                index: 4,
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
-                label: 'Profil',
+                index: 5,
+                icon: Icons.rate_review_outlined,
+                activeIcon: Icons.rate_review,
+                label: 'Avis',
+              ),
+              _buildNavItem(
+                index: 6,
+                icon: Icons.payments_outlined,
+                activeIcon: Icons.payments,
+                label: 'Gains',
+              ),
+              _buildNavItem(
+                index: 7,
+                icon: Icons.notifications_outlined,
+                activeIcon: Icons.notifications,
+                label: 'Alertes',
+              ),
+              _buildNavItem(
+                index: 8,
+                icon: Icons.storefront_outlined,
+                activeIcon: Icons.storefront,
+                label: 'Boutique',
               ),
             ],
           ),
@@ -530,7 +573,8 @@ class _SellerScaffoldState extends State<SellerScaffold> {
   }) {
     final isActive = widget.currentIndex == index;
 
-    return Expanded(
+    return SizedBox(
+      width: 76,
       child: InkWell(
         onTap: () => _handleTabNavigation(index),
         child: Column(
@@ -585,8 +629,12 @@ class _SellerScaffoldState extends State<SellerScaffold> {
     0: AppRoutes.sellerDashboard,
     1: AppRoutes.sellerProducts,
     2: AppRoutes.sellerOrders,
-    3: AppRoutes.sellerStats,
-    4: AppRoutes.sellerProfile,
+    3: AppRoutes.sellerStocks,
+    4: AppRoutes.sellerStats,
+    5: AppRoutes.sellerReviews,
+    6: AppRoutes.sellerPayouts,
+    7: AppRoutes.sellerNotifications,
+    8: AppRoutes.sellerProfile,
   };
 
   /// Naviguer vers l'onglet demandé.
@@ -607,8 +655,6 @@ class _SellerScaffoldState extends State<SellerScaffold> {
     final route = _tabRoutes[index];
     if (route == null) return;
 
-    // Si l'onglet est "Profil" (index 4), on push (pas replace)
-    // pour pouvoir revenir au dashboard
     Navigator.of(context).pushReplacementNamed(route);
   }
 

@@ -90,7 +90,7 @@ class _SellerNotificationsScreenState extends State<SellerNotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return SellerScaffold(
-      currentIndex: 0,
+      currentIndex: 7,
       title: 'Notifications',
       subtitle: _buildSubtitle(),
       showBackButton: false,
@@ -741,7 +741,10 @@ class _SellerNotificationsScreenState extends State<SellerNotificationsScreen> {
   ) async {
     // Marquer comme lue
     if (notification.isUnread) {
-      await provider.markAsRead(notification.id);
+      final marked = await provider.markAsRead(notification.id);
+      if (!marked && mounted) {
+        _showError(provider.actionError ?? 'Impossible de marquer la notification comme lue.');
+      }
     }
 
     if (!mounted) return;
@@ -753,11 +756,18 @@ class _SellerNotificationsScreenState extends State<SellerNotificationsScreen> {
   }
 
   void _handleAction(SellerNotification notification) {
-    final url = notification.actionUrl!;
+    final url = notification.actionUrl ?? '';
+    final targetId = _actionTargetId(notification, url);
 
-    // Mapper les URLs vers les routes Flutter
     if (url.contains('/orders')) {
-      Navigator.of(context).pushNamed(AppRoutes.sellerOrders);
+      if (targetId != null) {
+        Navigator.of(context).pushNamed(
+          AppRoutes.sellerOrderDetail,
+          arguments: {'order_id': targetId},
+        );
+      } else {
+        Navigator.of(context).pushNamed(AppRoutes.sellerOrders);
+      }
     } else if (url.contains('/reviews')) {
       Navigator.of(context).pushNamed(AppRoutes.sellerReviews);
     } else if (url.contains('/stocks')) {
@@ -766,7 +776,34 @@ class _SellerNotificationsScreenState extends State<SellerNotificationsScreen> {
       Navigator.of(context).pushNamed(AppRoutes.sellerPayouts);
     } else if (url.contains('/profile')) {
       Navigator.of(context).pushNamed(AppRoutes.sellerProfile);
+    } else if (url.contains('/products') && targetId != null) {
+      Navigator.of(context).pushNamed(
+        AppRoutes.sellerProductDetail,
+        arguments: {'product_id': targetId},
+      );
+    } else {
+      Navigator.of(context).pushNamed(AppRoutes.sellerDashboard);
     }
+  }
+
+  int? _actionTargetId(SellerNotification notification, String url) {
+    final dataId = notification.orderId ??
+        notification.reviewId ??
+        notification.stockId ??
+        notification.payoutId ??
+        _parseInt(notification.data['product_id']) ??
+        _parseInt(notification.data['target_id']);
+    if (dataId != null) return dataId;
+
+    final match = RegExp(r'/(?:orders|reviews|products|payouts)/(\d+)')
+        .firstMatch(url);
+    return match == null ? null : int.tryParse(match.group(1)!);
+  }
+
+  int? _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return value is String ? int.tryParse(value) : null;
   }
 
   Future<void> _handleMarkAllRead(

@@ -95,7 +95,7 @@ class _SellerReviewsScreenState extends State<SellerReviewsScreen> {
   @override
   Widget build(BuildContext context) {
     return SellerScaffold(
-      currentIndex: 1,
+      currentIndex: 5,
       title: 'Mes avis clients',
       subtitle: _buildSubtitle(),
       showBackButton: false,

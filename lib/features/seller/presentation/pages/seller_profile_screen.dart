@@ -71,7 +71,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return SellerScaffold(
-      currentIndex: 4,
+      currentIndex: 8,
       title: 'Ma boutique',
       subtitle: 'Gérez votre profil vendeur',
       showBackButton: false,

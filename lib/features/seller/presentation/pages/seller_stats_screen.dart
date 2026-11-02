@@ -17,6 +17,7 @@ import '../../data/sources/seller_stats_api.dart';
 
 // Presentation
 import '../providers/seller_stats_provider.dart';
+import '../providers/seller_dashboard_provider.dart';
 import '../widgets/seller_scaffold.dart';
 
 // ============================================
@@ -40,6 +41,10 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
       if (provider.status == SellerStatsStatus.initial) {
         provider.loadAll();
       }
+      final dashboard = context.read<SellerDashboardProvider>();
+      if (dashboard.status == SellerDashboardStatus.initial) {
+        dashboard.loadDashboard();
+      }
     });
   }
 
@@ -50,7 +55,7 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
   @override
   Widget build(BuildContext context) {
     return SellerScaffold(
-      currentIndex: 3,
+      currentIndex: 4,
       title: 'Statistiques',
       subtitle: 'Analysez vos performances',
       showBackButton: false,
@@ -87,11 +92,12 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
       ],
       child: Consumer<SellerStatsProvider>(
         builder: (context, provider, _) {
+          final dashboardProvider = context.watch<SellerDashboardProvider>();
           return Column(
             children: [
               _buildPeriodSelector(provider),
 
-              Expanded(child: _buildContent(provider)),
+              Expanded(child: _buildContent(provider, dashboardProvider)),
             ],
           );
         },
@@ -151,7 +157,10 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
   // CONTENU PRINCIPAL
   // ============================================
 
-  Widget _buildContent(SellerStatsProvider provider) {
+  Widget _buildContent(
+    SellerStatsProvider provider,
+    SellerDashboardProvider dashboardProvider,
+  ) {
     if (provider.isLoading && !provider.hasAnyData) {
       return _buildSkeleton();
     }
@@ -193,6 +202,14 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
 
             const SizedBox(height: 20),
 
+            _buildOperationsCharts(dashboardProvider),
+
+            const SizedBox(height: 20),
+
+            _buildProductPerformanceChart(provider),
+
+            const SizedBox(height: 20),
+
             // ============================================
             // TOP PRODUITS
             // ============================================
@@ -213,6 +230,315 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
             _buildExportButton(provider),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildOperationsCharts(SellerDashboardProvider provider) {
+    final orders = provider.orders;
+    final products = provider.products;
+    final orderSegments = <_ChartSegment>[
+      _ChartSegment('À accepter', orders?.toAccept ?? 0, AppColors.warning),
+      _ChartSegment('À préparer', orders?.toPrepare ?? 0, AppColors.info),
+      _ChartSegment('À expédier', orders?.toShip ?? 0, const Color(0xFF8B5CF6)),
+      _ChartSegment('Expédiées', orders?.shipped ?? 0, const Color(0xFF06B6D4)),
+      _ChartSegment('Livrées', orders?.delivered ?? 0, AppColors.success),
+      _ChartSegment('Annulées', orders?.cancelled ?? 0, AppColors.error),
+    ];
+    final stockSegments = <_ChartSegment>[
+      _ChartSegment(
+        'En stock',
+        ((products?.active ?? 0) -
+                (products?.outOfStock ?? 0) -
+                (products?.lowStock ?? 0))
+            .clamp(0, 1 << 30)
+            .toInt(),
+        AppColors.success,
+      ),
+      _ChartSegment('Stock faible', products?.lowStock ?? 0, AppColors.warning),
+      _ChartSegment('Rupture', products?.outOfStock ?? 0, AppColors.error),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: Text(
+              'Vue opérationnelle',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildDonutCard(
+                  title: 'Commandes',
+                  centerLabel: '${orders?.total ?? 0}',
+                  segments: orderSegments,
+                  emptyMessage: provider.isLoading
+                      ? 'Chargement…'
+                      : 'Aucune commande',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildDonutCard(
+                  title: 'Stock produits',
+                  centerLabel: '${products?.active ?? 0}',
+                  segments: stockSegments,
+                  emptyMessage: provider.isLoading
+                      ? 'Chargement…'
+                      : 'Aucun produit actif',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductPerformanceChart(SellerStatsProvider provider) {
+    final products = provider.products.topProducts.take(5).toList();
+    final maxSold = products.fold<int>(
+      0,
+      (maximum, product) =>
+          product.quantitySold > maximum ? product.quantitySold : maximum,
+    );
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderColor.withValues(alpha: .6)),
+        boxShadow: AppColors.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Produits les plus vendus',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Articles vendus · ${provider.period.shortLabel}',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 10,
+              color: AppColors.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (products.isEmpty)
+            const SizedBox(
+              height: 56,
+              child: Center(
+                child: Text(
+                  'Aucune vente de produit sur cette période',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 11,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ),
+            )
+          else
+            ...products.map((product) {
+              final ratio = maxSold == 0 ? 0.0 : product.quantitySold / maxSold;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 13),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${product.quantitySold} vendu(s)',
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(99),
+                      child: LinearProgressIndicator(
+                        value: ratio,
+                        minHeight: 7,
+                        backgroundColor: AppColors.surfaceAlt,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.warning,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDonutCard({
+    required String title,
+    required String centerLabel,
+    required List<_ChartSegment> segments,
+    required String emptyMessage,
+  }) {
+    final visibleSegments = segments
+        .where((segment) => segment.value > 0)
+        .toList();
+    final total = visibleSegments.fold<int>(
+      0,
+      (sum, segment) => sum + segment.value,
+    );
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderColor.withValues(alpha: .6)),
+        boxShadow: AppColors.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 112,
+            child: total == 0
+                ? Center(
+                    child: Text(
+                      emptyMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  )
+                : Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      PieChart(
+                        PieChartData(
+                          sectionsSpace: 3,
+                          centerSpaceRadius: 31,
+                          sections: visibleSegments
+                              .map(
+                                (segment) => PieChartSectionData(
+                                  value: segment.value.toDouble(),
+                                  color: segment.color,
+                                  radius: 14,
+                                  showTitle: false,
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                      Text(
+                        centerLabel,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+          const SizedBox(height: 8),
+          ...visibleSegments.map(
+            (segment) => Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: segment.color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      segment.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 9,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${segment.value}',
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -307,10 +633,7 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
                 child: Icon(icon, size: 16, color: color),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: isPositive
                       ? AppColors.successLight
@@ -421,10 +744,7 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.warning.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -457,10 +777,7 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
               ),
             )
           else
-            SizedBox(
-              height: 200,
-              child: _buildChart(timeline),
-            ),
+            SizedBox(height: 200, child: _buildChart(timeline)),
         ],
       ),
     );
@@ -558,7 +875,7 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
         ),
         borderData: FlBorderData(show: false),
         minX: 0,
-        maxX: (displayTimeline.length - 1).toDouble(),
+        maxX: (displayTimeline.length - 1).clamp(1, 1 << 30).toDouble(),
         minY: 0,
         maxY: maxRevenue * 1.15,
         lineBarsData: [
@@ -976,10 +1293,7 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.warning.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -1069,7 +1383,9 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
                 )
               : const Icon(Icons.download_rounded, size: 20),
           label: Text(
-            provider.isExporting ? 'Export en cours...' : 'Exporter les données',
+            provider.isExporting
+                ? 'Export en cours...'
+                : 'Exporter les données',
             style: const TextStyle(
               fontFamily: 'Poppins',
               fontSize: 14,
@@ -1238,10 +1554,7 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
   // ACTIONS EXPORT
   // ============================================
 
-  Future<void> _performExport(
-    SellerStatsProvider provider,
-    String type,
-  ) async {
+  Future<void> _performExport(SellerStatsProvider provider, String type) async {
     final result = type == 'orders'
         ? await provider.exportOrders()
         : await provider.exportProducts();
@@ -1523,8 +1836,8 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () => Navigator.of(context)
-                  .pushNamed(AppRoutes.sellerProfile),
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.sellerProfile),
               icon: const Icon(Icons.person_outline_rounded, size: 18),
               label: const Text(
                 'Voir mon profil',
@@ -1594,10 +1907,9 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  AppRoutes.login,
-                  (route) => false,
-                );
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
               },
               icon: const Icon(Icons.login_rounded, size: 18),
               label: const Text(
@@ -1633,14 +1945,19 @@ class _SellerStatsScreenState extends State<SellerStatsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(fontFamily: 'Poppins'),
-        ),
+        content: Text(message, style: const TextStyle(fontFamily: 'Poppins')),
         backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
       ),
     );
   }
+}
+
+class _ChartSegment {
+  final String label;
+  final int value;
+  final Color color;
+
+  const _ChartSegment(this.label, this.value, this.color);
 }

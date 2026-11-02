@@ -205,12 +205,12 @@ class SellerNotificationApi {
   // READ ALL — TOUT MARQUER COMME LU
   // ============================================
 
-  /// POST /seller/notifications/read-all
+  /// POST /seller/notifications/mark-all-read
   ///
   /// Marque toutes les notifications comme lues.
   Future<SellerReadAllResult> markAllAsRead() async {
     try {
-      final response = await _dio.post('/seller/notifications/read-all');
+      final response = await _dio.post('/seller/notifications/mark-all-read');
 
       final body = response.data;
 

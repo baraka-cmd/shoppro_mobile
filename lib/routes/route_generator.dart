@@ -148,6 +148,7 @@ import '../features/seller/presentation/pages/seller_order_detail_screen.dart';
 import '../features/seller/presentation/pages/seller_reviews_screen.dart';
 import '../features/seller/presentation/pages/seller_stocks_screen.dart';
 import '../features/seller/presentation/pages/seller_stats_screen.dart';
+import '../features/seller/presentation/pages/seller_account_profile_screen.dart';
 import '../features/seller/presentation/pages/seller_profile_screen.dart';
 
 import '../features/seller/presentation/pages/seller_notifications_screen.dart';
@@ -582,6 +583,19 @@ case AppRoutes.about:
           page: SellerProductFormScreen(product: product),
         );
 
+      case AppRoutes.sellerProductDetail:
+        final productId = arguments?['product_id'] as int?;
+        if (productId == null || productId <= 0) {
+          return _buildRoute(
+            settings: settings,
+            page: const SellerProductsScreen(),
+          );
+        }
+        return _buildRoute(
+          settings: settings,
+          page: SellerProductDetailScreen(productId: productId),
+        );
+
       case AppRoutes.sellerOrders:
         return _buildRoute(
           settings: settings,
@@ -602,6 +616,36 @@ case AppRoutes.about:
         return _buildRoute(
           settings: settings,
           page: const SellerStatsScreen(),
+        );
+
+      case AppRoutes.sellerAccountProfile:
+        return _buildRoute(
+          settings: settings,
+          page: const SellerAccountProfileScreen(),
+        );
+
+      case AppRoutes.sellerProfile:
+        return _buildRoute(
+          settings: settings,
+          page: const SellerProfileScreen(),
+        );
+
+      case AppRoutes.sellerNotifications:
+        return _buildRoute(
+          settings: settings,
+          page: const SellerNotificationsScreen(),
+        );
+
+      case AppRoutes.sellerReviews:
+        return _buildRoute(
+          settings: settings,
+          page: const SellerReviewsScreen(),
+        );
+
+      case AppRoutes.sellerPayouts:
+        return _buildRoute(
+          settings: settings,
+          page: const SellerPayoutsScreen(),
         );
 
       // ============================================

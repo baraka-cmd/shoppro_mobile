@@ -179,6 +179,7 @@ static const String sellerOrderDetail = '/seller/orders/detail';
 static const String sellerReviews = '/seller/reviews';
 static const String sellerStocks = '/seller/stocks';
 static const String sellerStats = '/seller/stats';
+static const String sellerAccountProfile = '/seller/account-profile';
 static const String sellerProfile = '/seller/profile';
 static const String sellerNotifications = '/seller/notifications';
 
